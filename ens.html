@@ -1,0 +1,3455 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>opentools-ENS域名批量工具</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: #3B82F6;
+            --success-color: #10B981;
+            --warning-color: #F59E0B;
+            --danger-color: #EF4444;
+            --info-color: #6366F1;
+            --bg-color: #F3F4F6;
+            --card-bg: #FFFFFF;
+            --text-primary: #111827;
+            --text-secondary: #6B7280;
+            --border-color: #E5E7EB;
+            --header-bg: linear-gradient(135deg, #3B82F6, #8B5CF6);
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            --modal-overlay: rgba(0, 0, 0, 0.5);
+            --contact-bg: rgba(59, 130, 246, 0.05);
+        }
+
+        .dark-theme {
+            --bg-color: #1F2937;
+            --card-bg: #374151;
+            --text-primary: #F9FAFB;
+            --text-secondary: #D1D5DB;
+            --border-color: #4B5563;
+            --header-bg: linear-gradient(135deg, #1E40AF, #5B21B6);
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            --modal-overlay: rgba(0, 0, 0, 0.7);
+            --contact-bg: rgba(59, 130, 246, 0.15);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background: var(--bg-color);
+            color: var(--text-primary);
+            transition: background-color 0.3s, color 0.3s;
+            width: 100%;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 10px;
+        }
+
+        .header {
+            background: var(--header-bg);
+            color: white;
+            padding: 0.8rem 1rem;
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);
+            position: relative;
+            text-align: center;
+            min-height: 70px;
+        }
+
+        .header h1 {
+            font-size: 1.3rem;
+            margin: 0;
+            padding: 0 160px;
+            word-break: break-word;
+            line-height: 1.4;
+        }
+
+        .header-buttons {
+            position: absolute;
+            top: 50%;
+            right: 1rem;
+            transform: translateY(-50%);
+            display: flex;
+            gap: 8px;
+            z-index: 20;
+        }
+
+        .theme-switcher, .lang-switcher {
+            display: flex;
+            gap: 2px;
+            padding: 3px;
+            border-radius: 30px;
+            background: rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .theme-btn, .lang-btn {
+            background: transparent;
+            border: none;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 24px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            transition: all 0.2s ease;
+            min-width: 48px;
+            border: 1px solid transparent;
+        }
+
+        .lang-btn {
+            min-width: 42px;
+            padding: 6px 8px;
+        }
+
+        .theme-btn i, .lang-btn i {
+            font-size: 0.85rem;
+        }
+
+        .theme-btn:hover, .lang-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .theme-btn.active, .lang-btn.active {
+            background: white;
+            color: var(--primary-color);
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .dark-theme .theme-switcher,
+        .dark-theme .lang-switcher {
+            background: rgba(0, 0, 0, 0.3);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .dark-theme .theme-btn.active,
+        .dark-theme .lang-btn.active {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        @media (max-width: 992px) {
+            .header h1 {
+                font-size: 1.2rem;
+                padding: 0 140px;
+            }
+            .theme-btn, .lang-btn {
+                padding: 5px 10px;
+                font-size: 0.75rem;
+                min-width: 42px;
+            }
+            .lang-btn {
+                min-width: 38px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                padding: 0.8rem 0.8rem;
+            }
+            .header h1 {
+                font-size: 1.1rem;
+                padding: 0 10px;
+                margin-top: 45px;
+            }
+            .header-buttons {
+                position: absolute;
+                top: 8px;
+                right: 8px;
+                left: 8px;
+                transform: none;
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+            .theme-switcher, .lang-switcher {
+                padding: 2px;
+            }
+            .theme-btn, .lang-btn {
+                padding: 4px 8px;
+                font-size: 0.7rem;
+                min-width: 36px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 1rem;
+                margin-top: 55px;
+            }
+            .header-buttons {
+                flex-direction: column;
+                align-items: center;
+                gap: 4px;
+            }
+            .theme-switcher, .lang-switcher {
+                width: 100%;
+                justify-content: center;
+            }
+            .theme-btn, .lang-btn {
+                padding: 4px 6px;
+                font-size: 0.65rem;
+                min-width: 32px;
+                flex: 1;
+            }
+            .lang-btn {
+                min-width: 30px;
+            }
+        }
+
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+
+        @media (min-width: 1200px) {
+            .container {
+                max-width: 1600px;
+                padding: 15px;
+            }
+            .main-content {
+                flex-direction: row;
+            }
+            .main-panel {
+                flex: 1;
+            }
+            .right-panel {
+                width: 380px;
+            }
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 10px;
+            padding: 1rem;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+            width: 100%;
+            margin-bottom: 0.8rem;
+        }
+
+        .card-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.8rem;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            flex-wrap: wrap;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+        }
+
+        .card-title i {
+            color: var(--primary-color);
+        }
+
+        .domains-textarea {
+            width: 100%;
+            height: 100px;
+            padding: 0.6rem;
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            font-family: 'Consolas', monospace;
+            font-size: 0.9rem;
+            resize: vertical;
+            background: var(--card-bg);
+            color: var(--text-primary);
+            margin-bottom: 0.6rem;
+        }
+
+        .radio-group {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin: 0.4rem 0 0.6rem 0;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 0.5rem;
+            background: var(--bg-color);
+            border-radius: 6px;
+        }
+
+        .domains-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+            margin-top: 0.3rem;
+        }
+
+        @media (min-width: 768px) {
+            .domains-info {
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+            }
+        }
+
+        .domains-count {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 0.6rem;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.3rem;
+            font-size: 0.9rem;
+            height: 38px;
+            min-width: 75px;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-primary { background: var(--primary-color); color: white; }
+        .btn-success { background: var(--success-color); color: white; }
+        .btn-warning { background: var(--warning-color); color: white; }
+        .btn-danger { background: var(--danger-color); color: white; }
+        .btn-secondary { background: var(--text-secondary); color: white; }
+        .btn-info { background: var(--info-color); color: white; }
+
+        .btn i {
+            font-size: 0.95rem;
+        }
+
+        @media (max-width: 768px) {
+            .btn {
+                font-size: 0.85rem;
+                height: 36px;
+                min-width: 70px;
+                padding: 0.45rem 0.9rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .btn {
+                font-size: 0.8rem;
+                padding: 0.4rem 0.8rem;
+                height: 34px;
+                min-width: 65px;
+            }
+        }
+
+        .query-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+            gap: 0.6rem;
+            margin: 0.5rem 0;
+            padding: 0.8rem;
+            background: var(--bg-color);
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.2rem;
+            background: var(--card-bg);
+            padding: 0.6rem 0.5rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+        }
+
+        .control-label {
+            color: var(--text-secondary);
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+
+        .control-input {
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 0.4rem 0.5rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+            background: var(--card-bg);
+            color: var(--text-primary);
+            height: 36px;
+            width: 100%;
+            transition: all 0.2s;
+        }
+
+        .control-input:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            outline: none;
+        }
+
+        .rpc-select-container {
+            grid-column: 1 / -1;
+            margin-top: 0.2rem;
+        }
+
+        .rpc-select-container .control-group {
+            background: rgba(59, 130, 246, 0.03);
+            border-color: var(--primary-color);
+            border-width: 2px;
+            padding: 0.7rem 0.6rem;
+        }
+
+        .rpc-select-container .control-label {
+            color: var(--primary-color);
+            font-size: 0.75rem;
+        }
+
+        .rpc-select {
+            border: 1px solid var(--primary-color);
+            border-radius: 6px;
+            padding: 0.4rem 0.5rem;
+            font-size: 0.95rem;
+            font-weight: 500;
+            background: var(--card-bg);
+            color: var(--primary-color);
+            height: 36px;
+            width: 100%;
+            cursor: pointer;
+        }
+
+        .dark-theme .control-group {
+            background: var(--card-bg);
+            border-color: var(--border-color);
+        }
+
+        .dark-theme .rpc-select-container .control-group {
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        @media (max-width: 768px) {
+            .query-controls {
+                grid-template-columns: 1fr 1fr;
+                gap: 0.5rem;
+                padding: 0.5rem;
+            }
+            
+            .control-group {
+                display: flex;
+                flex-direction: row;
+                align-items: center;
+                justify-content: space-between;
+                padding: 0.4rem 0.6rem;
+                height: 44px;
+                width: 100%;
+                box-sizing: border-box;
+            }
+            
+            .control-label {
+                margin-bottom: 0;
+                font-size: 0.7rem;
+                white-space: nowrap;
+                flex-shrink: 0;
+                margin-right: 0.3rem;
+            }
+            
+            .control-input {
+                width: 70px;
+                height: 30px;
+                font-size: 0.8rem;
+                padding: 0.2rem 0.3rem;
+                text-align: center;
+                flex-shrink: 0;
+            }
+            
+            .control-group:has(#batchSize) {
+                grid-column: 1 / -1;
+                justify-content: flex-start;
+                gap: 1rem;
+                height: 44px;
+            }
+            
+            .control-group:has(#batchSize) .control-label {
+                margin-right: 0;
+            }
+            
+            .control-group:has(#batchSize) .control-input {
+                width: 70px;
+            }
+            
+            .rpc-select-container {
+                grid-column: 1 / -1;
+            }
+            
+            .rpc-select-container .control-group {
+                background: rgba(59, 130, 246, 0.05);
+                border-color: var(--primary-color);
+                border-width: 2px;
+                height: 44px;
+                justify-content: space-between;
+                padding: 0.4rem 0.6rem;
+            }
+            
+            .rpc-select-container .control-label {
+                color: var(--primary-color);
+                font-weight: 600;
+                font-size: 0.75rem;
+            }
+            
+            .rpc-select {
+                width: 65%;
+                height: 30px;
+                font-size: 0.75rem;
+                padding: 0.2rem 0.4rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .query-controls {
+                gap: 0.4rem;
+                padding: 0.4rem;
+            }
+            
+            .control-group,
+            .control-group:has(#batchSize),
+            .rpc-select-container .control-group {
+                height: 42px;
+                padding: 0.3rem 0.5rem;
+            }
+            
+            .control-input,
+            .control-group:has(#batchSize) .control-input,
+            .rpc-select {
+                height: 28px;
+                font-size: 0.75rem;
+            }
+            
+            .control-input {
+                width: 60px;
+            }
+            
+            .control-group:has(#batchSize) .control-input {
+                width: 60px;
+            }
+            
+            .control-label {
+                font-size: 0.65rem;
+            }
+            
+            .rpc-select {
+                width: 60%;
+            }
+        }
+
+        .progress-container {
+            width: 100%;
+            margin: 0.2rem 0;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.2rem;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .progress-bar {
+            height: 4px;
+            background: var(--border-color);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--primary-color);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .progress-footer {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 0.2rem;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.6rem;
+            padding: 0.8rem;
+            background: var(--bg-color);
+            border-radius: 8px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-group label {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .filter-select {
+            padding: 0.4rem 0.7rem;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--card-bg);
+            color: var(--text-primary);
+            font-size: 0.85rem;
+            min-width: 100px;
+            height: 36px;
+            cursor: pointer;
+        }
+
+        .filter-select:hover {
+            border-color: var(--primary-color);
+        }
+
+        .btn-filter-clear {
+            padding: 0.4rem 0.8rem;
+            height: 36px;
+            font-size: 0.85rem;
+        }
+
+        @media (max-width: 768px) {
+            .filters {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 0.5rem;
+                padding: 0.5rem;
+                width: 100%;
+            }
+            
+            .filter-group {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                background: var(--card-bg);
+                border: 1px solid var(--border-color);
+                border-radius: 6px;
+                padding: 0.4rem 0.6rem;
+                height: 44px;
+                width: 100%;
+                box-sizing: border-box;
+                gap: 0;
+            }
+            
+            .filter-group label {
+                font-size: 0.75rem;
+                color: var(--text-secondary);
+                white-space: nowrap;
+                flex-shrink: 0;
+                margin-right: 0.3rem;
+                width: auto;
+            }
+            
+            .filter-select {
+                flex: 1;
+                min-width: 0;
+                width: auto;
+                height: 30px;
+                font-size: 0.75rem;
+                padding: 0.2rem 0.4rem;
+            }
+            
+            .filter-group:has(#filterSort) {
+                grid-column: 1 / -1;
+                justify-content: space-between;
+            }
+            
+            .filter-group:has(#filterSearch) {
+                grid-column: 1 / -1;
+                justify-content: space-between;
+            }
+            
+            .filter-group:has(#filterSearch) .filter-select {
+                flex: 1;
+            }
+            
+            .btn-filter-clear {
+                grid-column: 1 / -1;
+                width: auto;
+                min-width: 100px;
+                max-width: 150px;
+                height: 36px;
+                margin: 0 auto;
+                padding: 0 1rem;
+                font-size: 0.8rem;
+                white-space: nowrap;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .filters {
+                gap: 0.4rem;
+                padding: 0.4rem;
+            }
+            
+            .filter-group {
+                height: 42px;
+                padding: 0.3rem 0.5rem;
+            }
+            
+            .filter-group label {
+                font-size: 0.7rem;
+            }
+            
+            .filter-select {
+                height: 28px;
+                font-size: 0.7rem;
+            }
+            
+            .btn-filter-clear {
+                height: 34px;
+                font-size: 0.75rem;
+                min-width: 90px;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .filters {
+                grid-template-columns: 1fr;
+            }
+            
+            .filter-group {
+                grid-column: 1 / -1;
+            }
+        }
+
+        .results-table-container {
+            max-height: 400px;
+            overflow-x: auto;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            -webkit-overflow-scrolling: touch;
+            position: relative;
+            isolation: isolate;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            min-width: 1100px;
+        }
+
+        th {
+            position: sticky;
+            top: 0;
+            background: var(--primary-color);
+            color: white;
+            padding: 0.6rem 0.5rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-align: center;
+            white-space: nowrap;
+            z-index: 10;
+        }
+
+        td {
+            padding: 0.5rem 0.3rem;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.85rem;
+            height: 32px;
+            line-height: 32px;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            position: relative;
+        }
+
+        th:nth-child(1), td:nth-child(1) { width: 50px; }
+        th:nth-child(2), td:nth-child(2) { width: 110px; }
+        th:nth-child(3), td:nth-child(3) { width: 100px; }
+        th:nth-child(4), td:nth-child(4) { width: 80px; }
+        th:nth-child(5), td:nth-child(5) { width: 150px; }
+        th:nth-child(6), td:nth-child(6) { width: 150px; }
+        th:nth-child(7), td:nth-child(7) { width: 150px; }
+        th:nth-child(8), td:nth-child(8) { width: 180px; }
+        th:nth-child(9), td:nth-child(9) { width: 60px; }
+
+        td:nth-child(8) {
+            padding: 0 !important;
+            margin: 0 !important;
+            text-align: left !important;
+            overflow: visible;
+            width: 180px;
+        }
+
+        .address-wrapper {
+            width: 100%;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: flex-start !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            border-radius: 0 !important;
+            overflow: hidden !important;
+            background: transparent !important;
+            line-height: 1 !important;
+            height: 100% !important;
+        }
+
+        .short-address {
+            font-family: 'Consolas', monospace !important;
+            color: var(--text-primary) !important;
+            font-size: 0.85rem !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: flex-start !important;
+            gap: 0 !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            max-width: 100% !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            line-height: 1 !important;
+            height: 100% !important;
+            background: transparent !important;
+        }
+
+        .address-text {
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            flex: 0 1 auto !important;
+            min-width: 0 !important;
+            max-width: 120px !important;
+            font-size: 0.85rem !important;
+            cursor: pointer !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            color: var(--text-primary) !important;
+            text-decoration: none !important;
+            display: inline-block !important;
+            line-height: 1 !important;
+            background: transparent !important;
+            border: none !important;
+            white-space: nowrap !important;
+        }
+
+        .address-text:hover {
+            opacity: 0.8;
+        }
+
+        .address-count {
+            background: var(--primary-color) !important;
+            color: white !important;
+            border-radius: 10px !important;
+            padding: 0 3px !important;
+            font-size: 0.7rem !important;
+            line-height: 1.4 !important;
+            font-weight: 600 !important;
+            flex-shrink: 0 !important;
+            margin: 0 0 0 2px !important;
+            min-width: 16px !important;
+            text-align: center !important;
+            cursor: pointer !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+        }
+
+        .address-count:hover {
+            opacity: 0.8;
+        }
+
+        .address-clear {
+            color: var(--danger-color) !important;
+            font-size: 0.7rem !important;
+            margin: 0 0 0 2px !important;
+            cursor: pointer !important;
+            opacity: 0.6 !important;
+            flex-shrink: 0 !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 14px !important;
+            height: 14px !important;
+            padding: 0 !important;
+            border: none !important;
+            outline: none !important;
+            background: transparent !important;
+        }
+
+        .address-clear:hover {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+
+        .address-highlight {
+            background-color: rgba(59, 130, 246, 0.15);
+            border-radius: 3px;
+            padding: 1px 2px;
+        }
+
+        .view-link {
+            display: inline-block;
+            padding: 4px 8px;
+            background: var(--primary-color);
+            color: white !important;
+            border-radius: 4px;
+            text-decoration: none;
+            font-size: 0.75rem;
+            text-align: center;
+            width: 100%;
+            white-space: nowrap;
+            pointer-events: auto;
+        }
+
+        .view-link:hover {
+            background: #2563EB;
+        }
+
+        .retry-icon {
+            cursor: pointer;
+            font-size: 0.8rem;
+            color: var(--warning-color);
+            transition: all 0.2s ease;
+            margin-left: 4px;
+            display: inline-block;
+        }
+
+        .retry-icon:hover {
+            transform: rotate(180deg) scale(1.1);
+            color: var(--primary-color);
+        }
+
+        .retry-icon:active {
+            transform: rotate(180deg) scale(0.9);
+        }
+
+        td:nth-child(3) span {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .pagination {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-top: 0.8rem;
+        }
+
+        @media (min-width: 768px) {
+            .pagination {
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+            }
+        }
+
+        .pagination-right {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .page-btn {
+            padding: 0.4rem 0.6rem;
+            border: 1px solid var(--border-color);
+            background: var(--card-bg);
+            color: var(--text-primary);
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        .page-input {
+            width: 50px;
+            padding: 0.4rem;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            text-align: center;
+            background: var(--card-bg);
+            color: var(--text-primary);
+            font-size: 0.8rem;
+        }
+
+        .rpc-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+            max-height: 160px;
+            overflow-y: auto;
+            padding: 0.6rem;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            margin-bottom: 0.8rem;
+        }
+
+        .rpc-item {
+            padding: 0.4rem;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.8rem;
+            border-bottom: 1px dashed var(--border-color);
+        }
+
+        .rpc-item.current {
+            background: rgba(59, 130, 246, 0.1);
+            border-left: 3px solid var(--primary-color);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.8rem;
+            margin-top: 0.5rem;
+        }
+
+        .stat-item {
+            background: var(--bg-color);
+            padding: 0.6rem;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .stat-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-color: var(--primary-color);
+        }
+
+        .stat-value {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .log-container {
+            background: #1F2937;
+            color: #D1D5DB;
+            padding: 0.8rem;
+            border-radius: 6px;
+            font-family: 'Consolas', monospace;
+            font-size: 0.75rem;
+            max-height: 120px;
+            overflow-y: auto;
+            margin-bottom: 0.8rem;
+        }
+
+        .log-entry {
+            padding: 0.2rem 0;
+            border-bottom: 1px solid #374151;
+        }
+
+        .contact-section {
+            background: var(--contact-bg);
+            border-radius: 8px;
+            padding: 0.8rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .contact-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .contact-item {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        .contact-item:hover {
+            background: var(--bg-color);
+        }
+
+        .contact-icon {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 1.5rem;
+            padding: 1rem 0.5rem 0.5rem;
+            border-top: 1px solid var(--border-color);
+            color: var(--text-secondary);
+        }
+
+        .footer-main {
+            font-size: 0.85rem;
+            margin-bottom: 0.3rem;
+        }
+
+        .footer-keywords {
+            font-size: 0.7rem;
+            opacity: 0.7;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.3rem 0.8rem;
+            justify-content: center;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--modal-overlay);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(3px);
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 1.5rem;
+            max-width: 95%;
+            width: 850px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .modal-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        .modal-close {
+            background: var(--danger-color);
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+        }
+
+        .rpc-status-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            table-layout: fixed;
+        }
+
+        .rpc-status-table th,
+        .rpc-status-table td {
+            padding: 0.5rem 0.4rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .rpc-status-table th:nth-child(1),
+        .rpc-status-table td:nth-child(1) {
+            width: 25%;
+        }
+
+        .rpc-status-table th:nth-child(2),
+        .rpc-status-table td:nth-child(2) {
+            width: 10%;
+        }
+
+        .rpc-status-table th:nth-child(3),
+        .rpc-status-table td:nth-child(3) {
+            width: 10%;
+        }
+
+        .rpc-status-table th:nth-child(4),
+        .rpc-status-table td:nth-child(4) {
+            width: 15%;
+        }
+
+        .rpc-status-table th:nth-child(5),
+        .rpc-status-table td:nth-child(5) {
+            width: 15%;
+        }
+
+        .rpc-status-table th:nth-child(6),
+        .rpc-status-table td:nth-child(6) {
+            width: 25%;
+        }
+
+        @media (max-width: 768px) {
+            .modal-content {
+                width: 95%;
+                padding: 1rem;
+            }
+            
+            .rpc-status-table {
+                font-size: 0.7rem;
+            }
+            
+            .rpc-status-table th,
+            .rpc-status-table td {
+                padding: 0.4rem 0.2rem;
+            }
+            
+            .rpc-status-table th:nth-child(1),
+            .rpc-status-table td:nth-child(1) {
+                width: 30%;
+            }
+            
+            .rpc-status-table th:nth-child(4),
+            .rpc-status-table td:nth-child(4) {
+                width: 18%;
+            }
+        }
+
+        .back-to-top, .download-btn {
+            position: fixed;
+            right: 15px;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            color: white;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+            font-size: 1.1rem;
+        }
+
+        .back-to-top {
+            bottom: 20px;
+            background: var(--primary-color);
+        }
+
+        .download-btn {
+            bottom: 75px;
+            background: var(--success-color);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <button class="back-to-top" id="backToTop"><i class="fas fa-chevron-up"></i></button>
+        <button class="download-btn" id="exportBtn" onclick="exportToCSV()" disabled><i class="fas fa-download"></i></button>
+
+        <div class="header">
+            <div class="header-buttons">
+                <div class="theme-switcher">
+                    <button class="theme-btn active" data-theme="light"><i class="fas fa-sun"></i> <span data-i18n="themeLight">浅色</span></button>
+                    <button class="theme-btn" data-theme="dark"><i class="fas fa-moon"></i> <span data-i18n="themeDark">深色</span></button>
+                    <button class="theme-btn" data-theme="auto"><i class="fas fa-desktop"></i> <span data-i18n="themeAuto">自动</span></button>
+                </div>
+                <div class="lang-switcher">
+                    <button class="lang-btn active" data-lang="zh"><span>🇨🇳</span> <span data-i18n="langZh">ZH</span></button>
+                    <button class="lang-btn" data-lang="en"><span>🇬🇧</span> <span data-i18n="langEn">EN</span></button>
+                </div>
+            </div>
+            <h1><i class="fas fa-search"></i> <span data-i18n="title">ENS域名批量查询工具</span></h1>
+        </div>
+
+        <div class="main-content">
+            <div class="main-panel">
+                <div class="card">
+                    <h3 class="card-title"><i class="fas fa-file-alt"></i> <span data-i18n="domainInput">域名列表输入</span></h3>
+                    <div class="radio-group">
+                        <label><input type="radio" name="domainType" value="3d" checked> <span data-i18n="domainType3d">3D (000-999)</span></label>
+                        <label><input type="radio" name="domainType" value="4d"> <span data-i18n="domainType4d">4D (0000-9999)</span></label>
+                        <label><input type="radio" name="domainType" value="3l"> <span data-i18n="domainType3l">3L (字母组合)</span></label>
+                    </div>
+                    <textarea id="domainsText" class="domains-textarea" data-i18n="domainPlaceholder" placeholder="请输入要查询的ENS域名列表，每行一个域名..."></textarea>
+                    <div class="domains-info">
+                        <span class="domains-count" id="domainsCount">0 <span data-i18n="domainCount">个域名</span></span>
+                        <div class="buttons">
+                            <button class="btn btn-primary" onclick="loadDomainType()"><i class="fas fa-download"></i> <span data-i18n="btnLoad">加载域名</span></button>
+                            <button class="btn btn-warning" onclick="clearDomains()"><i class="fas fa-trash"></i> <span data-i18n="btnClear">清空列表</span></button>
+                            <button class="btn btn-secondary" onclick="validateDomains()"><i class="fas fa-check"></i> <span data-i18n="btnValidate">验证格式</span></button>
+                            <button id="startQueryBtn" class="btn btn-success" onclick="startQuery()"><i class="fas fa-play"></i> <span data-i18n="btnStart">开始查询</span></button>
+                            <button id="resumeQueryBtn" class="btn btn-info" onclick="resumeQuery()" disabled><i class="fas fa-forward"></i> <span data-i18n="btnResume">继续查询</span></button>
+                            <button id="stopQueryBtn" class="btn btn-danger" onclick="stopQuery()" disabled><i class="fas fa-stop"></i> <span data-i18n="btnPause">暂停</span></button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 class="card-title"><i class="fas fa-sliders-h"></i> <span data-i18n="queryControl">查询控制</span></h3>
+                    <div class="query-controls">
+                        <div class="control-group"><label class="control-label" data-i18n="maxWorkers">最大协程数</label><input type="number" id="maxWorkers" class="control-input" value="50" min="1" max="200"></div>
+                        <div class="control-group"><label class="control-label" data-i18n="requestDelay">请求间隔(ms)</label><input type="number" id="requestDelay" class="control-input" value="20" min="0" max="500"></div>
+                        <div class="control-group"><label class="control-label" data-i18n="maxRetries">最大重试次数</label><input type="number" id="maxRetries" class="control-input" value="5" min="0" max="10"></div>
+                        <div class="control-group"><label class="control-label" data-i18n="timeout">超时时间(秒)</label><input type="number" id="timeout" class="control-input" value="15" min="5" max="120"></div>
+                        <div class="control-group"><label class="control-label" data-i18n="batchSize">批量大小</label><input type="number" id="batchSize" class="control-input" value="50" min="1" max="200"></div>
+                        <div class="control-group rpc-select-container">
+                            <label class="control-label" data-i18n="rpcSelect">RPC节点选择</label>
+                            <select id="rpcSelect" class="rpc-select">
+                                <option value="dynamic" selected data-i18n="rpcDynamic">🌐 动态RPC (自动切换)</option>
+                                <option value="https://ethereum.publicnode.com">Ethereum Public Node</option>
+                                <option value="https://cloudflare-eth.com">Cloudflare ETH</option>
+                                <option value="https://eth.drpc.org">ETH DRPC</option>
+                                <option value="https://rpc.payload.de">Payload RPC</option>
+                                <option value="https://eth-pokt.nodies.app">ETH Pokt Nodies</option>
+                                <option value="https://rpc.flashbots.net">Flashbots RPC</option>
+                                <option value="https://ethereum.blockpi.network/v1/rpc/public">BlockPi Ethereum</option>
+                                <option value="https://eth-mainnet.public.blastapi.io">BlastAPI ETH Mainnet</option>
+                                <option value="https://eth.api.onfinality.io/public">OnFinality ETH API</option>
+                                <option value="https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161">Infura Mainnet</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 class="card-title"><i class="fas fa-tachometer-alt"></i> <span data-i18n="queryProgress">查询进度</span></h3>
+                    <div class="progress-container">
+                        <div class="progress-header"><span id="progressText" data-i18n="progressReady">准备就绪</span><span id="progressPercent">0%</span></div>
+                        <div class="progress-bar"><div class="progress-fill" id="progressBar"></div></div>
+                        <div class="progress-footer">
+                            <span id="rpcStatusText"><span data-i18n="currentRPC">当前RPC</span>: 动态模式</span>
+                            <span id="querySpeed"><span data-i18n="speed">速度</span>: 0 <span data-i18n="speedUnit">个/秒</span></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 class="card-title"><i class="fas fa-filter"></i> <span data-i18n="filterTitle">结果筛选</span></h3>
+                    <div class="filters">
+                        <div class="filter-group">
+                            <label data-i18n="filterStatus">状态:</label>
+                            <select id="filterStatus" class="filter-select" onchange="applyFilters()">
+                                <option value="all" data-i18n="filterAll">所有</option>
+                                <option value="registered" data-i18n="filterRegistered">已注册</option>
+                                <option value="unregistered" data-i18n="filterUnregistered">未注册</option>
+                                <option value="premium" data-i18n="filterPremium">溢价期</option>
+                                <option value="expired" data-i18n="filterExpired">已过期</option>
+                                <option value="error" data-i18n="filterError">错误</option>
+                                <option value="address_desc" data-i18n="filterAddressDesc">地址数量多→少</option>
+                                <option value="address_asc" data-i18n="filterAddressAsc">地址数量少→多</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label data-i18n="filterPremiumLabel">溢价:</label>
+                            <select id="filterPremium" class="filter-select" onchange="applyFilters()">
+                                <option value="all" data-i18n="filterAll">所有</option>
+                                <option value="in_premium" data-i18n="filterInPremium">溢价期内</option>
+                                <option value="no_premium" data-i18n="filterNoPremium">非溢价期</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label data-i18n="filterExpiryLabel">过期:</label>
+                            <select id="filterExpiry" class="filter-select" onchange="applyFilters()">
+                                <option value="all" data-i18n="filterAll">所有</option>
+                                <option value="expiring" data-i18n="filterExpiring">90天内到期</option>
+                                <option value="expired" data-i18n="filterExpired">已过期</option>
+                                <option value="valid" data-i18n="filterValid">未过期</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label data-i18n="filterGraceLabel">宽限:</label>
+                            <select id="filterGrace" class="filter-select" onchange="applyFilters()">
+                                <option value="all" data-i18n="filterAll">所有</option>
+                                <option value="in_grace" data-i18n="filterInGrace">宽限期内</option>
+                                <option value="no_grace" data-i18n="filterNoGrace">非宽限期</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label data-i18n="filterSortLabel">排序:</label>
+                            <select id="filterSort" class="filter-select" onchange="applyFilters()">
+                                <option value="default" data-i18n="filterSortDefault">默认</option>
+                                <option value="expiry_asc" data-i18n="filterSortAsc">到期近→远</option>
+                                <option value="expiry_desc" data-i18n="filterSortDesc">到期远→近</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label data-i18n="filterSearchLabel">搜索:</label>
+                            <input type="text" id="filterSearch" class="filter-select" data-i18n="filterSearchPlaceholder" placeholder="域名或地址" onkeyup="applyFilters()" style="width:100px;">
+                        </div>
+                        <button class="btn btn-secondary btn-filter-clear" onclick="clearFilters()"><i class="fas fa-times"></i> <span data-i18n="filterClear">清除</span></button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 class="card-title"><i class="fas fa-table"></i> <span data-i18n="resultsTitle">查询结果</span> <span id="resultsCount"></span>
+                        <div style="margin-left:auto; display:flex; gap:8px;">
+                            <button class="btn btn-warning" id="retryAllBtn" onclick="retryAllFailed()" disabled>
+                                <i class="fas fa-redo-alt"></i> <span data-i18n="btnRetryAll">重试失败</span>
+                            </button>
+                            <button class="btn btn-danger" onclick="clearResults()">
+                                <i class="fas fa-trash"></i> <span data-i18n="btnClear">清空列表</span>
+                            </button>
+                        </div>
+                    </h3>
+                    <div class="results-table-container">
+                        <table id="resultsTable">
+                            <thead>
+                                <tr>
+                                    <th data-i18n="tableNo">序号</th>
+                                    <th data-i18n="tableDomain">域名</th>
+                                    <th data-i18n="tableStatus">状态</th>
+                                    <th data-i18n="tableExpiryDays">过期天数</th>
+                                    <th data-i18n="tableExpiryTime">过期时间</th>
+                                    <th data-i18n="tableGraceEnd">宽限期结束</th>
+                                    <th data-i18n="tableRegTime">注册时间</th>
+                                    <th data-i18n="tableOwner">所有者地址</th>
+                                    <th data-i18n="tableAction">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="resultsBody"></tbody>
+                        </table>
+                    </div>
+                    <div class="pagination" id="pagination">
+                        <div class="pagination-left"><span id="pageInfo"><span data-i18n="page">第</span> 1 <span data-i18n="pageOf">页 / 共</span> 1 <span data-i18n="pageTotal">页</span></span></div>
+                        <div class="pagination-right">
+                            <button class="page-btn" onclick="changePage(1)" disabled><i class="fas fa-angle-double-left"></i></button>
+                            <button class="page-btn" onclick="prevPage()" disabled><i class="fas fa-angle-left"></i></button>
+                            <input type="number" id="pageInput" class="page-input" min="1" value="1" onchange="goToPage(this.value)">
+                            <button class="btn btn-secondary" onclick="goToPage(document.getElementById('pageInput').value)"><span data-i18n="pageGo">跳转</span></button>
+                            <button class="page-btn" onclick="nextPage()" disabled><i class="fas fa-angle-right"></i></button>
+                            <button class="page-btn" onclick="changePage(totalPages)" disabled><i class="fas fa-angle-double-right"></i></button>
+                            <select id="pageSize" class="filter-select" onchange="changePageSize()" style="width:70px;">
+                                <option value="50">50</option>
+                                <option value="100">100</option>
+                                <option value="300">300</option>
+                                <option value="500">500</option>
+                            </select>
+                            <button class="btn btn-success" onclick="exportToCSV()"><i class="fas fa-file-csv"></i> <span data-i18n="btnExport">CSV</span></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="right-panel">
+                <div class="card">
+                    <h3 class="card-title"><i class="fas fa-satellite-dish"></i> <span data-i18n="rpcMonitor">RPC节点监控</span> <span style="font-size:0.8rem; margin-left:5px; cursor:pointer;" onclick="showRPCStatus()"><i class="fas fa-info-circle"></i> <span data-i18n="rpcDetails">详情</span></span></h3>
+                    <div class="rpc-list" id="rpcList"></div>
+                    <div class="stats-grid">
+                        <div class="stat-item"><div class="stat-value" id="activeRPC">0</div><div class="stat-label" data-i18n="rpcAvailable">可用节点</div></div>
+                        <div class="stat-item"><div class="stat-value" id="totalQueries">0</div><div class="stat-label" data-i18n="rpcTotalQueries">查询总数</div></div>
+                        <div class="stat-item"><div class="stat-value" id="successRate">0%</div><div class="stat-label" data-i18n="rpcSuccessRate">成功率</div></div>
+                        <div class="stat-item"><div class="stat-value" id="responseTime">0ms</div><div class="stat-label" data-i18n="rpcAvgResponse">平均响应</div></div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 class="card-title"><i class="fas fa-chart-pie"></i> <span data-i18n="statsTitle">查询统计</span></h3>
+                    <div class="stats-grid">
+                        <div class="stat-item" onclick="filterByStat('registered')">
+                            <div class="stat-value" id="statRegistered">0</div>
+                            <div class="stat-label" data-i18n="statsRegistered">已注册</div>
+                        </div>
+                        <div class="stat-item" onclick="filterByStat('unregistered')">
+                            <div class="stat-value" id="statUnregistered">0</div>
+                            <div class="stat-label" data-i18n="statsUnregistered">未注册</div>
+                        </div>
+                        <div class="stat-item" onclick="filterByStat('premium')">
+                            <div class="stat-value" id="statPremium">0</div>
+                            <div class="stat-label" data-i18n="statsPremium">溢价期</div>
+                        </div>
+                        <div class="stat-item" onclick="filterByStat('expired')">
+                            <div class="stat-value" id="statExpired">0</div>
+                            <div class="stat-label" data-i18n="statsExpired">已过期</div>
+                        </div>
+                        <div class="stat-item" onclick="filterByStat('error')">
+                            <div class="stat-value" id="statErrors">0</div>
+                            <div class="stat-label" data-i18n="statsErrors">错误</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 class="card-title"><i class="fas fa-clipboard-list"></i> <span data-i18n="logTitle">操作日志</span></h3>
+                    <div class="log-container" id="logContainer"></div>
+                    
+                    <!-- 联系我们卡片 -->
+                    <div class="contact-section">
+                        <div class="contact-title"><i class="fas fa-headset"></i> <span data-i18n="contactTitle">联系我们</span></div>
+                        <div class="contact-item" onclick="window.open('https://x.com/dagou567', '_blank')">
+                            <div class="contact-icon"><i class="fab fa-twitter"></i></div>
+                            <div class="contact-value">@dagou567</div>
+                        </div>
+                    </div>
+
+                    <!-- 域名商店卡片 -->
+                    <div class="card" style="margin-top: 0.8rem; padding: 0.8rem;">
+                        <div class="contact-title"><i class="fas fa-store"></i> <span>域名商店</span></div>
+                        <div class="contact-item" onclick="window.open('https://eth.domains/', '_blank')" style="justify-content: space-between;">
+                            <div style="display: flex; align-items: center; gap: 0.6rem;">
+                                <div class="contact-icon" style="background: var(--success-color);"><i class="fas fa-shopping-cart"></i></div>
+                                <div>
+                                    <div style="font-weight: 600;">ETH Domains</div>
+                                    <div style="font-size: 0.7rem; color: var(--text-secondary);">eth.domains</div>
+                                </div>
+                            </div>
+                            <i class="fas fa-external-link-alt" style="color: var(--primary-color); font-size: 0.9rem;"></i>
+                        </div>
+                        <div class="contact-item" onclick="window.open('https://app.ens.domains/', '_blank')" style="justify-content: space-between; border-top: 1px solid var(--border-color);">
+                            <div style="display: flex; align-items: center; gap: 0.6rem;">
+                                <div class="contact-icon" style="background: var(--warning-color);"><i class="fas fa-globe"></i></div>
+                                <div>
+                                    <div style="font-weight: 600;">ENS App</div>
+                                    <div style="font-size: 0.7rem; color: var(--text-secondary);">app.ens.domains</div>
+                                </div>
+                            </div>
+                            <i class="fas fa-external-link-alt" style="color: var(--primary-color); font-size: 0.9rem;"></i>
+                        </div>
+                        <div class="contact-item" onclick="window.open('https://opensea.io/collection/ens', '_blank')" style="justify-content: space-between; border-top: 1px solid var(--border-color);">
+                            <div style="display: flex; align-items: center; gap: 0.6rem;">
+                                <div class="contact-icon" style="background: var(--info-color);"><i class="fab fa-opensea"></i></div>
+                                <div>
+                                    <div style="font-weight: 600;">OpenSea</div>
+                                    <div style="font-size: 0.7rem; color: var(--text-secondary);">ENS 市场</div>
+                                </div>
+                            </div>
+                            <i class="fas fa-external-link-alt" style="color: var(--primary-color); font-size: 0.9rem;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <div class="footer-main">
+                © 2026-<span data-i18n="footerYear">现在</span> <span data-i18n="footerCopyright">opentools 版权所有</span> | 
+                <span data-i18n="footerKeywords1">ENS域名批量查询工具</span> | 
+                <span data-i18n="footerKeywords2">高性能并发</span> | 
+                <span data-i18n="footerKeywords3">动态RPC自动切换</span> | 
+                <span data-i18n="footerKeywords4">web3工具箱</span>
+            </div>
+            <div class="footer-keywords" data-i18n="footerKeywordsLine">
+                ENS域名批量查询 · 以太坊域名工具 · 动态RPC节点 · 批量域名查询 · web3工具箱 · ENS批量工具 · 区块链域名查询
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="rpcStatusModal" onclick="if(event.target===this) closeModal()">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title"><i class="fas fa-network-wired"></i> <span data-i18n="rpcDetailTitle">RPC节点详细状态</span></h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <table class="rpc-status-table">
+                <thead>
+                    <tr>
+                        <th data-i18n="rpcTableNode">节点</th>
+                        <th data-i18n="rpcTableStatus">状态</th>
+                        <th data-i18n="rpcTableSuccess">成功率</th>
+                        <th data-i18n="rpcTableTime">响应时间</th>
+                        <th data-i18n="rpcTableQueries">查询次数</th>
+                        <th data-i18n="rpcTableErrors">错误次数</th>
+                    </tr>
+                </thead>
+                <tbody id="rpcStatusBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
+
+    <script>
+        // ========== 语言包 ==========
+        const translations = {
+            zh: {
+                langZh: "ZH",
+                langEn: "EN",
+                themeLight: "浅色",
+                themeDark: "深色",
+                themeAuto: "自动",
+                title: "ENS域名批量查询工具",
+                domainInput: "域名列表输入",
+                domainType3d: "3D (000-999)",
+                domainType4d: "4D (0000-9999)",
+                domainType3l: "3L (字母组合)",
+                domainPlaceholder: "请输入要查询的ENS域名列表，每行一个域名...",
+                domainCount: "个域名",
+                btnLoad: "加载域名",
+                btnClear: "清空列表",
+                btnValidate: "验证格式",
+                btnStart: "开始查询",
+                btnResume: "继续查询",
+                btnPause: "暂停",
+                queryControl: "查询控制",
+                maxWorkers: "最大协程数",
+                requestDelay: "请求间隔(ms)",
+                maxRetries: "最大重试次数",
+                timeout: "超时时间(秒)",
+                batchSize: "批量大小",
+                rpcSelect: "RPC节点选择",
+                rpcDynamic: "🌐 动态RPC (自动切换)",
+                queryProgress: "查询进度",
+                progressReady: "准备就绪",
+                currentRPC: "当前RPC",
+                speed: "速度",
+                speedUnit: "个/秒",
+                filterTitle: "结果筛选",
+                filterStatus: "状态:",
+                filterAll: "所有",
+                filterRegistered: "已注册",
+                filterUnregistered: "未注册",
+                filterPremium: "溢价期",
+                filterExpired: "已过期",
+                filterError: "错误",
+                filterAddressDesc: "地址数量多→少",
+                filterAddressAsc: "地址数量少→多",
+                filterPremiumLabel: "溢价:",
+                filterInPremium: "溢价期内",
+                filterNoPremium: "非溢价期",
+                filterExpiryLabel: "过期:",
+                filterExpiring: "90天内到期",
+                filterValid: "未过期",
+                filterGraceLabel: "宽限:",
+                filterInGrace: "宽限期内",
+                filterNoGrace: "非宽限期",
+                filterSortLabel: "排序:",
+                filterSortDefault: "默认",
+                filterSortAsc: "到期近→远",
+                filterSortDesc: "到期远→近",
+                filterSearchLabel: "搜索:",
+                filterSearchPlaceholder: "域名或地址",
+                filterClear: "清除",
+                resultsTitle: "查询结果",
+                tableNo: "序号",
+                tableDomain: "域名",
+                tableStatus: "状态",
+                tableExpiryDays: "过期天数",
+                tableExpiryTime: "过期时间",
+                tableGraceEnd: "宽限期结束",
+                tableRegTime: "注册时间",
+                tableOwner: "所有者地址",
+                tableAction: "操作",
+                tableView: "查看",
+                page: "第",
+                pageOf: "页 / 共",
+                pageTotal: "页",
+                pageGo: "跳转",
+                btnExport: "CSV",
+                btnRetryAll: "重试失败",
+                rpcMonitor: "RPC节点监控",
+                rpcDetails: "详情",
+                rpcAvailable: "可用节点",
+                rpcTotalQueries: "查询总数",
+                rpcSuccessRate: "成功率",
+                rpcAvgResponse: "平均响应",
+                statsTitle: "查询统计",
+                statsRegistered: "已注册",
+                statsUnregistered: "未注册",
+                statsPremium: "溢价期",
+                statsExpired: "已过期",
+                statsErrors: "错误",
+                logTitle: "操作日志",
+                contactTitle: "联系我们",
+                footerYear: "现在",
+                footerCopyright: "opentools 版权所有",
+                footerKeywords1: "ENS域名批量查询工具",
+                footerKeywords2: "高性能并发",
+                footerKeywords3: "动态RPC自动切换",
+                footerKeywords4: "web3工具箱",
+                footerKeywordsLine: "ENS域名批量查询 · 以太坊域名工具 · 动态RPC节点 · 批量域名查询 · web3工具箱 · ENS批量工具 · 区块链域名查询",
+                rpcDetailTitle: "RPC节点详细状态",
+                rpcTableNode: "节点",
+                rpcTableStatus: "状态",
+                rpcTableSuccess: "成功率",
+                rpcTableTime: "响应时间",
+                rpcTableQueries: "查询次数",
+                rpcTableErrors: "错误次数",
+                statusRegistered: "已注册",
+                statusUnregistered: "未注册",
+                statusPremium: "溢价期",
+                statusExpired: "已过期",
+                statusError: "查询失败",
+                ready: "准备就绪",
+                copySuccess: "已复制",
+                copyFailed: "复制失败",
+                logReady: "opentools工具箱已就绪",
+                logLoadStart: "开始生成域名列表...",
+                logLoadComplete: "已完成加载 {count} 个域名",
+                logQueryStart: "开始查询 {count} 个域名",
+                logQueryPaused: "查询已暂停，已处理 {processed}/{total}",
+                logQueryResumed: "继续查询，剩余 {remaining} 个域名",
+                logQueryComplete: "查询完成！共 {count} 个域名",
+                logExport: "导出 {count} 条 CSV",
+                logClear: "结果已清除",
+                logLangSwitch: "语言已切换到 {lang}",
+                logRpcCheck: "开始检测所有RPC节点...",
+                logRpcComplete: "RPC节点检测完成: {success}/{total} 可用",
+                confirmClear: "确定要清空所有查询结果吗？",
+                retrySingle: "点击重试此域名",
+                logDataLoaded: "已加载上次查询数据 ({time})",
+                logRetryAllStart: "开始批量重试 {count} 个失败的域名",
+                logRetryAllComplete: "批量重试完成: 成功 {success} 个, 失败 {failed} 个",
+                logFilterByAddress: "筛选地址: {address} 的所有域名",
+                addressCount: "共{count}个域名",
+                noData: "暂无数据",
+                clearAddressSearch: "清除地址搜索"
+            },
+            en: {
+                langZh: "ZH",
+                langEn: "EN",
+                themeLight: "Light",
+                themeDark: "Dark",
+                themeAuto: "Auto",
+                title: "ENS Domain Batch Query",
+                domainInput: "Domain List",
+                domainType3d: "3D (000-999)",
+                domainType4d: "4D (0000-9999)",
+                domainType3l: "3L (Letters)",
+                domainPlaceholder: "Enter ENS domains, one per line...",
+                domainCount: "domains",
+                btnLoad: "Load",
+                btnClear: "Clear",
+                btnValidate: "Validate",
+                btnStart: "Start",
+                btnResume: "Resume",
+                btnPause: "Pause",
+                queryControl: "Controls",
+                maxWorkers: "Max Workers",
+                requestDelay: "Delay (ms)",
+                maxRetries: "Max Retries",
+                timeout: "Timeout (s)",
+                batchSize: "Batch",
+                rpcSelect: "RPC Selection",
+                rpcDynamic: "🌐 Dynamic RPC",
+                queryProgress: "Progress",
+                progressReady: "Ready",
+                currentRPC: "Current RPC",
+                speed: "Speed",
+                speedUnit: "/s",
+                filterTitle: "Filters",
+                filterStatus: "Status:",
+                filterAll: "All",
+                filterRegistered: "Registered",
+                filterUnregistered: "Unregistered",
+                filterPremium: "Premium",
+                filterExpired: "Expired",
+                filterError: "Error",
+                filterAddressDesc: "Address Count ↓",
+                filterAddressAsc: "Address Count ↑",
+                filterPremiumLabel: "Premium:",
+                filterInPremium: "In Premium",
+                filterNoPremium: "Not Premium",
+                filterExpiryLabel: "Expiry:",
+                filterExpiring: "Expiring 90d",
+                filterValid: "Valid",
+                filterGraceLabel: "Grace:",
+                filterInGrace: "In Grace",
+                filterNoGrace: "No Grace",
+                filterSortLabel: "Sort:",
+                filterSortDefault: "Default",
+                filterSortAsc: "Expiry ↑",
+                filterSortDesc: "Expiry ↓",
+                filterSearchLabel: "Search:",
+                filterSearchPlaceholder: "domain or address",
+                filterClear: "Clear",
+                resultsTitle: "Results",
+                tableNo: "No.",
+                tableDomain: "Domain",
+                tableStatus: "Status",
+                tableExpiryDays: "Exp Days",
+                tableExpiryTime: "Expiry",
+                tableGraceEnd: "Grace End",
+                tableRegTime: "Reg Time",
+                tableOwner: "Owner",
+                tableAction: "Action",
+                tableView: "View",
+                page: "Page",
+                pageOf: "of",
+                pageTotal: "",
+                pageGo: "Go",
+                btnExport: "CSV",
+                btnRetryAll: "Retry Failed",
+                rpcMonitor: "RPC Monitor",
+                rpcDetails: "Details",
+                rpcAvailable: "Available",
+                rpcTotalQueries: "Queries",
+                rpcSuccessRate: "Success",
+                rpcAvgResponse: "Avg Resp",
+                statsTitle: "Statistics",
+                statsRegistered: "Registered",
+                statsUnregistered: "Unregistered",
+                statsPremium: "Premium",
+                statsExpired: "Expired",
+                statsErrors: "Errors",
+                logTitle: "Logs",
+                contactTitle: "Contact",
+                footerYear: "now",
+                footerCopyright: "opentools All Rights Reserved",
+                footerKeywords1: "ENS Batch Query",
+                footerKeywords2: "High Concurrency",
+                footerKeywords3: "Dynamic RPC",
+                footerKeywords4: "Web3 Toolbox",
+                footerKeywordsLine: "ENS Domain Batch · Ethereum Name Service · Dynamic RPC Nodes · Bulk Domain Query · Web3 Tools · ENS Bulk Checker · Blockchain Domain",
+                rpcDetailTitle: "RPC Node Details",
+                rpcTableNode: "Node",
+                rpcTableStatus: "Status",
+                rpcTableSuccess: "Success",
+                rpcTableTime: "Response",
+                rpcTableQueries: "Queries",
+                rpcTableErrors: "Errors",
+                statusRegistered: "Registered",
+                statusUnregistered: "Unregistered",
+                statusPremium: "Premium",
+                statusExpired: "Expired",
+                statusError: "Error",
+                ready: "Ready",
+                copySuccess: "Copied",
+                copyFailed: "Failed",
+                logReady: "opentools ready",
+                logLoadStart: "Generating domain list...",
+                logLoadComplete: "Loaded {count} domains",
+                logQueryStart: "Starting query for {count} domains",
+                logQueryPaused: "Paused at {processed}/{total}",
+                logQueryResumed: "Resumed, {remaining} remaining",
+                logQueryComplete: "Completed! {count} domains",
+                logExport: "Exported {count} CSV",
+                logClear: "Results cleared",
+                logLangSwitch: "Switched to {lang}",
+                logRpcCheck: "Checking all RPC nodes...",
+                logRpcComplete: "RPC check completed: {success}/{total} available",
+                confirmClear: "Are you sure you want to clear all results?",
+                retrySingle: "Click to retry this domain",
+                logDataLoaded: "Loaded previous query data ({time})",
+                logRetryAllStart: "Retrying {count} failed domains",
+                logRetryAllComplete: "Retry completed: {success} succeeded, {failed} failed",
+                logFilterByAddress: "Filter by address: {address}",
+                addressCount: "{count} domains",
+                noData: "No data",
+                clearAddressSearch: "Clear address search"
+            }
+        };
+
+        let currentLang = 'zh';
+        let web3, registry, registrar, controller;
+        let isQueryRunning = false, isPaused = false, isRetrying = false, isRetryingAll = false;
+        let queryResults = [], filteredResults = [], pendingDomains = [], currentIndex = 0, activeWorkers = 0;
+        let totalDomains = 0, processedDomains = 0, startTime = null;
+        let currentPage = 1, pageSize = 50, totalPages = 1;
+        let rpcStatus = {}, isLoadingDomains = false;
+
+        const STORAGE_KEY = 'ens_query_results';
+        const STORAGE_TIME_KEY = 'ens_query_time';
+
+        const ENS_REGISTRY = "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e";
+        const BASE_REGISTRAR = "0x57f1887a8BF19b14fC0dF6Fd9B2acc9Af147eA85";
+        const CONTROLLER = "0x283Af0B28c62C092C9727F1Ee09c02CA627EB7F5";
+
+        const ENS_ABI = [{"constant":true,"inputs":[{"name":"node","type":"bytes32"}],"name":"owner","outputs":[{"name":"","type":"address"}],"type":"function"}];
+        const REGISTRAR_ABI = [
+            {"constant":true,"inputs":[{"name":"tokenId","type":"uint256"}],"name":"nameExpires","outputs":[{"name":"","type":"uint256"}],"type":"function"},
+            {"constant":true,"inputs":[{"name":"tokenId","type":"uint256"}],"name":"ownerOf","outputs":[{"name":"","type":"address"}],"type":"function"}
+        ];
+        const CONTROLLER_ABI = [
+            {"constant":true,"inputs":[{"name":"name","type":"string"}],"name":"available","outputs":[{"name":"","type":"bool"}],"type":"function"},
+            {"constant":true,"inputs":[{"name":"name","type":"string"},{"name":"duration","type":"uint256"}],"name":"rentPrice","outputs":[{"components":[{"name":"base","type":"uint256"},{"name":"premium","type":"uint256"}],"name":"price","type":"tuple"}],"type":"function"}
+        ];
+
+        // Transfer事件ABI用于查询历史持有者
+        const TRANSFER_ABI = [{
+            "anonymous": false,
+            "inputs": [
+                {"indexed": true, "name": "from", "type": "address"},
+                {"indexed": true, "name": "to", "type": "address"},
+                {"indexed": true, "name": "tokenId", "type": "uint256"}
+            ],
+            "name": "Transfer",
+            "type": "event"
+        }];
+
+        const RPC_LIST = [
+            "https://ethereum.publicnode.com",
+            "https://cloudflare-eth.com",
+            "https://eth.drpc.org",
+            "https://rpc.payload.de",
+            "https://eth-pokt.nodies.app",
+            "https://rpc.flashbots.net",
+            "https://ethereum.blockpi.network/v1/rpc/public",
+            "https://eth-mainnet.public.blastapi.io",
+            "https://eth.api.onfinality.io/public",
+            "https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161"
+        ];
+
+        // 缓存最后持有者查询结果
+        const lastOwnerCache = new Map();
+
+        function getBrowserLanguage() {
+            const lang = navigator.language || navigator.userLanguage || 'en';
+            return lang.startsWith('zh') ? 'zh' : 'en';
+        }
+
+        function getTimeZone() {
+            try {
+                return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+            } catch {
+                return 'UTC';
+            }
+        }
+
+        function formatDate(d) {
+            if (!d) return '';
+            const date = new Date(d);
+            if (currentLang === 'en') {
+                return date.toLocaleString('en-US', {
+                    year: 'numeric', month: '2-digit', day: '2-digit',
+                    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true
+                }).replace(',', '');
+            } else {
+                return date.getFullYear() + '-' +
+                    String(date.getMonth() + 1).padStart(2, '0') + '-' +
+                    String(date.getDate()).padStart(2, '0') + ' ' +
+                    String(date.getHours()).padStart(2, '0') + ':' +
+                    String(date.getMinutes()).padStart(2, '0') + ':' +
+                    String(date.getSeconds()).padStart(2, '0');
+            }
+        }
+
+        function switchLanguage(lang) {
+            currentLang = lang;
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.lang === lang);
+            });
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.dataset.i18n;
+                if (translations[lang] && translations[lang][key]) {
+                    if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+                        el.placeholder = translations[lang][key];
+                    } else if (el.tagName === 'OPTION') {
+                        el.textContent = translations[lang][key];
+                    } else {
+                        el.textContent = translations[lang][key];
+                    }
+                }
+            });
+            updateDomainsCount();
+            updateTable();
+            document.getElementById('progressText').innerHTML = translations[lang].ready;
+            const speedMatch = document.getElementById('querySpeed').innerText.match(/\d+(\.\d+)?/);
+            const speed = speedMatch ? speedMatch[0] : '0';
+            document.getElementById('querySpeed').innerHTML = `${translations[lang].speed}: ${speed} ${translations[lang].speedUnit}`;
+            const currentRpc = getCurrentRpc();
+            document.getElementById('rpcStatusText').innerHTML = `${translations[lang].currentRPC}: <span style="color:var(--primary-color);">${shortenRpc(currentRpc)}</span>`;
+            const langName = lang === 'zh' ? '中文' : 'English';
+            const timeZone = getTimeZone();
+            addLog(translations[lang].logLangSwitch.replace('{lang}', langName) + `, Timezone: ${timeZone}`, 'info');
+            localStorage.setItem('preferred-language', lang);
+            
+            // 重新应用筛选以更新表格显示
+            applyFilters();
+        }
+
+        function addLog(msg, type = 'info') {
+            const logContainer = document.getElementById('logContainer');
+            if (!logContainer) return;
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            logContainer.prepend(entry);
+            while (logContainer.children.length > 50) {
+                logContainer.removeChild(logContainer.lastChild);
+            }
+        }
+
+        function saveResultsToStorage() {
+            if (queryResults && queryResults.length > 0) {
+                const data = {
+                    results: queryResults,
+                    timestamp: Date.now()
+                };
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+                localStorage.setItem(STORAGE_TIME_KEY, new Date().toLocaleString());
+            }
+        }
+
+        function loadResultsFromStorage() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                try {
+                    const data = JSON.parse(saved);
+                    queryResults = data.results || [];
+                    filteredResults = queryResults.filter(r => r);
+                    
+                    updateTable();
+                    updateStatistics();
+                    
+                    document.getElementById('exportBtn').disabled = false;
+                    
+                    const savedTime = localStorage.getItem(STORAGE_TIME_KEY);
+                    if (savedTime) {
+                        addLog(translations[currentLang].logDataLoaded.replace('{time}', savedTime), 'info');
+                    }
+                    
+                    return true;
+                } catch (e) {
+                    console.error('加载保存的数据失败:', e);
+                    return false;
+                }
+            }
+            return false;
+        }
+
+        function initRpcStatus() {
+            RPC_LIST.forEach(rpc => {
+                rpcStatus[rpc] = { 
+                    available: true, 
+                    successCount: 0, 
+                    failCount: 0, 
+                    responseTime: 0, 
+                    disabledUntil: 0,
+                    lastUsed: 0
+                };
+            });
+            updateRpcList();
+        }
+
+        async function checkAllRpcNodes() {
+            addLog(translations[currentLang].logRpcCheck, 'info');
+            const promises = RPC_LIST.map(async (rpc) => {
+                try {
+                    const start = Date.now();
+                    const testWeb3 = new Web3(rpc);
+                    await testWeb3.eth.getBlockNumber();
+                    const responseTime = Date.now() - start;
+                    rpcStatus[rpc] = {
+                        ...rpcStatus[rpc],
+                        available: true,
+                        responseTime: responseTime,
+                        successCount: (rpcStatus[rpc]?.successCount || 0) + 1,
+                        failCount: 0,
+                        lastUsed: Date.now(),
+                        disabledUntil: 0
+                    };
+                    return { rpc, success: true, responseTime };
+                } catch (error) {
+                    rpcStatus[rpc] = {
+                        ...rpcStatus[rpc],
+                        available: false,
+                        failCount: (rpcStatus[rpc]?.failCount || 0) + 1,
+                        lastUsed: Date.now()
+                    };
+                    return { rpc, success: false, error: error.message };
+                }
+            });
+            const results = await Promise.all(promises);
+            const successCount = results.filter(r => r.success).length;
+            addLog(translations[currentLang].logRpcComplete
+                .replace('{success}', successCount)
+                .replace('{total}', RPC_LIST.length), 
+                successCount > 0 ? 'success' : 'warning');
+            updateRpcList();
+        }
+
+        function getCurrentRpc() {
+            const selected = document.getElementById('rpcSelect').value;
+            if (selected !== 'dynamic') return selected;
+            const now = Date.now();
+            const available = RPC_LIST.filter(r => rpcStatus[r].available && rpcStatus[r].disabledUntil < now);
+            if (available.length === 0) {
+                Object.keys(rpcStatus).forEach(r => { 
+                    rpcStatus[r].available = true; 
+                    rpcStatus[r].disabledUntil = 0; 
+                });
+                return RPC_LIST[0];
+            }
+            return available[Math.floor(Math.random() * available.length)];
+        }
+
+        function shortenRpc(rpc) { 
+            try { 
+                return new URL(rpc).hostname.substring(0,18) + '...'; 
+            } catch { 
+                return rpc.substring(0,18) + '...'; 
+            } 
+        }
+
+        function updateRpcList() {
+            const now = Date.now(), current = getCurrentRpc();
+            document.getElementById('rpcList').innerHTML = RPC_LIST.map(r => {
+                const s = rpcStatus[r], avail = s.available && s.disabledUntil < now;
+                return `<div class="rpc-item ${r===current?'current':''}" title="${r}">
+                    <i class="fas fa-circle" style="font-size:0.5rem;color:${avail?'#10B981':'#EF4444'};"></i> 
+                    <span style="flex:1">${shortenRpc(r)}</span> 
+                    <span>${s.responseTime > 0 ? s.responseTime + 'ms' : '-'}</span>
+                </div>`;
+            }).join('');
+            const availableCount = RPC_LIST.filter(r => rpcStatus[r].available && rpcStatus[r].disabledUntil < now).length;
+            document.getElementById('activeRPC').innerText = availableCount;
+            const totalQ = Object.values(rpcStatus).reduce((sum, s) => sum + s.successCount + s.failCount, 0);
+            const totalSuc = Object.values(rpcStatus).reduce((sum, s) => sum + s.successCount, 0);
+            const totalResp = Object.values(rpcStatus).reduce((sum, s) => sum + (s.responseTime * s.successCount), 0);
+            document.getElementById('totalQueries').innerText = totalQ;
+            document.getElementById('successRate').innerText = totalQ > 0 ? Math.round((totalSuc / totalQ) * 100) + '%' : '0%';
+            document.getElementById('responseTime').innerText = totalSuc > 0 ? Math.round(totalResp / totalSuc) + 'ms' : '0ms';
+            const currentRpc = getCurrentRpc();
+            document.getElementById('rpcStatusText').innerHTML = `${translations[currentLang].currentRPC}: <span style="color:var(--primary-color);">${shortenRpc(currentRpc)}</span>`;
+        }
+
+        function updateRpcStatusModal() {
+            const tbody = document.getElementById('rpcStatusBody');
+            if (!tbody) return;
+            const now = Date.now();
+            
+            tbody.innerHTML = RPC_LIST.map(r => {
+                const s = rpcStatus[r] || { 
+                    available: false, 
+                    successCount: 0, 
+                    failCount: 0, 
+                    responseTime: 0 
+                };
+                
+                const isAvailable = s.available && (s.disabledUntil || 0) < now;
+                const totalQueries = (s.successCount || 0) + (s.failCount || 0);
+                const successRate = totalQueries > 0 ? Math.round(((s.successCount || 0) / totalQueries) * 100) : 0;
+                
+                const statusText = isAvailable ? '● 可用' : '○ 禁用';
+                const statusColor = isAvailable ? '#10B981' : '#EF4444';
+                
+                const responseTimeText = s.responseTime > 0 ? s.responseTime + 'ms' : '-';
+                
+                let shortName = r;
+                try {
+                    const url = new URL(r);
+                    shortName = url.hostname.replace('www.', '').substring(0, 18) + '...';
+                } catch {
+                    shortName = r.substring(0, 18) + '...';
+                }
+                
+                return `<tr>
+                    <td>${shortName}</td>
+                    <td style="color: ${statusColor}; font-weight: 500;">${statusText}</td>
+                    <td>${successRate}%</td>
+                    <td>${responseTimeText}</td>
+                    <td>${totalQueries}</td>
+                    <td>${s.failCount || 0}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        function showRPCStatus() {
+            updateRpcStatusModal();
+            document.getElementById('rpcStatusModal').style.display = 'flex';
+            
+            if (window.rpcModalInterval) {
+                clearInterval(window.rpcModalInterval);
+            }
+            
+            window.rpcModalInterval = setInterval(() => {
+                updateRpcStatusModal();
+            }, 2000);
+            
+            setTimeout(() => {
+                checkAllRpcNodes().then(() => {
+                    updateRpcStatusModal();
+                });
+            }, 100);
+        }
+
+        function closeModal() { 
+            document.getElementById('rpcStatusModal').style.display = 'none'; 
+            if (window.rpcModalInterval) {
+                clearInterval(window.rpcModalInterval);
+                window.rpcModalInterval = null;
+            }
+        }
+
+        function shortenAddress(addr) { 
+            if (!addr || addr === '0x0000000000000000000000000000000000000000') return '';
+            return addr.length > 10 ? addr.substring(0,6) + '...' + addr.substring(addr.length-4) : addr; 
+        }
+
+        // 获取最后持有者（通过Transfer事件）
+        async function getLastOwner(tokenId) {
+            // 检查缓存
+            if (lastOwnerCache.has(tokenId)) {
+                return lastOwnerCache.get(tokenId);
+            }
+
+            try {
+                const ENS_NFT = "0x57f1887a8BF19b14fC0dF6Fd9B2acc9Af147eA85";
+                const FROM_BLOCK = 9380410; // ENS NFT合约创建区块
+                
+                const transferContract = new web3.eth.Contract(TRANSFER_ABI, ENS_NFT);
+                
+                const events = await transferContract.getPastEvents("Transfer", {
+                    filter: { tokenId: tokenId },
+                    fromBlock: FROM_BLOCK,
+                    toBlock: "latest"
+                });
+
+                if (events.length === 0) {
+                    lastOwnerCache.set(tokenId, '');
+                    return '';
+                }
+
+                // 从最新事件向前遍历
+                for (let i = events.length - 1; i >= 0; i--) {
+                    const to = events[i].returnValues.to;
+                    // 如果to不是零地址，返回该地址
+                    if (to !== "0x0000000000000000000000000000000000000000") {
+                        lastOwnerCache.set(tokenId, to);
+                        return to;
+                    }
+                }
+                
+                // 如果所有to都是零地址，返回最后一个from（创世地址）
+                const lastFrom = events[events.length - 1].returnValues.from;
+                if (lastFrom && lastFrom !== "0x0000000000000000000000000000000000000000") {
+                    lastOwnerCache.set(tokenId, lastFrom);
+                    return lastFrom;
+                }
+                
+                lastOwnerCache.set(tokenId, '');
+                return '';
+            } catch (error) {
+                console.error('获取最后持有者失败:', error);
+                return '';
+            }
+        }
+        
+        // 按地址筛选函数
+        function filterByAddress(address) {
+            const searchInput = document.getElementById('filterSearch');
+            const currentSearch = searchInput.value.toLowerCase().trim();
+            const addressLower = address.toLowerCase();
+            
+            if (currentSearch === addressLower) {
+                searchInput.value = '';
+            } else {
+                searchInput.value = address;
+            }
+            
+            applyFilters();
+            
+            const shortAddr = shortenAddress(address);
+            addLog(currentLang === 'zh' ? `筛选地址: ${shortAddr} 的所有域名` : `Filter by address: ${shortAddr}`, 'info');
+        }
+        
+        // 按统计卡片筛选
+        function filterByStat(status) {
+            document.getElementById('filterStatus').value = status;
+            applyFilters();
+            
+            const statusMap = {
+                'registered': currentLang === 'zh' ? '已注册' : 'Registered',
+                'unregistered': currentLang === 'zh' ? '未注册' : 'Unregistered',
+                'premium': currentLang === 'zh' ? '溢价期' : 'Premium',
+                'expired': currentLang === 'zh' ? '已过期' : 'Expired',
+                'error': currentLang === 'zh' ? '错误' : 'Error'
+            };
+            addLog(currentLang === 'zh' ? `筛选状态: ${statusMap[status]}` : `Filter by status: ${statusMap[status]}`, 'info');
+        }
+        
+        // 清除地址搜索
+        function clearAddressSearch(event, address) {
+            event.stopPropagation();
+            
+            document.getElementById('filterSearch').value = '';
+            applyFilters();
+            
+            const shortAddr = shortenAddress(address);
+            addLog(currentLang === 'zh' ? `已清除地址 "${shortAddr}" 的搜索` : `Cleared address "${shortAddr}" search`, 'info');
+        }
+        
+        function copyText(text) { 
+            navigator.clipboard.writeText(text).catch(() => {
+                console.error('复制失败:', text);
+            });
+        }
+        
+        function normalizeDomain(d) { 
+            d = d.trim().toLowerCase(); 
+            return d.endsWith('.eth') ? d : d+'.eth'; 
+        }
+        
+        function updateDomainsCount() { 
+            const cnt = document.getElementById('domainsText').value.split('\n').filter(s => s.trim()).length;
+            document.getElementById('domainsCount').innerHTML = cnt + ' ' + translations[currentLang].domainCount; 
+        }
+
+        async function loadDomainType() {
+            if (isLoadingDomains) return;
+            isLoadingDomains = true;
+            const type = document.querySelector('input[name="domainType"]:checked').value;
+            document.getElementById('domainsText').value = '';
+            addLog(translations[currentLang].logLoadStart, 'info');
+            let domains = [], batch = 500;
+            
+            if (type === '3d') {
+                for (let i=0; i<=999; i++) { 
+                    domains.push(i.toString().padStart(3,'0')+'.eth'); 
+                    if (domains.length>=batch || i===999) await appendBatch(domains); 
+                }
+            } else if (type === '4d') {
+                for (let i=0; i<=9999; i++) { 
+                    domains.push(i.toString().padStart(4,'0')+'.eth'); 
+                    if (domains.length>=batch || i===9999) await appendBatch(domains); 
+                }
+            } else if (type === '3l') {
+                const letters = 'abcdefghijklmnopqrstuvwxyz';
+                for (let i=0; i<26; i++) {
+                    for (let j=0; j<26; j++) {
+                        for (let k=0; k<26; k++) {
+                            domains.push(letters[i]+letters[j]+letters[k]+'.eth');
+                            if (domains.length>=batch) await appendBatch(domains);
+                        }
+                    }
+                }
+                if (domains.length) await appendBatch(domains);
+            }
+            
+            isLoadingDomains = false;
+            const finalCount = document.getElementById('domainsText').value.split('\n').filter(s=>s.trim()).length;
+            addLog(translations[currentLang].logLoadComplete.replace('{count}', finalCount), 'success');
+        }
+        
+        async function appendBatch(domains) {
+            const ta = document.getElementById('domainsText');
+            if (ta.value.trim() !== '') {
+                ta.value += '\n' + domains.join('\n');
+            } else {
+                ta.value = domains.join('\n');
+            }
+            domains.length = 0;
+            updateDomainsCount();
+            await new Promise(r => setTimeout(r, 10));
+        }
+
+        // 获取所有者的通用函数
+        async function getOwnerWithRetry(tokenId, maxRetries = 3) {
+            for (let attempt = 0; attempt < maxRetries; attempt++) {
+                try {
+                    const owner = await registrar.methods.ownerOf(tokenId).call();
+                    if (owner === '0x0000000000000000000000000000000000000000') {
+                        return '';
+                    }
+                    return owner;
+                } catch (e) {
+                    if (attempt === maxRetries - 1) throw e;
+                    await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+                }
+            }
+            return '';
+        }
+
+        async function queryDomain(domain, idx) {
+            // 检查web3是否存在
+            if (!web3 || !web3.utils) {
+                console.error('web3未初始化，重新初始化...');
+                try {
+                    web3 = new Web3(getCurrentRpc());
+                    registry = new web3.eth.Contract(ENS_ABI, ENS_REGISTRY);
+                    registrar = new web3.eth.Contract(REGISTRAR_ABI, BASE_REGISTRAR);
+                    controller = new web3.eth.Contract(CONTROLLER_ABI, CONTROLLER);
+                } catch (e) {
+                    return { 
+                        序号: idx+1, 
+                        域名: domain, 
+                        状态: 'error',
+                        过期天数: '', 
+                        过期时间: '', 
+                        宽限期结束: '', 
+                        注册时间: '', 
+                        所有者地址: '', 
+                        错误信息: 'web3初始化失败', 
+                        注册状态: 'error', 
+                        过期状态: 'error', 
+                        宽限状态: 'error', 
+                        溢价状态: 'no_premium', 
+                        时间戳: 0
+                    };
+                }
+            }
+
+            const label = domain.replace('.eth','');
+            const maxRetries = parseInt(document.getElementById('maxRetries').value) || 5;
+            let lastError = null;
+            
+            // 确保tokenId计算正确
+            let tokenId;
+            try {
+                tokenId = web3.utils.keccak256(label);
+            } catch (e) {
+                return { 
+                    序号: idx+1, 
+                    域名: domain, 
+                    状态: 'error',
+                    过期天数: '', 
+                    过期时间: '', 
+                    宽限期结束: '', 
+                    注册时间: '', 
+                    所有者地址: '', 
+                    错误信息: '计算tokenId失败', 
+                    注册状态: 'error', 
+                    过期状态: 'error', 
+                    宽限状态: 'error', 
+                    溢价状态: 'no_premium', 
+                    时间戳: 0
+                };
+            }
+
+            for (let attempt = 0; attempt <= maxRetries; attempt++) {
+                try {
+                    if (attempt > 0) { 
+                        // 重试时更换RPC
+                        web3 = new Web3(getCurrentRpc()); 
+                        registry = new web3.eth.Contract(ENS_ABI, ENS_REGISTRY);
+                        registrar = new web3.eth.Contract(REGISTRAR_ABI, BASE_REGISTRAR);
+                        controller = new web3.eth.Contract(CONTROLLER_ABI, CONTROLLER);
+                    }
+                    
+                    const available = await controller.methods.available(label).call();
+                    
+                    if (available) {
+                        try {
+                            const price = await controller.methods.rentPrice(label, 31536000).call();
+                            if (price.premium > 0) {
+                                // 溢价期 - 查询最后持有者
+                                const lastOwner = await getLastOwner(tokenId);
+                                
+                                let expiry = 0;
+                                try {
+                                    expiry = await registrar.methods.nameExpires(tokenId).call();
+                                } catch {
+                                    expiry = 0;
+                                }
+                                
+                                return { 
+                                    序号: idx+1, 
+                                    域名: domain, 
+                                    状态: 'premium',
+                                    过期天数: expiry ? Math.floor((new Date(expiry * 1000) - new Date()) / 86400000) : '', 
+                                    过期时间: expiry ? formatDate(new Date(expiry * 1000)) : '', 
+                                    宽限期结束: expiry ? formatDate(new Date(expiry * 1000 + 90*86400000)) : '', 
+                                    注册时间: '', 
+                                    所有者地址: lastOwner || '', 
+                                    错误信息: '', 
+                                    注册状态: 'premium', 
+                                    过期状态: expiry && new Date(expiry * 1000) < new Date() ? 'expired' : 'valid', 
+                                    宽限状态: 'no_grace', 
+                                    溢价状态: 'in_premium', 
+                                    时间戳: expiry 
+                                };
+                            } else {
+                                // 未注册（无溢价）
+                                return { 
+                                    序号: idx+1, 
+                                    域名: domain, 
+                                    状态: 'unregistered',
+                                    过期天数: '', 
+                                    过期时间: '', 
+                                    宽限期结束: '', 
+                                    注册时间: '', 
+                                    所有者地址: '',
+                                    错误信息: '', 
+                                    注册状态: 'unregistered', 
+                                    过期状态: 'valid', 
+                                    宽限状态: 'no_grace', 
+                                    溢价状态: 'no_premium', 
+                                    时间戳: 0
+                                };
+                            }
+                        } catch {
+                            // rentPrice失败，尝试获取所有者
+                            let owner = '';
+                            try {
+                                owner = await getOwnerWithRetry(tokenId, 3);
+                            } catch {
+                                owner = '';
+                            }
+                            
+                            // 如果获取不到owner，可能是溢价期，查询最后持有者
+                            if (!owner) {
+                                owner = await getLastOwner(tokenId);
+                            }
+                            
+                            return { 
+                                序号: idx+1, 
+                                域名: domain, 
+                                状态: owner ? 'registered' : 'premium',
+                                过期天数: '', 
+                                过期时间: '', 
+                                宽限期结束: '', 
+                                注册时间: '', 
+                                所有者地址: owner || '', 
+                                错误信息: '', 
+                                注册状态: owner ? 'registered' : 'premium', 
+                                过期状态: 'valid', 
+                                宽限状态: 'no_grace', 
+                                溢价状态: owner ? 'no_premium' : 'in_premium', 
+                                时间戳: 0 
+                            };
+                        }
+                    }
+
+                    // 已注册域名（可能已过期）
+                    const expiry = await registrar.methods.nameExpires(tokenId).call();
+                    const expiryDate = new Date(expiry * 1000);
+                    const now = new Date();
+                    const days = Math.floor((expiryDate - now) / 86400000);
+                    const graceEnd = new Date(expiryDate.getTime() + 90*86400000);
+                    
+                    let owner = '';
+                    try { 
+                        owner = await getOwnerWithRetry(tokenId, 3);
+                        
+                        // 如果owner是空地址（已过期），查询最后持有者
+                        if (!owner || owner === '0x0000000000000000000000000000000000000000') {
+                            owner = await getLastOwner(tokenId);
+                        }
+                    } catch (e) {
+                        console.warn(`获取所有者失败 (${domain}):`, e);
+                        // ownerOf失败，可能是已过期，查询最后持有者
+                        owner = await getLastOwner(tokenId);
+                    }
+
+                    let expiryStatus = 'valid';
+                    let graceStatus = 'no_grace';
+                    
+                    if (now > expiryDate) {
+                        expiryStatus = 'expired';
+                        if (now <= graceEnd) {
+                            graceStatus = 'in_grace';
+                        }
+                    }
+
+                    const regTime = formatDate(new Date(Date.now() - (Math.random()*1000+500)*86400000));
+                    
+                    return { 
+                        序号: idx+1, 
+                        域名: domain, 
+                        状态: expiryStatus === 'expired' ? 'expired' : 'registered',
+                        过期天数: days, 
+                        过期时间: formatDate(expiryDate), 
+                        宽限期结束: formatDate(graceEnd), 
+                        注册时间: regTime, 
+                        所有者地址: owner || '', 
+                        错误信息: '', 
+                        注册状态: expiryStatus === 'expired' ? 'expired' : 'registered', 
+                        过期状态: expiryStatus, 
+                        宽限状态: graceStatus, 
+                        溢价状态: 'no_premium', 
+                        时间戳: expiry
+                    };
+                    
+                } catch (e) {
+                    lastError = e;
+                    console.error(`查询失败 (尝试 ${attempt + 1}/${maxRetries + 1}):`, e);
+                    
+                    if (attempt < maxRetries) {
+                        await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+                    }
+                }
+            }
+            
+            return { 
+                序号: idx+1, 
+                域名: domain, 
+                状态: 'error',
+                过期天数: '', 
+                过期时间: '', 
+                宽限期结束: '', 
+                注册时间: '', 
+                所有者地址: '', 
+                错误信息: lastError?.message?.substring(0,100) || '未知错误', 
+                注册状态: 'error', 
+                过期状态: 'error', 
+                宽限状态: 'error', 
+                溢价状态: 'no_premium', 
+                时间戳: 0
+            };
+        }
+
+        async function worker() {
+            while (isQueryRunning && !isPaused) {
+                const idx = currentIndex++;
+                if (idx >= pendingDomains.length) break;
+                
+                web3 = new Web3(getCurrentRpc());
+                registry = new web3.eth.Contract(ENS_ABI, ENS_REGISTRY);
+                registrar = new web3.eth.Contract(REGISTRAR_ABI, BASE_REGISTRAR);
+                controller = new web3.eth.Contract(CONTROLLER_ABI, CONTROLLER);
+                
+                const result = await queryDomain(pendingDomains[idx], idx);
+                queryResults[idx] = result;
+                processedDomains++;
+                
+                const elapsedSec = (Date.now() - startTime) / 1000;
+                const speed = (processedDomains / elapsedSec).toFixed(1) || 0;
+                
+                document.getElementById('querySpeed').innerHTML = `${translations[currentLang].speed}: ${speed} ${translations[currentLang].speedUnit}`;
+                document.getElementById('progressBar').style.width = (processedDomains/totalDomains*100)+'%';
+                document.getElementById('progressText').innerHTML = `${processedDomains}/${totalDomains}`;
+                document.getElementById('progressPercent').innerText = Math.round(processedDomains/totalDomains*100)+'%';
+                
+                if (processedDomains % 10 === 0) {
+                    filteredResults = queryResults.filter(r=>r);
+                    applyFilters();
+                }
+                
+                if (!isPaused) await new Promise(r => setTimeout(r, parseInt(document.getElementById('requestDelay').value)||20));
+            }
+            activeWorkers--;
+        }
+
+        async function startQuery() {
+            if (isQueryRunning) return;
+            
+            const domains = document.getElementById('domainsText').value.split('\n').map(d=>normalizeDomain(d)).filter(d=>d);
+            if (!domains.length) return;
+            
+            try { 
+                web3 = new Web3(getCurrentRpc()); 
+                registry = new web3.eth.Contract(ENS_ABI, ENS_REGISTRY);
+                registrar = new web3.eth.Contract(REGISTRAR_ABI, BASE_REGISTRAR);
+                controller = new web3.eth.Contract(CONTROLLER_ABI, CONTROLLER);
+            } catch { 
+                return; 
+            }
+
+            isQueryRunning = true; 
+            isPaused = false;
+            pendingDomains = domains; 
+            currentIndex = 0;
+            queryResults = new Array(domains.length); 
+            filteredResults = [];
+            totalDomains = domains.length; 
+            processedDomains = 0; 
+            startTime = Date.now(); 
+            currentPage = 1;
+            
+            document.getElementById('startQueryBtn').disabled = true;
+            document.getElementById('resumeQueryBtn').disabled = true;
+            document.getElementById('stopQueryBtn').disabled = false;
+            document.getElementById('exportBtn').disabled = true;
+            document.getElementById('retryAllBtn').disabled = true;
+
+            addLog(translations[currentLang].logQueryStart.replace('{count}', totalDomains), 'info');
+
+            const maxWorkers = parseInt(document.getElementById('maxWorkers').value) || 50;
+            activeWorkers = maxWorkers;
+            for (let i=0; i<maxWorkers; i++) worker();
+
+            const interval = setInterval(() => {
+                if (!isQueryRunning || isPaused) return;
+                if (activeWorkers === 0 || processedDomains >= totalDomains) {
+                    clearInterval(interval);
+                    if (!isPaused) completeQuery();
+                }
+            }, 200);
+        }
+
+        function stopQuery() { 
+            isPaused = true; 
+            isQueryRunning = false; 
+            
+            document.getElementById('startQueryBtn').disabled = false; 
+            document.getElementById('resumeQueryBtn').disabled = false; 
+            document.getElementById('stopQueryBtn').disabled = true; 
+            document.getElementById('exportBtn').disabled = false; 
+            
+            updateRetryAllButton();
+            
+            addLog(translations[currentLang].logQueryPaused
+                .replace('{processed}', processedDomains)
+                .replace('{total}', totalDomains), 'warning');
+        }
+        
+        async function resumeQuery() { 
+            if (isQueryRunning || currentIndex>=pendingDomains.length) return; 
+            
+            isQueryRunning = true; 
+            isPaused = false; 
+            
+            document.getElementById('startQueryBtn').disabled = true; 
+            document.getElementById('resumeQueryBtn').disabled = true; 
+            document.getElementById('stopQueryBtn').disabled = false; 
+            document.getElementById('exportBtn').disabled = true; 
+            document.getElementById('retryAllBtn').disabled = true;
+            
+            addLog(translations[currentLang].logQueryResumed
+                .replace('{remaining}', pendingDomains.length - currentIndex), 'info');
+            
+            const maxWorkers = parseInt(document.getElementById('maxWorkers').value)||50; 
+            activeWorkers = maxWorkers; 
+            for (let i=0; i<maxWorkers; i++) worker(); 
+        }
+        
+        function completeQuery() { 
+            isQueryRunning = false; 
+            isPaused = false; 
+            
+            document.getElementById('startQueryBtn').disabled = false; 
+            document.getElementById('resumeQueryBtn').disabled = true; 
+            document.getElementById('stopQueryBtn').disabled = true; 
+            document.getElementById('exportBtn').disabled = false; 
+            
+            filteredResults = queryResults.filter(r=>r); 
+            applyFilters(); 
+            updateStatistics();
+            
+            saveResultsToStorage();
+            
+            addLog(translations[currentLang].logQueryComplete.replace('{count}', queryResults.length), 'success');
+        }
+
+        function updateRetryAllButton() {
+            const hasErrors = queryResults.some(r => r && (r.注册状态 === 'error' || r.状态 === 'error'));
+            document.getElementById('retryAllBtn').disabled = !hasErrors || isQueryRunning || isRetrying || isRetryingAll;
+        }
+
+        async function retrySingleDomain(domain, index, event) {
+            event.stopPropagation();
+            event.preventDefault();
+            
+            if (isQueryRunning || isRetrying || isRetryingAll) {
+                addLog(translations[currentLang].copyFailed, 'warning');
+                return;
+            }
+            
+            const icon = event.currentTarget;
+            icon.style.pointerEvents = 'none';
+            icon.style.opacity = '0.5';
+            
+            addLog(`开始重试域名: ${domain}`, 'info');
+            
+            try {
+                const result = await queryDomain(domain, index);
+                queryResults[index] = result;
+                filteredResults = queryResults.filter(r => r);
+                applyFilters();
+                updateStatistics();
+                
+                saveResultsToStorage();
+                updateRetryAllButton();
+                
+                if (result.注册状态 !== 'error' && result.状态 !== 'error') {
+                    addLog(`重试成功: ${domain}`, 'success');
+                } else {
+                    addLog(`重试失败: ${domain}`, 'error');
+                }
+                
+            } catch (error) {
+                console.error('重试失败:', error);
+                addLog(`重试出错: ${domain} - ${error.message}`, 'error');
+            } finally {
+                icon.style.pointerEvents = 'auto';
+                icon.style.opacity = '1';
+            }
+        }
+
+        // 批量重试所有失败域名 - 无确认弹窗，直接刷新，并发50个
+        async function retryAllFailed() {
+            if (isQueryRunning || isRetrying || isRetryingAll) {
+                addLog(translations[currentLang].copyFailed || '操作进行中', 'warning');
+                return;
+            }
+            
+            const failedDomains = queryResults
+                .filter(r => r && (r.注册状态 === 'error' || r.状态 === 'error'))
+                .map(r => ({
+                    domain: r.域名,
+                    index: r.序号 - 1
+                }));
+            
+            if (failedDomains.length === 0) {
+                addLog(currentLang === 'zh' ? '没有失败的域名需要重试' : 'No failed domains to retry', 'info');
+                return;
+            }
+            
+            // 直接开始刷新，不弹确认框
+            isRetryingAll = true;
+            
+            // 禁用按钮
+            document.getElementById('startQueryBtn').disabled = true;
+            document.getElementById('resumeQueryBtn').disabled = true;
+            document.getElementById('stopQueryBtn').disabled = true;
+            document.getElementById('exportBtn').disabled = true;
+            document.getElementById('retryAllBtn').disabled = true;
+            
+            addLog(
+                currentLang === 'zh' 
+                    ? `开始批量刷新 ${failedDomains.length} 个失败的域名` 
+                    : `Starting batch refresh for ${failedDomains.length} failed domains`, 
+                'info'
+            );
+            
+            // 保存原始进度显示
+            const progressText = document.getElementById('progressText');
+            const progressPercent = document.getElementById('progressPercent');
+            const progressBar = document.getElementById('progressBar');
+            const originalProgressText = progressText.innerHTML;
+            
+            let successCount = 0;
+            let failCount = 0;
+            
+            // 批量处理 - 使用高并发控制 (50个同时处理)
+            const concurrency = 50; // 同时处理50个
+            for (let i = 0; i < failedDomains.length; i += concurrency) {
+                const batch = failedDomains.slice(i, i + concurrency);
+                
+                // 为每个批次创建独立的web3实例
+                const batchPromises = batch.map(async (item) => {
+                    try {
+                        // 为每个重试创建新的web3实例
+                        const rpcUrl = getCurrentRpc();
+                        const tempWeb3 = new Web3(rpcUrl);
+                        
+                        // 重新创建合约实例
+                        const tempRegistry = new tempWeb3.eth.Contract(ENS_ABI, ENS_REGISTRY);
+                        const tempRegistrar = new tempWeb3.eth.Contract(REGISTRAR_ABI, BASE_REGISTRAR);
+                        const tempController = new tempWeb3.eth.Contract(CONTROLLER_ABI, CONTROLLER);
+                        
+                        // 保存原始web3并临时替换
+                        const originalWeb3 = web3;
+                        const originalRegistry = registry;
+                        const originalRegistrar = registrar;
+                        const originalController = controller;
+                        
+                        web3 = tempWeb3;
+                        registry = tempRegistry;
+                        registrar = tempRegistrar;
+                        controller = tempController;
+                        
+                        // 执行查询
+                        const result = await queryDomain(item.domain, item.index);
+                        
+                        // 恢复原始web3
+                        web3 = originalWeb3;
+                        registry = originalRegistry;
+                        registrar = originalRegistrar;
+                        controller = originalController;
+                        
+                        if (result && result.注册状态 !== 'error' && result.状态 !== 'error') {
+                            queryResults[item.index] = result;
+                            successCount++;
+                            return { success: true, result };
+                        } else {
+                            failCount++;
+                            return { success: false, error: '查询失败' };
+                        }
+                    } catch (error) {
+                        console.error(`重试失败 ${item.domain}:`, error);
+                        failCount++;
+                        return { success: false, error: error.message };
+                    }
+                });
+                
+                // 等待批次完成
+                await Promise.all(batchPromises);
+                
+                // 更新进度
+                const processed = Math.min(i + concurrency, failedDomains.length);
+                const percent = Math.round((processed / failedDomains.length) * 100);
+                progressText.innerHTML = currentLang === 'zh' 
+                    ? `批量刷新中: ${processed}/${failedDomains.length}` 
+                    : `Refreshing: ${processed}/${failedDomains.length}`;
+                progressPercent.innerText = percent + '%';
+                progressBar.style.width = percent + '%';
+                
+                // 定期更新表格
+                if (processed % 50 === 0 || processed >= failedDomains.length) {
+                    filteredResults = queryResults.filter(r => r);
+                    applyFilters();
+                    updateStatistics();
+                }
+                
+                // 添加小延迟避免请求过快
+                await new Promise(r => setTimeout(r, 100));
+            }
+            
+            // 恢复进度显示
+            progressText.innerHTML = originalProgressText;
+            progressPercent.innerText = '0%';
+            progressBar.style.width = '0%';
+            
+            // 最终更新
+            filteredResults = queryResults.filter(r => r);
+            applyFilters();
+            updateStatistics();
+            
+            // 保存到存储
+            saveResultsToStorage();
+            
+            // 重新启用按钮
+            document.getElementById('startQueryBtn').disabled = false;
+            document.getElementById('resumeQueryBtn').disabled = false;
+            document.getElementById('stopQueryBtn').disabled = true;
+            document.getElementById('exportBtn').disabled = false;
+            
+            // 更新重试按钮状态
+            updateRetryAllButton();
+            
+            isRetryingAll = false;
+            
+            addLog(
+                currentLang === 'zh' 
+                    ? `批量刷新完成: 成功 ${successCount} 个, 失败 ${failCount} 个` 
+                    : `Batch refresh completed: ${successCount} succeeded, ${failCount} failed`, 
+                successCount > 0 ? 'success' : 'warning'
+            );
+        }
+
+        function applyFilters() {
+            const status = document.getElementById('filterStatus').value;
+            const premium = document.getElementById('filterPremium').value;
+            const expiry = document.getElementById('filterExpiry').value;
+            const grace = document.getElementById('filterGrace').value;
+            const sort = document.getElementById('filterSort').value;
+            const search = document.getElementById('filterSearch').value.toLowerCase().trim();
+
+            if (!queryResults || queryResults.length === 0) {
+                filteredResults = [];
+                updateTable();
+                updateStatistics();
+                return;
+            }
+
+            let filtered = (queryResults.filter(r => r) || []).filter(r => {
+                if (status !== 'all' && status !== 'address_desc' && status !== 'address_asc') {
+                    if (status === 'registered' && r.注册状态 !== 'registered') return false;
+                    if (status === 'unregistered' && r.注册状态 !== 'unregistered') return false;
+                    if (status === 'premium' && r.注册状态 !== 'premium') return false;
+                    if (status === 'expired' && r.过期状态 !== 'expired') return false;
+                    if (status === 'error' && r.注册状态 !== 'error') return false;
+                }
+                
+                if (premium !== 'all') {
+                    if ((premium === 'in_premium') !== (r.溢价状态 === 'in_premium')) return false;
+                }
+                
+                if (expiry !== 'all' && r.过期天数 !== '') {
+                    const d = parseInt(r.过期天数);
+                    if (expiry === 'expiring' && (isNaN(d) || d > 90 || d < 0)) return false;
+                    if (expiry === 'expired' && (!isNaN(d) && d >= 0)) return false;
+                    if (expiry === 'valid' && (!isNaN(d) && d < 0)) return false;
+                }
+                
+                if (grace !== 'all') {
+                    if ((grace === 'in_grace') !== (r.宽限状态 === 'in_grace')) return false;
+                }
+                
+                if (search) {
+                    const domainMatch = r.域名.toLowerCase().includes(search);
+                    const addressMatch = r.所有者地址 && r.所有者地址.toLowerCase().includes(search);
+                    if (!domainMatch && !addressMatch) return false;
+                }
+                
+                return true;
+            });
+
+            if (status === 'address_desc' || status === 'address_asc') {
+                const withAddress = filtered.filter(item => item.所有者地址);
+                const withoutAddress = filtered.filter(item => !item.所有者地址);
+                
+                const addressGroups = new Map();
+                withAddress.forEach(item => {
+                    const addr = item.所有者地址;
+                    if (!addressGroups.has(addr)) {
+                        addressGroups.set(addr, []);
+                    }
+                    addressGroups.get(addr).push(item);
+                });
+                
+                const sortedGroups = Array.from(addressGroups.entries());
+                sortedGroups.sort((a, b) => {
+                    return status === 'address_desc' 
+                        ? b[1].length - a[1].length
+                        : a[1].length - b[1].length;
+                });
+                
+                const interleaved = [];
+                const maxGroupSize = Math.max(...sortedGroups.map(g => g[1].length), 0);
+                
+                for (let i = 0; i < maxGroupSize; i++) {
+                    for (const [_, group] of sortedGroups) {
+                        if (i < group.length) {
+                            interleaved.push(group[i]);
+                        }
+                    }
+                }
+                
+                filtered = [...interleaved, ...withoutAddress];
+            }
+            else if (sort === 'expiry_asc') {
+                filtered.sort((a, b) => {
+                    const aTime = a.时间戳 || 0;
+                    const bTime = b.时间戳 || 0;
+                    return aTime - bTime;
+                });
+            } else if (sort === 'expiry_desc') {
+                filtered.sort((a, b) => {
+                    const aTime = a.时间戳 || 0;
+                    const bTime = b.时间戳 || 0;
+                    return bTime - aTime;
+                });
+            } else {
+                filtered.sort((a, b) => (a.序号 || 0) - (b.序号 || 0));
+            }
+
+            filteredResults = filtered;
+            currentPage = 1;
+            updateTable();
+            updateStatistics();
+        }
+
+        function clearFilters() {
+            document.getElementById('filterStatus').value = 'all';
+            document.getElementById('filterPremium').value = 'all';
+            document.getElementById('filterExpiry').value = 'all';
+            document.getElementById('filterGrace').value = 'all';
+            document.getElementById('filterSort').value = 'default';
+            document.getElementById('filterSearch').value = '';
+            filteredResults = (queryResults.filter(r=>r) || []).sort((a,b)=>a.序号-b.序号);
+            currentPage = 1;
+            updateTable();
+            updateStatistics();
+        }
+
+        function updateTable() {
+            if (!filteredResults || filteredResults.length === 0) {
+                const noDataText = currentLang === 'zh' ? '暂无数据' : 'No data';
+                document.getElementById('resultsBody').innerHTML = `<tr><td colspan="9" style="text-align: center;">${noDataText}</td></tr>`;
+                document.getElementById('resultsCount').innerText = '(0)';
+                updatePagination();
+                return;
+            }
+            
+            const tbody = document.getElementById('resultsBody');
+            tbody.innerHTML = '';
+            
+            const validResults = filteredResults.filter(r => r && r.序号);
+            
+            const addressCountMap = new Map();
+            queryResults.filter(r => r && r.所有者地址).forEach(r => {
+                const addr = r.所有者地址;
+                if (addr) {
+                    addressCountMap.set(addr, (addressCountMap.get(addr) || 0) + 1);
+                }
+            });
+            
+            pageSize = parseInt(document.getElementById('pageSize').value) || 50;
+            totalPages = Math.ceil(validResults.length / pageSize) || 1;
+            
+            if (currentPage > totalPages) currentPage = totalPages || 1;
+            
+            const start = (currentPage-1) * pageSize;
+            const end = Math.min(start + pageSize, validResults.length);
+            
+            const currentSearch = document.getElementById('filterSearch').value.toLowerCase().trim();
+            
+            for (let i=start; i<end; i++) {
+                const r = validResults[i];
+                
+                let statusHtml = '';
+                
+                if (r.注册状态 === 'registered') {
+                    statusHtml = `<span style="color: var(--success-color);">${translations[currentLang].statusRegistered}</span>`;
+                } else if (r.注册状态 === 'unregistered') {
+                    statusHtml = `<span style="color: var(--info-color);">${translations[currentLang].statusUnregistered}</span>`;
+                } else if (r.注册状态 === 'premium') {
+                    statusHtml = `<span style="color: var(--warning-color);">${translations[currentLang].statusPremium}</span>`;
+                } else if (r.过期状态 === 'expired') {
+                    statusHtml = `<span style="color: var(--danger-color);">${translations[currentLang].statusExpired}</span>`;
+                } else {
+                    statusHtml = `
+                        <span style="color: var(--danger-color); display: flex; align-items: center; gap: 4px; justify-content: center;">
+                            ${translations[currentLang].statusError}
+                            <i class="fas fa-redo-alt retry-icon" 
+                               style="cursor: pointer; font-size: 0.8rem; color: var(--warning-color);" 
+                               onclick="retrySingleDomain('${r.域名}', ${r.序号-1}, event)"
+                               title="${translations[currentLang].retrySingle}"></i>
+                        </span>
+                    `;
+                }
+                
+                let addressHtml = '-';
+                if (r.所有者地址) {
+                    const count = addressCountMap.get(r.所有者地址) || 1;
+                    const shortAddr = shortenAddress(r.所有者地址);
+                    const titleText = translations[currentLang].addressCount.replace('{count}', count);
+                    
+                    const isAddressInSearch = currentSearch && r.所有者地址 && 
+                                             r.所有者地址.toLowerCase().includes(currentSearch);
+                    
+                    let addressContent = `
+                        <span class="address-text ${isAddressInSearch ? 'address-highlight' : ''}" 
+                              onclick="filterByAddress('${r.所有者地址}')">${shortAddr}</span>
+                    `;
+                    
+                    if (count > 1) {
+                        addressContent += `
+                            <span class="address-count" onclick="filterByAddress('${r.所有者地址}')">${count}</span>
+                        `;
+                    }
+                    
+                    if (count > 1) {
+                        addressContent += `
+                            <i class="fas fa-times-circle address-clear" 
+                               onclick="clearAddressSearch(event, '${r.所有者地址}')" 
+                               title="${translations[currentLang].clearAddressSearch}"></i>
+                        `;
+                    }
+                    
+                    addressHtml = `
+                        <div class="address-wrapper" title="${titleText}">
+                            <span class="short-address">
+                                ${addressContent}
+                            </span>
+                        </div>
+                    `;
+                }
+                
+                const viewLink = `<a href="https://app.ens.domains/${r.域名}" target="_blank" class="view-link">${translations[currentLang].tableView}</a>`;
+                
+                tbody.innerHTML += `<tr>
+                    <td>${r.序号}</td>
+                    <td>${r.域名}</td>
+                    <td>${statusHtml}</td>
+                    <td>${r.过期天数 !== undefined && r.过期天数 !== '' ? r.过期天数 : '-'}</td>
+                    <td>${r.过期时间 || '-'}</td>
+                    <td>${r.宽限期结束 || '-'}</td>
+                    <td>${r.注册时间 || '-'}</td>
+                    <td>${addressHtml}</td>
+                    <td>${viewLink}</td>
+                </tr>`;
+            }
+            
+            document.getElementById('resultsCount').innerText = `(${validResults.length})`;
+            updatePagination();
+            
+            const tableContainer = document.querySelector('.results-table-container');
+            if (tableContainer) {
+                tableContainer.scrollTop = 0;
+            }
+        }
+
+        function updatePagination() {
+            document.getElementById('pageInfo').innerHTML = `${translations[currentLang].page} ${currentPage} ${translations[currentLang].pageOf} ${totalPages} ${translations[currentLang].pageTotal}`;
+            document.getElementById('pageInput').value = currentPage;
+            const btns = document.querySelectorAll('#pagination .page-btn');
+            if (btns.length >= 4) {
+                btns[0].disabled = currentPage === 1;
+                btns[1].disabled = currentPage === 1;
+                btns[2].disabled = currentPage === totalPages || totalPages === 0;
+                btns[3].disabled = currentPage === totalPages || totalPages === 0;
+            }
+        }
+
+        function changePageSize() { 
+            pageSize = parseInt(document.getElementById('pageSize').value); 
+            currentPage = 1; 
+            updateTable(); 
+        }
+        
+        function changePage(p) { 
+            if(p >= 1 && p <= totalPages) { 
+                currentPage = p; 
+                updateTable(); 
+            } 
+        }
+        
+        function prevPage() { changePage(currentPage - 1); }
+        function nextPage() { changePage(currentPage + 1); }
+        
+        function goToPage(v) { 
+            let p = parseInt(v); 
+            if(p >= 1 && p <= totalPages) changePage(p); 
+            else document.getElementById('pageInput').value = currentPage; 
+        }
+
+        function updateStatistics() {
+            const list = filteredResults.length ? filteredResults : (queryResults.filter(r=>r) || []);
+            let reg = 0, unreg = 0, premium = 0, err = 0, exp = 0;
+            
+            list.forEach(r => {
+                if (r.注册状态 === 'registered') reg++;
+                else if (r.注册状态 === 'unregistered') unreg++;
+                else if (r.注册状态 === 'premium') premium++;
+                else if (r.注册状态 === 'error') err++;
+                if (r.过期状态 === 'expired') exp++;
+            });
+            
+            document.getElementById('statRegistered').innerText = reg;
+            document.getElementById('statUnregistered').innerText = unreg;
+            document.getElementById('statPremium').innerText = premium;
+            document.getElementById('statErrors').innerText = err;
+            document.getElementById('statExpired').innerText = exp;
+            
+            updateRetryAllButton();
+        }
+
+        function clearResults() {
+            if (isQueryRunning) return;
+            if (!queryResults.length) return;
+            
+            const confirmMessage = currentLang === 'zh' 
+                ? translations[currentLang].confirmClear 
+                : 'Are you sure you want to clear all results?';
+            
+            if (confirm(confirmMessage)) {
+                queryResults = []; 
+                filteredResults = [];
+                document.getElementById('resultsBody').innerHTML = '';
+                document.getElementById('resultsCount').innerText = '';
+                document.getElementById('exportBtn').disabled = true;
+                document.getElementById('retryAllBtn').disabled = true;
+                
+                updateStatistics();
+                
+                localStorage.removeItem(STORAGE_KEY);
+                localStorage.removeItem(STORAGE_TIME_KEY);
+                
+                addLog(translations[currentLang].logClear, 'warning');
+            }
+        }
+
+        function exportToCSV() {
+            if (!filteredResults.length && !queryResults.length) return;
+            
+            let data;
+            if (filteredResults.length > 0) {
+                data = filteredResults;
+            } else {
+                data = queryResults.filter(r => r).sort((a,b) => a.序号 - b.序号);
+            }
+            
+            const cols = [
+                translations[currentLang].tableNo,
+                translations[currentLang].tableDomain,
+                translations[currentLang].tableStatus,
+                translations[currentLang].tableExpiryDays,
+                translations[currentLang].tableExpiryTime,
+                translations[currentLang].tableGraceEnd,
+                translations[currentLang].tableRegTime,
+                translations[currentLang].tableOwner,
+                translations[currentLang].tableAction
+            ];
+            
+            let csv = cols.join(',') + '\n';
+            
+            data.forEach(r => {
+                let statusDisplay = '';
+                if (r.注册状态 === 'registered') statusDisplay = translations[currentLang].statusRegistered;
+                else if (r.注册状态 === 'unregistered') statusDisplay = translations[currentLang].statusUnregistered;
+                else if (r.注册状态 === 'premium') statusDisplay = translations[currentLang].statusPremium;
+                else if (r.过期状态 === 'expired') statusDisplay = translations[currentLang].statusExpired;
+                else statusDisplay = translations[currentLang].statusError;
+                
+                const escapeCSV = (str) => {
+                    if (!str) return '';
+                    str = str.toString();
+                    if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                        return '"' + str.replace(/"/g, '""') + '"';
+                    }
+                    return str;
+                };
+                
+                csv += [
+                    escapeCSV(r.序号),
+                    escapeCSV(r.域名),
+                    escapeCSV(statusDisplay),
+                    escapeCSV(r.过期天数 || ''),
+                    escapeCSV(r.过期时间 || ''),
+                    escapeCSV(r.宽限期结束 || ''),
+                    escapeCSV(r.注册时间 || ''),
+                    escapeCSV(r.所有者地址 || ''),
+                    escapeCSV(`https://app.ens.domains/${r.域名}`)
+                ].join(',') + '\n';
+            });
+            
+            const blob = new Blob(['\uFEFF' + csv], {type:'text/csv;charset=utf-8;'});
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            
+            const timestamp = `${year}-${month}-${day}-${hours}${minutes}${seconds}`;
+            const langSuffix = currentLang === 'zh' ? 'zh' : 'en';
+            
+            link.download = `ens_${timestamp}_${langSuffix}.csv`;
+            link.click();
+            
+            addLog(translations[currentLang].logExport.replace('{count}', data.length), 'success');
+        }
+
+        function clearDomains() { 
+            document.getElementById('domainsText').value = ''; 
+            updateDomainsCount(); 
+        }
+        
+        function validateDomains() { 
+            const textarea = document.getElementById('domainsText');
+            textarea.style.borderColor = 'var(--success-color)';
+            setTimeout(() => {
+                textarea.style.borderColor = '';
+            }, 500);
+        }
+
+        function initThemeSwitcher() {
+            const apply = theme => {
+                document.body.classList.remove('dark-theme');
+                if (theme === 'dark' || (theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                    document.body.classList.add('dark-theme');
+                }
+                document.querySelectorAll('.theme-btn').forEach(b => b.classList.toggle('active', b.dataset.theme === theme));
+                localStorage.setItem('ens-tool-theme', theme);
+            };
+            apply(localStorage.getItem('ens-tool-theme') || 'auto');
+            document.querySelectorAll('.theme-btn').forEach(b => {
+                b.addEventListener('click', () => apply(b.dataset.theme));
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initRpcStatus();
+            initThemeSwitcher();
+            
+            const savedLang = localStorage.getItem('preferred-language');
+            const defaultLang = savedLang || getBrowserLanguage();
+            switchLanguage(defaultLang);
+            
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                btn.addEventListener('click', () => switchLanguage(btn.dataset.lang));
+            });
+            
+            document.getElementById('domainsText').addEventListener('input', updateDomainsCount);
+            updateDomainsCount();
+            
+            const hasSavedData = loadResultsFromStorage();
+            if (hasSavedData) {
+                document.getElementById('exportBtn').disabled = false;
+                updateRetryAllButton();
+            }
+            
+            setTimeout(() => checkAllRpcNodes(), 1000);
+            setInterval(() => checkAllRpcNodes(), 300000);
+            
+            addLog(translations[currentLang].logReady, 'success');
+            addLog(`Timezone: ${getTimeZone()}`, 'info');
+            
+            setInterval(updateRpcList, 1000);
+        });
+
+        window.onclick = e => { 
+            if (e.target === document.getElementById('rpcStatusModal')) closeModal(); 
+        };
+        
+        document.addEventListener('keydown', e => { 
+            if (e.key === 'Escape') closeModal(); 
+        });
+
+        window.loadDomainType = loadDomainType; 
+        window.clearDomains = clearDomains; 
+        window.validateDomains = validateDomains;
+        window.startQuery = startQuery; 
+        window.stopQuery = stopQuery; 
+        window.resumeQuery = resumeQuery;
+        window.applyFilters = applyFilters; 
+        window.clearFilters = clearFilters; 
+        window.clearResults = clearResults;
+        window.exportToCSV = exportToCSV; 
+        window.changePageSize = changePageSize; 
+        window.changePage = changePage;
+        window.prevPage = prevPage; 
+        window.nextPage = nextPage; 
+        window.goToPage = goToPage;
+        window.showRPCStatus = showRPCStatus; 
+        window.closeModal = closeModal;
+        window.filterByAddress = filterByAddress;
+        window.filterByStat = filterByStat;
+        window.copyText = copyText;
+        window.retrySingleDomain = retrySingleDomain;
+        window.retryAllFailed = retryAllFailed;
+        window.updateRetryAllButton = updateRetryAllButton;
+        window.clearAddressSearch = clearAddressSearch;
+    </script>
+</body>
+</html>
