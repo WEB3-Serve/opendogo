@@ -1,0 +1,203 @@
+// ========== RPC节点管理 ==========
+let rpcStatus = {};
+
+function initRpcStatus() {
+    CONFIG.RPC_LIST.forEach(rpc => {
+        rpcStatus[rpc] = { 
+            available: true, 
+            successCount: 0, 
+            failCount: 0, 
+            responseTime: 0, 
+            disabledUntil: 0,
+            lastUsed: 0
+        };
+    });
+    updateRpcList();
+}
+
+function getCurrentRpc() {
+    const selected = document.getElementById('rpcSelect').value;
+    if (selected !== 'dynamic') return selected;
+    
+    const now = Date.now();
+    const available = CONFIG.RPC_LIST.filter(r => rpcStatus[r] && rpcStatus[r].available && rpcStatus[r].disabledUntil < now);
+    
+    if (available.length === 0) {
+        Object.keys(rpcStatus).forEach(r => { 
+            rpcStatus[r].available = true; 
+            rpcStatus[r].disabledUntil = 0; 
+        });
+        return CONFIG.RPC_LIST[0];
+    }
+    return available[Math.floor(Math.random() * available.length)];
+}
+
+async function checkAllRpcNodes() {
+    if (typeof addLog === 'function') {
+        addLog(translations[currentLang].logRpcCheck, 'info');
+    }
+    
+    const promises = CONFIG.RPC_LIST.map(async (rpc) => {
+        try {
+            const start = Date.now();
+            const testWeb3 = new Web3(rpc);
+            await testWeb3.eth.getBlockNumber();
+            const responseTime = Date.now() - start;
+            
+            rpcStatus[rpc] = {
+                ...rpcStatus[rpc],
+                available: true,
+                responseTime: responseTime,
+                successCount: (rpcStatus[rpc]?.successCount || 0) + 1,
+                failCount: 0,
+                lastUsed: Date.now(),
+                disabledUntil: 0
+            };
+            return { rpc, success: true, responseTime };
+        } catch (error) {
+            rpcStatus[rpc] = {
+                ...rpcStatus[rpc],
+                available: false,
+                failCount: (rpcStatus[rpc]?.failCount || 0) + 1,
+                lastUsed: Date.now()
+            };
+            return { rpc, success: false, error: error.message };
+        }
+    });
+    
+    const results = await Promise.all(promises);
+    const successCount = results.filter(r => r.success).length;
+    
+    if (typeof addLog === 'function') {
+        addLog(translations[currentLang].logRpcComplete
+            .replace('{success}', successCount)
+            .replace('{total}', CONFIG.RPC_LIST.length), 
+            successCount > 0 ? 'success' : 'warning');
+    }
+        
+    updateRpcList();
+}
+
+function shortenRpc(rpc) { 
+    try { 
+        return new URL(rpc).hostname.substring(0,18) + '...'; 
+    } catch { 
+        return rpc.substring(0,18) + '...'; 
+    } 
+}
+
+function updateRpcList() {
+    const now = Date.now();
+    const current = getCurrentRpc();
+    
+    const rpcListEl = document.getElementById('rpcList');
+    if (!rpcListEl) return;
+    
+    rpcListEl.innerHTML = CONFIG.RPC_LIST.map(r => {
+        const s = rpcStatus[r];
+        const avail = s && s.available && s.disabledUntil < now;
+        return `<div class="rpc-item ${r===current?'current':''}" title="${r}">
+            <i class="fas fa-circle" style="font-size:0.5rem;color:${avail?'#10B981':'#EF4444'};"></i> 
+            <span style="flex:1">${shortenRpc(r)}</span> 
+            <span>${s && s.responseTime > 0 ? s.responseTime + 'ms' : '-'}</span>
+        </div>`;
+    }).join('');
+    
+    const availableCount = CONFIG.RPC_LIST.filter(r => rpcStatus[r] && rpcStatus[r].available && rpcStatus[r].disabledUntil < now).length;
+    document.getElementById('activeRPC').innerText = availableCount;
+    
+    const totalQ = Object.values(rpcStatus).reduce((sum, s) => sum + (s.successCount || 0) + (s.failCount || 0), 0);
+    const totalSuc = Object.values(rpcStatus).reduce((sum, s) => sum + (s.successCount || 0), 0);
+    const totalResp = Object.values(rpcStatus).reduce((sum, s) => sum + ((s.responseTime || 0) * (s.successCount || 0)), 0);
+    
+    document.getElementById('totalQueries').innerText = totalQ;
+    document.getElementById('successRate').innerText = totalQ > 0 ? Math.round((totalSuc / totalQ) * 100) + '%' : '0%';
+    document.getElementById('responseTime').innerText = totalSuc > 0 ? Math.round(totalResp / totalSuc) + 'ms' : '0ms';
+    
+    const currentRpc = getCurrentRpc();
+    const rpcStatusTextEl = document.getElementById('rpcStatusText');
+    if (rpcStatusTextEl && translations && currentLang) {
+        rpcStatusTextEl.innerHTML = `${translations[currentLang].currentRPC}: <span style="color:var(--primary-color);">${shortenRpc(currentRpc)}</span>`;
+    }
+}
+
+function updateRpcStatusModal() {
+    const tbody = document.getElementById('rpcStatusBody');
+    if (!tbody) return;
+    
+    const now = Date.now();
+    
+    tbody.innerHTML = CONFIG.RPC_LIST.map(r => {
+        const s = rpcStatus[r] || { 
+            available: false, 
+            successCount: 0, 
+            failCount: 0, 
+            responseTime: 0 
+        };
+        
+        const isAvailable = s.available && (s.disabledUntil || 0) < now;
+        const totalQueries = (s.successCount || 0) + (s.failCount || 0);
+        const successRate = totalQueries > 0 ? Math.round(((s.successCount || 0) / totalQueries) * 100) : 0;
+        
+        const statusText = isAvailable ? '● 可用' : '○ 禁用';
+        const statusColor = isAvailable ? '#10B981' : '#EF4444';
+        
+        const responseTimeText = s.responseTime > 0 ? s.responseTime + 'ms' : '-';
+        
+        let shortName = r;
+        try {
+            const url = new URL(r);
+            shortName = url.hostname.replace('www.', '').substring(0, 18) + '...';
+        } catch {
+            shortName = r.substring(0, 18) + '...';
+        }
+        
+        return `<tr>
+            <td>${shortName}</td>
+            <td style="color: ${statusColor}; font-weight: 500;">${statusText}</td>
+            <td>${successRate}%</td>
+            <td>${responseTimeText}</td>
+            <td>${totalQueries}</td>
+            <td>${s.failCount || 0}</td>
+        </tr>`;
+    }).join('');
+}
+
+function showRPCStatus() {
+    updateRpcStatusModal();
+    document.getElementById('rpcStatusModal').style.display = 'flex';
+    
+    if (window.rpcModalInterval) {
+        clearInterval(window.rpcModalInterval);
+    }
+    
+    window.rpcModalInterval = setInterval(() => {
+        updateRpcStatusModal();
+    }, 2000);
+    
+    setTimeout(() => {
+        checkAllRpcNodes().then(() => {
+            updateRpcStatusModal();
+        });
+    }, 100);
+}
+
+function closeModal() { 
+    document.getElementById('rpcStatusModal').style.display = 'none'; 
+    if (window.rpcModalInterval) {
+        clearInterval(window.rpcModalInterval);
+        window.rpcModalInterval = null;
+    }
+}
+
+// 初始化
+initRpcStatus();
+setInterval(updateRpcList, 1000);
+
+// 暴露RPC相关函数
+window.getCurrentRpc = getCurrentRpc;
+window.checkAllRpcNodes = checkAllRpcNodes;
+window.updateRpcList = updateRpcList;
+window.showRPCStatus = showRPCStatus;
+window.closeModal = closeModal;
+window.rpcStatus = rpcStatus;

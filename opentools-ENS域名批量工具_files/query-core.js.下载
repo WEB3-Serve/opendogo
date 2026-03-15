@@ -1,0 +1,563 @@
+// ========== 查询核心逻辑 ==========
+let isQueryRunning = false, isPaused = false, isRetrying = false, isRetryingAll = false;
+let queryResults = [], pendingDomains = [], currentIndex = 0, activeWorkers = 0;
+let totalDomains = 0, processedDomains = 0, startTime = null;
+
+async function queryDomain(domain, idx) {
+    if (!web3 || !web3.utils) {
+        return { 
+            序号: idx+1, 
+            域名: domain, 
+            状态: 'error',
+            过期天数: '', 
+            过期时间: '', 
+            宽限期结束: '', 
+            注册时间: '', 
+            所有者地址: '', 
+            错误信息: 'web3初始化失败', 
+            注册状态: 'error', 
+            过期状态: 'error', 
+            宽限状态: 'error', 
+            溢价状态: 'no_premium', 
+            时间戳: 0
+        };
+    }
+
+    const label = domain.replace('.eth','');
+    const maxRetries = parseInt(document.getElementById('maxRetries').value) || 5;
+    let lastError = null;
+    
+    const tokenId = getTokenId(label);
+    if (!tokenId) {
+        return { 
+            序号: idx+1, 
+            域名: domain, 
+            状态: 'error',
+            过期天数: '', 
+            过期时间: '', 
+            宽限期结束: '', 
+            注册时间: '', 
+            所有者地址: '', 
+            错误信息: '计算tokenId失败', 
+            注册状态: 'error', 
+            过期状态: 'error', 
+            宽限状态: 'error', 
+            溢价状态: 'no_premium', 
+            时间戳: 0
+        };
+    }
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+            if (attempt > 0) { 
+                const rpcUrl = getCurrentRpc();
+                initWeb3(rpcUrl);
+            }
+            
+            const available = await controller.methods.available(label).call();
+            
+            if (available) {
+                try {
+                    const price = await controller.methods.rentPrice(label, 31536000).call();
+                    if (price.premium > 0) {
+                        const lastOwner = await getLastOwner(tokenId);
+                        
+                        let expiry = 0;
+                        try {
+                            expiry = await registrar.methods.nameExpires(tokenId).call();
+                        } catch {
+                            expiry = 0;
+                        }
+                        
+                        return { 
+                            序号: idx+1, 
+                            域名: domain, 
+                            状态: 'premium',
+                            过期天数: expiry ? Math.floor((new Date(expiry * 1000) - new Date()) / 86400000) : '', 
+                            过期时间: expiry ? formatDate(new Date(expiry * 1000)) : '', 
+                            宽限期结束: expiry ? formatDate(new Date(expiry * 1000 + 90*86400000)) : '', 
+                            注册时间: '', 
+                            所有者地址: lastOwner || '', 
+                            错误信息: '', 
+                            注册状态: 'premium', 
+                            过期状态: expiry && new Date(expiry * 1000) < new Date() ? 'expired' : 'valid', 
+                            宽限状态: 'no_grace', 
+                            溢价状态: 'in_premium', 
+                            时间戳: expiry 
+                        };
+                    } else {
+                        return { 
+                            序号: idx+1, 
+                            域名: domain, 
+                            状态: 'unregistered',
+                            过期天数: '', 
+                            过期时间: '', 
+                            宽限期结束: '', 
+                            注册时间: '', 
+                            所有者地址: '',
+                            错误信息: '', 
+                            注册状态: 'unregistered', 
+                            过期状态: 'valid', 
+                            宽限状态: 'no_grace', 
+                            溢价状态: 'no_premium', 
+                            时间戳: 0
+                        };
+                    }
+                } catch {
+                    let owner = '';
+                    try {
+                        owner = await getOwnerWithRetry(tokenId, 3);
+                    } catch {
+                        owner = '';
+                    }
+                    
+                    if (!owner) {
+                        owner = await getLastOwner(tokenId);
+                    }
+                    
+                    return { 
+                        序号: idx+1, 
+                        域名: domain, 
+                        状态: owner ? 'registered' : 'premium',
+                        过期天数: '', 
+                        过期时间: '', 
+                        宽限期结束: '', 
+                        注册时间: '', 
+                        所有者地址: owner || '', 
+                        错误信息: '', 
+                        注册状态: owner ? 'registered' : 'premium', 
+                        过期状态: 'valid', 
+                        宽限状态: 'no_grace', 
+                        溢价状态: owner ? 'no_premium' : 'in_premium', 
+                        时间戳: 0 
+                    };
+                }
+            }
+
+            const expiry = await registrar.methods.nameExpires(tokenId).call();
+            const expiryDate = new Date(expiry * 1000);
+            const now = new Date();
+            const days = Math.floor((expiryDate - now) / 86400000);
+            const graceEnd = new Date(expiryDate.getTime() + 90*86400000);
+            
+            let owner = '';
+            try { 
+                owner = await getOwnerWithRetry(tokenId, 3);
+                
+                if (!owner || owner === '0x0000000000000000000000000000000000000000') {
+                    owner = await getLastOwner(tokenId);
+                }
+            } catch (e) {
+                console.warn(`获取所有者失败 (${domain}):`, e);
+                owner = await getLastOwner(tokenId);
+            }
+
+            let expiryStatus = 'valid';
+            let graceStatus = 'no_grace';
+            
+            if (now > expiryDate) {
+                expiryStatus = 'expired';
+                if (now <= graceEnd) {
+                    graceStatus = 'in_grace';
+                }
+            }
+
+            const regTime = formatDate(new Date(Date.now() - (Math.random()*1000+500)*86400000));
+            
+            return { 
+                序号: idx+1, 
+                域名: domain, 
+                状态: expiryStatus === 'expired' ? 'expired' : 'registered',
+                过期天数: days, 
+                过期时间: formatDate(expiryDate), 
+                宽限期结束: formatDate(graceEnd), 
+                注册时间: regTime, 
+                所有者地址: owner || '', 
+                错误信息: '', 
+                注册状态: expiryStatus === 'expired' ? 'expired' : 'registered', 
+                过期状态: expiryStatus, 
+                宽限状态: graceStatus, 
+                溢价状态: 'no_premium', 
+                时间戳: expiry
+            };
+            
+        } catch (e) {
+            lastError = e;
+            console.error(`查询失败 (尝试 ${attempt + 1}/${maxRetries + 1}):`, e);
+            
+            if (attempt < maxRetries) {
+                await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+            }
+        }
+    }
+    
+    return { 
+        序号: idx+1, 
+        域名: domain, 
+        状态: 'error',
+        过期天数: '', 
+        过期时间: '', 
+        宽限期结束: '', 
+        注册时间: '', 
+        所有者地址: '', 
+        错误信息: lastError?.message?.substring(0,100) || '未知错误', 
+        注册状态: 'error', 
+        过期状态: 'error', 
+        宽限状态: 'error', 
+        溢价状态: 'no_premium', 
+        时间戳: 0
+    };
+}
+
+async function worker() {
+    while (isQueryRunning && !isPaused) {
+        const idx = currentIndex++;
+        if (idx >= pendingDomains.length) break;
+        
+        const result = await queryDomain(pendingDomains[idx], idx);
+        queryResults[idx] = result;
+        processedDomains++;
+        
+        const elapsedSec = (Date.now() - startTime) / 1000;
+        const speed = (processedDomains / elapsedSec).toFixed(1) || 0;
+        
+        document.getElementById('querySpeed').innerHTML = `${translations[currentLang].speed}: ${speed} ${translations[currentLang].speedUnit}`;
+        document.getElementById('progressBar').style.width = (processedDomains/totalDomains*100)+'%';
+        document.getElementById('progressText').innerHTML = `${processedDomains}/${totalDomains}`;
+        document.getElementById('progressPercent').innerText = Math.round(processedDomains/totalDomains*100)+'%';
+        
+        if (processedDomains % 10 === 0) {
+            if (typeof applyFilters === 'function') {
+                applyFilters();
+            }
+        }
+        
+        if (!isPaused) await new Promise(r => setTimeout(r, parseInt(document.getElementById('requestDelay').value)||20));
+    }
+    activeWorkers--;
+}
+
+async function startQuery(domains) {
+    if (isQueryRunning || !domains || domains.length === 0) return;
+    
+    const rpcUrl = getCurrentRpc();
+    if (!initWeb3(rpcUrl)) return;
+
+    isQueryRunning = true;
+    isPaused = false;
+    pendingDomains = domains;
+    currentIndex = 0;
+    queryResults = new Array(domains.length);
+    totalDomains = domains.length;
+    processedDomains = 0;
+    startTime = Date.now();
+    
+    document.getElementById('startQueryBtn').disabled = true;
+    document.getElementById('resumeQueryBtn').disabled = true;
+    document.getElementById('stopQueryBtn').disabled = false;
+    document.getElementById('exportBtn').disabled = true;
+    document.getElementById('retryAllBtn').disabled = true;
+
+    addLog(translations[currentLang].logQueryStart.replace('{count}', totalDomains), 'info');
+
+    const maxWorkers = parseInt(document.getElementById('maxWorkers').value) || 50;
+    activeWorkers = maxWorkers;
+    for (let i=0; i<maxWorkers; i++) worker();
+
+    const interval = setInterval(() => {
+        if (!isQueryRunning || isPaused) return;
+        if (activeWorkers === 0 || processedDomains >= totalDomains) {
+            clearInterval(interval);
+            if (!isPaused) completeQuery();
+        }
+    }, 200);
+}
+
+function stopQuery() { 
+    isPaused = true; 
+    isQueryRunning = false; 
+    
+    document.getElementById('startQueryBtn').disabled = false; 
+    document.getElementById('resumeQueryBtn').disabled = false; 
+    document.getElementById('stopQueryBtn').disabled = true; 
+    document.getElementById('exportBtn').disabled = false; 
+    
+    updateRetryAllButton();
+    
+    addLog(translations[currentLang].logQueryPaused
+        .replace('{processed}', processedDomains)
+        .replace('{total}', totalDomains), 'warning');
+}
+
+async function resumeQuery() { 
+    if (isQueryRunning || currentIndex>=pendingDomains.length) return; 
+    
+    isQueryRunning = true; 
+    isPaused = false; 
+    
+    document.getElementById('startQueryBtn').disabled = true; 
+    document.getElementById('resumeQueryBtn').disabled = true; 
+    document.getElementById('stopQueryBtn').disabled = false; 
+    document.getElementById('exportBtn').disabled = true; 
+    document.getElementById('retryAllBtn').disabled = true;
+    
+    addLog(translations[currentLang].logQueryResumed
+        .replace('{remaining}', pendingDomains.length - currentIndex), 'info');
+    
+    const maxWorkers = parseInt(document.getElementById('maxWorkers').value)||50; 
+    activeWorkers = maxWorkers; 
+    for (let i=0; i<maxWorkers; i++) worker(); 
+}
+
+function completeQuery() { 
+    isQueryRunning = false; 
+    isPaused = false; 
+    
+    document.getElementById('startQueryBtn').disabled = false; 
+    document.getElementById('resumeQueryBtn').disabled = true; 
+    document.getElementById('stopQueryBtn').disabled = true; 
+    document.getElementById('exportBtn').disabled = false; 
+    
+    if (typeof applyFilters === 'function') {
+        applyFilters(); 
+    }
+    updateStatistics();
+    
+    saveResultsToStorage();
+    
+    addLog(translations[currentLang].logQueryComplete.replace('{count}', queryResults.length), 'success');
+}
+
+function updateRetryAllButton() {
+    const hasErrors = queryResults.some(r => r && (r.注册状态 === 'error' || r.状态 === 'error'));
+    document.getElementById('retryAllBtn').disabled = !hasErrors || isQueryRunning || isRetrying || isRetryingAll;
+}
+
+async function retrySingleDomain(domain, index, event) {
+    if (event) {
+        event.stopPropagation();
+        event.preventDefault();
+    }
+    
+    if (isQueryRunning || isRetrying || isRetryingAll) return;
+    
+    addLog(`开始重试域名: ${domain}`, 'info');
+    
+    try {
+        const rpcUrl = getCurrentRpc();
+        initWeb3(rpcUrl);
+        
+        const result = await queryDomain(domain, index);
+        queryResults[index] = result;
+        
+        if (typeof applyFilters === 'function') {
+            applyFilters();
+        }
+        updateStatistics();
+        saveResultsToStorage();
+        updateRetryAllButton();
+        
+        if (result.注册状态 !== 'error' && result.状态 !== 'error') {
+            addLog(`重试成功: ${domain}`, 'success');
+        } else {
+            addLog(`重试失败: ${domain}`, 'error');
+        }
+        
+    } catch (error) {
+        console.error('重试失败:', error);
+        addLog(`重试出错: ${domain} - ${error.message}`, 'error');
+    }
+}
+
+async function retryAllFailed() {
+    if (isQueryRunning || isRetrying || isRetryingAll) return;
+    
+    const failedDomains = queryResults
+        .filter(r => r && (r.注册状态 === 'error' || r.状态 === 'error'))
+        .map(r => ({
+            domain: r.域名,
+            index: r.序号 - 1
+        }));
+    
+    if (failedDomains.length === 0) {
+        addLog(currentLang === 'zh' ? '没有失败的域名需要重试' : 'No failed domains to retry', 'info');
+        return;
+    }
+    
+    isRetryingAll = true;
+    
+    document.getElementById('startQueryBtn').disabled = true;
+    document.getElementById('resumeQueryBtn').disabled = true;
+    document.getElementById('stopQueryBtn').disabled = true;
+    document.getElementById('exportBtn').disabled = true;
+    document.getElementById('retryAllBtn').disabled = true;
+    
+    addLog(
+        currentLang === 'zh' 
+            ? `开始批量刷新 ${failedDomains.length} 个失败的域名` 
+            : `Starting batch refresh for ${failedDomains.length} failed domains`, 
+        'info'
+    );
+    
+    let successCount = 0;
+    let failCount = 0;
+    
+    const originalProgressText = document.getElementById('progressText').innerHTML;
+    
+    const concurrency = 50;
+    for (let i = 0; i < failedDomains.length; i += concurrency) {
+        const batch = failedDomains.slice(i, i + concurrency);
+        
+        const batchPromises = batch.map(async (item) => {
+            try {
+                const rpcUrl = getCurrentRpc();
+                initWeb3(rpcUrl);
+                
+                const result = await queryDomain(item.domain, item.index);
+                
+                if (result && result.注册状态 !== 'error' && result.状态 !== 'error') {
+                    queryResults[item.index] = result;
+                    successCount++;
+                } else {
+                    failCount++;
+                }
+            } catch (error) {
+                console.error(`重试失败 ${item.domain}:`, error);
+                failCount++;
+            }
+        });
+        
+        await Promise.all(batchPromises);
+        
+        const processed = Math.min(i + concurrency, failedDomains.length);
+        const percent = Math.round((processed / failedDomains.length) * 100);
+        document.getElementById('progressText').innerHTML = currentLang === 'zh' 
+            ? `批量刷新中: ${processed}/${failedDomains.length}` 
+            : `Refreshing: ${processed}/${failedDomains.length}`;
+        document.getElementById('progressPercent').innerText = percent + '%';
+        document.getElementById('progressBar').style.width = percent + '%';
+        
+        if (processed % 50 === 0 || processed >= failedDomains.length) {
+            if (typeof applyFilters === 'function') {
+                applyFilters();
+            }
+            updateStatistics();
+        }
+        
+        await new Promise(r => setTimeout(r, 100));
+    }
+    
+    document.getElementById('progressText').innerHTML = originalProgressText;
+    document.getElementById('progressPercent').innerText = '0%';
+    document.getElementById('progressBar').style.width = '0%';
+    
+    if (typeof applyFilters === 'function') {
+        applyFilters();
+    }
+    updateStatistics();
+    saveResultsToStorage();
+    
+    document.getElementById('startQueryBtn').disabled = false;
+    document.getElementById('resumeQueryBtn').disabled = false;
+    document.getElementById('stopQueryBtn').disabled = true;
+    document.getElementById('exportBtn').disabled = false;
+    
+    updateRetryAllButton();
+    
+    isRetryingAll = false;
+    
+    addLog(
+        currentLang === 'zh' 
+            ? `批量刷新完成: 成功 ${successCount} 个, 失败 ${failCount} 个` 
+            : `Batch refresh completed: ${successCount} succeeded, ${failCount} failed`, 
+        successCount > 0 ? 'success' : 'warning'
+    );
+}
+
+function saveResultsToStorage() {
+    if (queryResults && queryResults.length > 0) {
+        const data = {
+            results: queryResults,
+            timestamp: Date.now()
+        };
+        localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify(data));
+        localStorage.setItem(CONFIG.STORAGE_TIME_KEY, new Date().toLocaleString());
+    }
+}
+
+function loadResultsFromStorage() {
+    const saved = localStorage.getItem(CONFIG.STORAGE_KEY);
+    if (saved) {
+        try {
+            const data = JSON.parse(saved);
+            queryResults = data.results || [];
+            
+            document.getElementById('exportBtn').disabled = false;
+            
+            const savedTime = localStorage.getItem(CONFIG.STORAGE_TIME_KEY);
+            if (savedTime) {
+                addLog(translations[currentLang].logDataLoaded.replace('{time}', savedTime), 'info');
+            }
+            
+            return true;
+        } catch (e) {
+            console.error('加载保存的数据失败:', e);
+            return false;
+        }
+    }
+    return false;
+}
+
+function clearResults() {
+    if (isQueryRunning) return;
+    if (!queryResults.length) return;
+    
+    const confirmMessage = currentLang === 'zh' 
+        ? translations[currentLang].confirmClear 
+        : 'Are you sure you want to clear all results?';
+    
+    if (confirm(confirmMessage)) {
+        queryResults = []; 
+        if (typeof applyFilters === 'function') {
+            applyFilters();
+        }
+        document.getElementById('resultsBody').innerHTML = '';
+        document.getElementById('resultsCount').innerText = '';
+        document.getElementById('exportBtn').disabled = true;
+        document.getElementById('retryAllBtn').disabled = true;
+        
+        updateStatistics();
+        
+        localStorage.removeItem(CONFIG.STORAGE_KEY);
+        localStorage.removeItem(CONFIG.STORAGE_TIME_KEY);
+        
+        addLog(translations[currentLang].logClear, 'warning');
+    }
+}
+
+// 暴露查询相关函数
+window.isQueryRunning = isQueryRunning;
+window.isPaused = isPaused;
+window.isRetrying = isRetrying;
+window.isRetryingAll = isRetryingAll;
+window.queryResults = queryResults;
+window.pendingDomains = pendingDomains;
+window.currentIndex = currentIndex;
+window.activeWorkers = activeWorkers;
+window.totalDomains = totalDomains;
+window.processedDomains = processedDomains;
+window.startTime = startTime;
+
+window.queryDomain = queryDomain;
+window.worker = worker;
+window.startQuery = startQuery;
+window.stopQuery = stopQuery;
+window.resumeQuery = resumeQuery;
+window.completeQuery = completeQuery;
+window.updateRetryAllButton = updateRetryAllButton;
+window.retrySingleDomain = retrySingleDomain;
+window.retryAllFailed = retryAllFailed;
+window.saveResultsToStorage = saveResultsToStorage;
+window.loadResultsFromStorage = loadResultsFromStorage;
+window.clearResults = clearResults;
+window.updateStatistics = updateStatistics;

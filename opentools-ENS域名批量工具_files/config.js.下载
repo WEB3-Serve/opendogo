@@ -1,0 +1,50 @@
+// ========== 配置常量 ==========
+const CONFIG = {
+    ENS_REGISTRY: "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e",
+    BASE_REGISTRAR: "0x57f1887a8BF19b14fC0dF6Fd9B2acc9Af147eA85",
+    CONTROLLER: "0x283Af0B28c62C092C9727F1Ee09c02CA627EB7F5",
+    ENS_NFT: "0x57f1887a8BF19b14fC0dF6Fd9B2acc9Af147eA85",
+    FROM_BLOCK: 9380410,
+    
+    ENS_ABI: [{"constant":true,"inputs":[{"name":"node","type":"bytes32"}],"name":"owner","outputs":[{"name":"","type":"address"}],"type":"function"}],
+    
+    REGISTRAR_ABI: [
+        {"constant":true,"inputs":[{"name":"tokenId","type":"uint256"}],"name":"nameExpires","outputs":[{"name":"","type":"uint256"}],"type":"function"},
+        {"constant":true,"inputs":[{"name":"tokenId","type":"uint256"}],"name":"ownerOf","outputs":[{"name":"","type":"address"}],"type":"function"}
+    ],
+    
+    CONTROLLER_ABI: [
+        {"constant":true,"inputs":[{"name":"name","type":"string"}],"name":"available","outputs":[{"name":"","type":"bool"}],"type":"function"},
+        {"constant":true,"inputs":[{"name":"name","type":"string"},{"name":"duration","type":"uint256"}],"name":"rentPrice","outputs":[{"components":[{"name":"base","type":"uint256"},{"name":"premium","type":"uint256"}],"name":"price","type":"tuple"}],"type":"function"}
+    ],
+    
+    TRANSFER_ABI: [{
+        "anonymous": false,
+        "inputs": [
+            {"indexed": true, "name": "from", "type": "address"},
+            {"indexed": true, "name": "to", "type": "address"},
+            {"indexed": true, "name": "tokenId", "type": "uint256"}
+        ],
+        "name": "Transfer",
+        "type": "event"
+    }],
+    
+    RPC_LIST: [
+        "https://ethereum.publicnode.com",
+        "https://cloudflare-eth.com",
+        "https://eth.drpc.org",
+        "https://rpc.payload.de",
+        "https://eth-pokt.nodies.app",
+        "https://rpc.flashbots.net",
+        "https://ethereum.blockpi.network/v1/rpc/public",
+        "https://eth-mainnet.public.blastapi.io",
+        "https://eth.api.onfinality.io/public",
+        "https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161"
+    ],
+    
+    STORAGE_KEY: 'ens_query_results',
+    STORAGE_TIME_KEY: 'ens_query_time'
+};
+
+// 防止篡改
+Object.freeze(CONFIG);
