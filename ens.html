@@ -228,6 +228,13 @@
         }
 
         /* 左侧面板内容 */
+        .rpc-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
         .rpc-list {
             max-height: 105px;
             overflow-y: auto;
@@ -643,6 +650,9 @@
             border: 1px solid var(--border);
             border-radius: var(--radius);
             padding: 14px;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
         }
 
         /* 域名选项行 - 合并成一排，全部大写，统一name="domainType" */
@@ -682,6 +692,8 @@
         textarea {
             width: 100%;
             height: 108px;
+            min-height: 108px;
+            flex: 1;
             padding: 8px 10px;
             background: var(--bg);
             border: 1px solid var(--border);
@@ -936,8 +948,8 @@
             border-bottom: 1px solid var(--border);
             white-space: nowrap;
         }
-        #rpcStatusModal .rpc-status-table th:first-child,
-        #rpcStatusModal .rpc-status-table td:first-child {
+        #rpcStatusModal .rpc-status-table th:nth-child(2),
+        #rpcStatusModal .rpc-status-table td:nth-child(2) {
             text-align: left !important;
         }
         #rpcStatusModal .rpc-status-scroll::-webkit-scrollbar,
@@ -1284,11 +1296,11 @@
                     <div class="user-input-row">
                         <div class="user-input-group">
                             <label data-i18n="username">账号</label>
-                            <input type="text" class="user-input" id="username" placeholder="请输入账号">
+                            <input type="text" class="user-input" id="username" data-i18n-placeholder="usernamePlaceholder" placeholder="请输入账号">
                         </div>
                         <div class="user-input-group">
                             <label data-i18n="password">密码</label>
-                            <input type="password" class="user-input" id="password" placeholder="请输入密码">
+                            <input type="password" class="user-input" id="password" data-i18n-placeholder="passwordPlaceholder" placeholder="请输入密码">
                         </div>
                     </div>
 
@@ -1418,8 +1430,8 @@
                             <input type="text" id="filterSearch" class="filter-input" data-i18n-placeholder="searchPlaceholder" placeholder="域名/地址" onkeyup="applyFilters()">
                         </div>
                         <div class="filter-row-2col">
-                            <button class="btn" onclick="clearFilters()" style="flex:1"><i class="fas fa-times"></i> <span data-i18n="clearFilters">清除筛选</span></button>
-                            <button class="btn" onclick="clearResults()" style="flex:1"><i class="fas fa-trash"></i> <span data-i18n="clearResults">清空结果</span></button>
+                            <button class="btn btn-warning" onclick="clearFilters()" style="flex:1"><i class="fas fa-times"></i> <span data-i18n="clearFilters">清除筛选</span></button>
+                            <button class="btn btn-danger" onclick="clearResults()" style="flex:1"><i class="fas fa-trash"></i> <span data-i18n="clearResults">清空结果</span></button>
                         </div>
                     </div>
                 </div>
@@ -1442,21 +1454,25 @@
             <div class="rpc-status-scroll">
                 <table class="rpc-status-table">
                     <colgroup>
-                        <col style="width: 25%">
-                        <col style="width: 15%">
-                        <col style="width: 15%">
-                        <col style="width: 15%">
-                        <col style="width: 15%">
-                        <col style="width: 15%">
+                        <col style="width: 8%">
+                        <col style="width: 27%">
+                        <col style="width: 13%">
+                        <col style="width: 11%">
+                        <col style="width: 11%">
+                        <col style="width: 11%">
+                        <col style="width: 11%">
+                        <col style="width: 9%">
                     </colgroup>
                     <thead style="position:sticky; top:0; background:var(--card); z-index:2;">
                         <tr>
+                            <th data-i18n="no">序号</th>
                             <th data-i18n="node">节点</th>
                             <th data-i18n="status">状态</th>
                             <th data-i18n="successRate">成功率</th>
                             <th data-i18n="responseTime">响应时间</th>
                             <th data-i18n="queryCount">查询次数</th>
                             <th data-i18n="errorCount">错误次数</th>
+                            <th data-i18n="rpcUsedCount">本轮查询</th>
                         </tr>
                     </thead>
                     <tbody id="rpcStatusBody"></tbody>
@@ -1503,6 +1519,8 @@
                 no: '序号',
                 domain: '域名',
                 status: '状态',
+                error: '错误',
+                expiry: '过期',
                 expiryDays: '过期天数',
                 expiryTime: '过期时间',
                 graceEnd: '宽限期结束',
@@ -1514,6 +1532,8 @@
                 userCenter: '用户中心',
                 username: '账号',
                 password: '密码',
+                usernamePlaceholder: '请输入账号',
+                passwordPlaceholder: '请输入密码',
                 register: '注册',
                 login: '登录',
                 logout: '退出',
@@ -1550,6 +1570,7 @@
                 responseTime: '响应时间',
                 queryCount: '查询次数',
                 errorCount: '错误次数',
+                rpcUsedCount: '本轮查询',
                 addressDesc: '地址多→少',
                 addressAsc: '地址少→多',
                 progressReady: '准备就绪',
@@ -1609,6 +1630,8 @@
                 no: '#',
                 domain: 'Domain',
                 status: 'Status',
+                error: 'Error',
+                expiry: 'Expiry',
                 expiryDays: 'Exp Days',
                 expiryTime: 'Expiry',
                 graceEnd: 'Grace End',
@@ -1620,6 +1643,8 @@
                 userCenter: 'User Center',
                 username: 'Username',
                 password: 'Password',
+                usernamePlaceholder: 'Enter username',
+                passwordPlaceholder: 'Enter password',
                 register: 'Register',
                 login: 'Login',
                 logout: 'Logout',
@@ -1656,6 +1681,7 @@
                 responseTime: 'Response',
                 queryCount: 'Queries',
                 errorCount: 'Errors',
+                rpcUsedCount: 'Used in Run',
                 addressDesc: 'Address ↓',
                 addressAsc: 'Address ↑',
                 progressReady: 'Ready',
@@ -1891,10 +1917,12 @@
                     failCount: 0, 
                     responseTime: 0, 
                     disabledUntil: 0,
-                    lastUsed: 0
+                    lastUsed: 0,
+                    runQueryCount: 0
                 };
             });
             updateRpcList();
+            syncDomainModuleHeight();
         }
 
         async function checkAllRpcNodes() {
@@ -1932,6 +1960,7 @@
                 .replace('{total}', RPC_LIST.length), 
                 successCount > 0 ? 'success' : 'warning');
             updateRpcList();
+            syncDomainModuleHeight();
         }
 
         function getCurrentRpc() {
@@ -1986,12 +2015,13 @@
             if (!tbody) return;
             const now = Date.now();
             
-            tbody.innerHTML = RPC_LIST.map(r => {
+            tbody.innerHTML = RPC_LIST.map((r, idx) => {
                 const s = rpcStatus[r] || { 
                     available: false, 
                     successCount: 0, 
                     failCount: 0, 
-                    responseTime: 0 
+                    responseTime: 0,
+                    runQueryCount: 0
                 };
                 
                 const isAvailable = s.available && (s.disabledUntil || 0) < now;
@@ -2012,12 +2042,14 @@
                 }
                 
                 return `<tr>
+                    <td>${idx + 1}</td>
                     <td>${shortName}</td>
                     <td style="color: ${statusColor};">${statusText}</td>
                     <td>${successRate}%</td>
                     <td>${responseTimeText}</td>
                     <td>${totalQueries}</td>
                     <td>${s.failCount || 0}</td>
+                    <td>${s.runQueryCount || 0}</td>
                 </tr>`;
             }).join('');
         }
@@ -2630,7 +2662,7 @@
 
         function updateRetryAllButton() {
             const hasErrors = queryResults.some(r => r && (r.注册状态 === 'error' || r.状态 === 'error'));
-            document.getElementById('retryAllBtn').disabled = !hasErrors || isQueryRunning || isRetrying || isRetryingAll;
+            document.getElementById('retryAllBtn').disabled = !hasErrors || isRetrying || isRetryingAll;
         }
 
         async function retrySingleDomain(domain, index, event) {
@@ -2994,9 +3026,11 @@
                     statusHtml = `<span style="color: var(--danger);">${statusText}</span>`;
                 } else {
                     statusText = currentLang === 'zh' ? '错误' : 'Error';
+                    const errMsg = String(r.错误信息 || (currentLang === 'zh' ? '无错误详情' : 'No error details'));
                     statusHtml = `
                         <span style="color: var(--danger); display: flex; align-items: center; gap: 4px; justify-content: center;">
                             ${statusText}
+                            <i class="fas fa-circle-info" style="cursor: help; font-size: 0.78rem; color: var(--danger);" title="${errMsg.replace(/"/g, '&quot;')}"></i>
                             <i class="fas fa-redo-alt retry-icon" 
                                style="cursor: pointer; font-size: 0.8rem; color: var(--warning);" 
                                onclick="retrySingleDomain('${r.域名}', ${r.序号-1}, event)"
@@ -3286,6 +3320,41 @@
             }
         }
 
+
+
+        function resetRpcRunQueryCount() {
+            Object.keys(rpcStatus || {}).forEach(rpc => {
+                if (rpcStatus[rpc]) rpcStatus[rpc].runQueryCount = 0;
+            });
+            updateRpcStatusModal();
+            updateRpcList();
+        }
+
+        let rpcStatusModalUpdateAt = 0;
+        function markRpcDomainQuery(rpc) {
+            if (!rpc || !rpcStatus[rpc]) return;
+            rpcStatus[rpc].runQueryCount = (rpcStatus[rpc].runQueryCount || 0) + 1;
+            const modal = document.getElementById('rpcStatusModal');
+            if (modal && modal.style.display === 'flex') {
+                const now = Date.now();
+                if (now - rpcStatusModalUpdateAt > 180) {
+                    rpcStatusModalUpdateAt = now;
+                    updateRpcStatusModal();
+                }
+            }
+        }
+
+        function syncDomainModuleHeight() {
+            const rpcModule = document.querySelector('.rpc-module');
+            const domainModule = document.querySelector('.domain-input-module');
+            if (!rpcModule || !domainModule) return;
+            if (window.innerWidth <= 1000) {
+                domainModule.style.minHeight = '';
+                return;
+            }
+            domainModule.style.minHeight = `${Math.ceil(rpcModule.offsetHeight)}px`;
+        }
+
         function initThemeSwitcher() {
             const media = window.matchMedia('(prefers-color-scheme: dark)');
             const apply = theme => {
@@ -3326,6 +3395,7 @@
             updateDomainsCount();
             updateUserStatus();
             updateRpcList();
+            syncDomainModuleHeight();
             
             const hasSavedData = loadResultsFromStorage();
             if (hasSavedData) {
@@ -3340,6 +3410,7 @@
             addLog(`Timezone: ${getTimeZone()}`, 'info');
             
             setInterval(updateRpcList, 1000);
+            window.addEventListener('resize', syncDomainModuleHeight);
             
             // 回到顶部
             document.getElementById('backToTop').addEventListener('click', () => {
@@ -3398,11 +3469,11 @@
 
   function ensureFastDefaults() {
     const delay = document.getElementById('requestDelay');
-    if (delay && (delay.value === '20' || delay.value === '')) delay.value = '0';
+    if (delay && (delay.value === '20' || delay.value === '')) delay.value = '5';
     const workers = document.getElementById('maxWorkers');
-    if (workers && (workers.value === '50' || workers.value === '')) workers.value = '80';
+    if (workers && (workers.value === '50' || workers.value === '')) workers.value = '45';
     const retries = document.getElementById('maxRetries');
-    if (retries && (retries.value === '5' || retries.value === '')) retries.value = '2';
+    if (retries && (retries.value === '5' || retries.value === '')) retries.value = '3';
   }
 
   function markRpcSuccess(rpc, elapsed) {
@@ -3642,6 +3713,7 @@
       if (queryProgress) queryProgress.textContent = `${processedDomains}/${totalDomains}`;
       if (progressPercent) progressPercent.innerText = Math.round(pct) + '%';
 
+      updateRetryAllButton();
       if (processedDomains % 20 === 0 || processedDomains === totalDomains) {
         filteredResults = queryResults.filter(Boolean);
         applyFilters();
@@ -3687,6 +3759,7 @@
     document.getElementById('stopQueryBtn').disabled = false;
     document.getElementById('exportBtn').disabled = true;
     document.getElementById('retryAllBtn').disabled = true;
+    resetRpcRunQueryCount();
     addLog((translations[currentLang].logQueryStart || '开始查询 {count} 个域名').replace('{count}', totalDomains), 'info');
     const maxWorkers = Math.max(1, Math.min(200, uiNum('maxWorkers', 80)));
     activeWorkers = maxWorkers;
@@ -3712,7 +3785,7 @@
   };
 
   window.retryAllFailed = async function() {
-    if (isQueryRunning || isRetrying || isRetryingAll) return;
+    if (isRetrying || isRetryingAll) return;
     const failedDomains = queryResults.filter(r => r && (r.注册状态 === 'error' || r.状态 === 'error')).map(r => ({ domain: r.域名, index: r.序号 - 1 }));
     if (!failedDomains.length) {
       addLog(currentLang === 'zh' ? '没有失败的域名需要刷新' : 'No failed domains to refresh', 'info');
@@ -3968,7 +4041,8 @@
             failCount: 0,
             responseTime: 0,
             disabledUntil: 0,
-            lastUsed: 0
+            lastUsed: 0,
+            runQueryCount: 0
           };
         }
       });
@@ -4041,7 +4115,7 @@
 
   window.queryDomain = async function(domain, idx, preferredSource) {
     const label = domain.replace(/\.eth$/i, '');
-    const maxRetries = Math.max(1, num('maxRetries', 2));
+    const maxRetries = Math.max(2, num('maxRetries', 3));
     let tokenId;
     try {
       tokenId = Web3.utils.keccak256(label);
@@ -4053,8 +4127,18 @@
     }
 
     let lastError = null;
+    const triedRpcs = new Set();
     for (let attempt = 0; attempt < maxRetries; attempt++) {
-      const rpc = typeof preferredSource === 'string' && preferredSource ? preferredSource : (preferredSource && preferredSource.rpc) || window.getCurrentRpc();
+      let rpc = typeof preferredSource === 'string' && preferredSource ? preferredSource : (preferredSource && preferredSource.rpc) || window.getCurrentRpc();
+      if ((!preferredSource || !preferredSource.web3) && (!preferredSource || typeof preferredSource !== 'string')) {
+        if (triedRpcs.has(rpc)) {
+          const now = Date.now();
+          const alt = RPC_LIST.find(r => !triedRpcs.has(r) && (rpcStatus[r]?.available !== false || (rpcStatus[r]?.disabledUntil || 0) < now));
+          if (alt) rpc = alt;
+        }
+      }
+      triedRpcs.add(rpc);
+      markRpcDomainQuery(rpc);
       const ctx = preferredSource && preferredSource.web3 ? preferredSource : getOrCreateCtx(rpc);
       const started = Date.now();
       try {
@@ -4064,29 +4148,29 @@
         const expiry = Number(expiryRaw || 0);
         const nowTs = Math.floor(Date.now() / 1000);
         const graceEndTs = expiry ? expiry + 90 * 24 * 3600 : 0;
-        const registrationMeta = (expiry || premiumValue > 0 || !available) ? await getRegistrationMetaFinal(label, tokenId, ctx) : { time: '', owner: '' };
-
         if (available) {
-          const lastOwner = premiumValue > 0 ? (registrationMeta.owner || await getLastOwnerFinal(tokenId, ctx)) : '';
+          // ENS official flow: available=true means name can be registered now.
+          // premium > 0 indicates Dutch-auction premium period, not an active registration.
           markRpcSuccessFinal(rpc, Date.now() - started);
           return {
             序号: idx + 1,
             域名: domain,
             状态: premiumValue > 0 ? 'premium' : 'unregistered',
-            过期天数: expiry ? Math.floor((expiry * 1000 - Date.now()) / 86400000) : '',
-            过期时间: expiry ? formatDate(new Date(expiry * 1000)) : '',
-            宽限期结束: graceEndTs ? formatDate(new Date(graceEndTs * 1000)) : '',
-            注册时间: registrationMeta.time || '',
-            所有者地址: premiumValue > 0 ? (lastOwner || '') : '',
+            过期天数: '',
+            过期时间: '',
+            宽限期结束: '',
+            注册时间: '',
+            所有者地址: '',
             错误信息: '',
             注册状态: premiumValue > 0 ? 'premium' : 'unregistered',
-            过期状态: premiumValue > 0 && expiry && expiry < nowTs ? 'expired' : 'valid',
+            过期状态: premiumValue > 0 ? 'expired' : 'valid',
             宽限状态: premiumValue > 0 && graceEndTs && nowTs <= graceEndTs ? 'in_grace' : 'no_grace',
             溢价状态: premiumValue > 0 ? 'in_premium' : 'no_premium',
-            时间戳: expiry || 0
+            时间戳: 0
           };
         }
 
+        const registrationMeta = (expiry || premiumValue > 0 || !available) ? await getRegistrationMetaFinal(label, tokenId, ctx) : { time: '', owner: '' };
         let owner = '';
         try { owner = await getFastOwnerFinal(tokenId, ctx, 2); } catch (_) {}
         if (!owner) owner = await getRegistryOwnerFinal(domain, ctx);
@@ -4109,24 +4193,31 @@
           state = 'expired';
           expiryStatus = 'expired';
           graceStatus = 'in_grace';
+        } else if (!expiry && (!owner || /^0x0{40}$/i.test(owner))) {
+          // Reserved/special names can report available=false without active registration.
+          regStatus = 'unregistered';
+          state = 'unregistered';
+          owner = '';
+          expiryStatus = 'valid';
         }
 
+        const isUnregisteredLike = regStatus === 'unregistered';
         markRpcSuccessFinal(rpc, Date.now() - started);
         return {
           序号: idx + 1,
           域名: domain,
           状态: state,
-          过期天数: expiry ? Math.floor((expiry * 1000 - Date.now()) / 86400000) : '',
-          过期时间: expiryDate ? formatDate(expiryDate) : '',
-          宽限期结束: graceEndDate ? formatDate(graceEndDate) : '',
-          注册时间: registrationMeta.time || '',
-          所有者地址: owner || registrationMeta.owner || '',
+          过期天数: isUnregisteredLike ? '' : (expiry ? Math.floor((expiry * 1000 - Date.now()) / 86400000) : ''),
+          过期时间: isUnregisteredLike ? '' : (expiryDate ? formatDate(expiryDate) : ''),
+          宽限期结束: isUnregisteredLike ? '' : (graceEndDate ? formatDate(graceEndDate) : ''),
+          注册时间: isUnregisteredLike ? '' : (registrationMeta.time || ''),
+          所有者地址: isUnregisteredLike ? '' : (owner || registrationMeta.owner || ''),
           错误信息: '',
           注册状态: regStatus,
           过期状态: expiryStatus,
           宽限状态: graceStatus,
           溢价状态: 'no_premium',
-          时间戳: expiry || 0
+          时间戳: isUnregisteredLike ? 0 : (expiry || 0)
         };
       } catch (e) {
         lastError = e;
@@ -4136,7 +4227,7 @@
 
     return {
       序号: idx + 1, 域名: domain, 状态: 'error', 过期天数: '', 过期时间: '', 宽限期结束: '', 注册时间: '', 所有者地址: '',
-      错误信息: String((lastError && lastError.message) || '未知错误').slice(0, 120), 注册状态: 'error', 过期状态: 'error', 宽限状态: 'error', 溢价状态: 'no_premium', 时间戳: 0
+      错误信息: (`${String((lastError && (lastError.message || lastError.reason || lastError.code || JSON.stringify(lastError))) || (currentLang === 'zh' ? '未知错误: RPC无响应或返回空' : 'Unknown error: empty RPC response'))} | attempts:${maxRetries} rpcs:${triedRpcs.size}`).slice(0, 180), 注册状态: 'error', 过期状态: 'error', 宽限状态: 'error', 溢价状态: 'no_premium', 时间戳: 0
     };
   };
 
@@ -4145,7 +4236,7 @@
       event.stopPropagation();
       event.preventDefault();
     }
-    if (isQueryRunning || isRetryingAll) return;
+    if (isRetryingAll) return;
     isRetrying = true;
     const icon = event?.currentTarget || null;
     if (icon) {
@@ -4174,42 +4265,64 @@
   };
 
   window.retryAllFailed = async function() {
-    if (isQueryRunning || isRetrying || isRetryingAll) return;
+    if (isRetrying || isRetryingAll) return;
     const failedDomains = queryResults.filter(r => r && (r.注册状态 === 'error' || r.状态 === 'error')).map(r => ({ domain: r.域名, index: r.序号 - 1 }));
     if (!failedDomains.length) {
       addLog(currentLang === 'zh' ? '没有失败的域名需要刷新' : 'No failed domains to refresh', 'info');
       return;
     }
     isRetryingAll = true;
-    document.getElementById('startQueryBtn').disabled = true;
+    document.getElementById('startQueryBtn').disabled = isQueryRunning;
     document.getElementById('resumeQueryBtn').disabled = true;
-    document.getElementById('stopQueryBtn').disabled = true;
+    document.getElementById('stopQueryBtn').disabled = !isQueryRunning;
     document.getElementById('exportBtn').disabled = true;
     document.getElementById('retryAllBtn').disabled = true;
+    resetRpcRunQueryCount();
     let successCount = 0;
     let failCount = 0;
+    let doneCount = 0;
     const progressText = document.getElementById('progressText');
     const progressPercent = document.getElementById('progressPercent');
     const progressBar = document.getElementById('progressMiniBar');
+    const snapshot = {
+      text: progressText ? progressText.innerHTML : '',
+      percent: progressPercent ? progressPercent.innerText : '',
+      width: progressBar ? progressBar.style.width : ''
+    };
+    const updateRetryProgress = () => {
+      const percent = Math.round((doneCount / failedDomains.length) * 100);
+      if (progressText) progressText.innerHTML = (currentLang === 'zh' ? `重试失败域名: ${doneCount}/${failedDomains.length} (成功:${successCount} 失败:${failCount})` : `Retry failed: ${doneCount}/${failedDomains.length} (ok:${successCount} fail:${failCount})`);
+      if (progressPercent) progressPercent.innerText = percent + '%';
+      if (progressBar) progressBar.style.width = percent + '%';
+    };
+    updateRetryProgress();
     try {
       const concurrency = Math.max(20, Math.min(120, num('maxWorkers', 80)));
       for (let i = 0; i < failedDomains.length; i += concurrency) {
         const batch = failedDomains.slice(i, i + concurrency);
         await Promise.all(batch.map(async item => {
-          const result = await window.queryDomain(item.domain, item.index);
-          queryResults[item.index] = result;
-          if (result && result.注册状态 !== 'error' && result.状态 !== 'error') successCount++;
-          else failCount++;
+          try {
+            const result = await window.queryDomain(item.domain, item.index);
+            queryResults[item.index] = result;
+            if (result && result.注册状态 !== 'error' && result.状态 !== 'error') {
+              successCount++;
+              addLog((currentLang === 'zh' ? '重试成功: ' : 'Retry succeeded: ') + item.domain, 'success');
+            } else {
+              failCount++;
+              addLog((currentLang === 'zh' ? '重试失败: ' : 'Retry failed: ') + item.domain, 'warning');
+            }
+          } catch (e) {
+            failCount++;
+            addLog((currentLang === 'zh' ? '重试出错: ' : 'Retry error: ') + item.domain, 'error');
+          } finally {
+            doneCount++;
+            filteredResults = queryResults.filter(Boolean);
+            applyFilters();
+            updateStatistics();
+            updateRetryAllButton();
+            updateRetryProgress();
+          }
         }));
-        const done = Math.min(i + concurrency, failedDomains.length);
-        const percent = Math.round((done / failedDomains.length) * 100);
-        if (progressText) progressText.innerHTML = currentLang === 'zh' ? `批量刷新中: ${done}/${failedDomains.length}` : `Refreshing: ${done}/${failedDomains.length}`;
-        if (progressPercent) progressPercent.innerText = percent + '%';
-        if (progressBar) progressBar.style.width = percent + '%';
-        filteredResults = queryResults.filter(Boolean);
-        applyFilters();
-        updateStatistics();
-        updateRetryAllButton();
       }
       saveResultsToStorage();
       addLog((translations[currentLang].logRetryAllComplete || '批量重试完成: 成功 {success} 个, 失败 {failed} 个').replace('{success}', successCount).replace('{failed}', failCount), successCount ? 'success' : 'warning');
@@ -4218,13 +4331,14 @@
       console.error(e);
     } finally {
       isRetryingAll = false;
-      document.getElementById('startQueryBtn').disabled = false;
-      document.getElementById('resumeQueryBtn').disabled = false;
-      document.getElementById('stopQueryBtn').disabled = true;
+      document.getElementById('startQueryBtn').disabled = isQueryRunning;
+      document.getElementById('resumeQueryBtn').disabled = isQueryRunning || currentIndex >= pendingDomains.length;
+      document.getElementById('stopQueryBtn').disabled = !isQueryRunning;
       document.getElementById('exportBtn').disabled = false;
       updateRetryAllButton();
-      if (progressPercent) progressPercent.innerText = '0%';
-      if (progressBar) progressBar.style.width = '0%';
+      if (progressText) progressText.innerHTML = snapshot.text;
+      if (progressPercent) progressPercent.innerText = snapshot.percent;
+      if (progressBar) progressBar.style.width = snapshot.width;
     }
   };
 
