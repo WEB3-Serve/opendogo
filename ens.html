@@ -1,0 +1,4256 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>ENS域名批量查询 · opentools</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg: #F9FAFB;
+            --card: #FFFFFF;
+            --border: #E5E7EB;
+            --primary: #2563EB;
+            --primary-hover: #1D4ED8;
+            --primary-light: #DBEAFE;
+            --text: #1F2937;
+            --text-light: #4B5563;
+            --text-muted: #6B7280;
+            --success: #059669;
+            --success-hover: #047857;
+            --warning: #D97706;
+            --warning-hover: #B45309;
+            --danger: #DC2626;
+            --danger-hover: #B91C1C;
+            --info: #7C3AED;
+            --info-hover: #6D28D9;
+            --radius: 10px;
+            --shadow: 0 1px 2px rgba(0,0,0,0.05);
+            --btn-text: #FFFFFF;
+            --spacing: 12px;
+            --font-size-base: 0.85rem;
+            --font-size-sm: 0.75rem;
+            --font-size-lg: 0.95rem;
+        }
+
+        .dark-theme {
+            --bg: #0F172A;
+            --card: #1E293B;
+            --border: #334155;
+            --primary: #60A5FA;
+            --primary-hover: #3B82F6;
+            --primary-light: #1E3A8A;
+            --text: #F1F5F9;
+            --text-light: #E2E8F0;
+            --text-muted: #94A3B8;
+            --success: #34D399;
+            --success-hover: #10B981;
+            --warning: #FBBF24;
+            --warning-hover: #F59E0B;
+            --danger: #F87171;
+            --danger-hover: #EF4444;
+            --info: #A78BFA;
+            --info-hover: #8B5CF6;
+            --btn-text: #0F172A;
+        }
+
+        .dark-theme .btn-primary,
+        .dark-theme .btn-success,
+        .dark-theme .btn-warning,
+        .dark-theme .btn-danger,
+        .dark-theme .btn-info {
+            color: #0F172A;
+            font-weight: 600;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 20px;
+            transition: background 0.2s, color 0.2s;
+            line-height: 1.5;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1600px;
+            width: 100%;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        /* 头部 */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: var(--spacing);
+            padding: 14px 24px;
+            background: var(--card);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            width: 100%;
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--primary);
+            position: absolute;
+            left: 24px;
+        }
+
+        .logo i {
+            background: var(--primary-light);
+            padding: 8px;
+            border-radius: 8px;
+            color: var(--primary);
+            font-size: 1rem;
+        }
+
+        .header-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--text);
+            text-align: center;
+            flex: 1;
+        }
+
+        .theme-switch {
+            display: flex;
+            gap: 4px;
+            background: var(--bg);
+            padding: 4px;
+            border-radius: 30px;
+            border: 1px solid var(--border);
+            position: absolute;
+            right: 24px;
+        }
+
+        .theme-btn, .lang-btn {
+            border: none;
+            background: transparent;
+            padding: 6px 12px;
+            border-radius: 30px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+
+        .theme-btn:hover, .lang-btn:hover {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+
+        .theme-btn.active, .lang-btn.active {
+            background: var(--primary);
+            color: var(--btn-text);
+        }
+
+        /* 三列布局 */
+        .main-layout {
+            display: grid;
+            grid-template-columns: 300px 1fr 300px;
+            gap: var(--spacing);
+            width: 100%;
+            flex: 1;
+            min-height: 0;
+        }
+
+        /* 左右面板 - 顶部对齐 */
+        .left-panel, .right-panel {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing);
+        }
+
+        /* 左侧面板 - 内容自适应 */
+        .left-panel > * {
+            flex-shrink: 0;
+        }
+
+        /* 右侧面板 - 内容自适应 */
+        .right-panel > * {
+            flex-shrink: 0;
+        }
+
+        /* 中间面板 - 顶部对齐 */
+        .middle-panel {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing);
+        }
+
+        /* 通用卡片 */
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px;
+            box-shadow: var(--shadow);
+            width: 100%;
+        }
+
+        .card-title {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: var(--font-size-lg);
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .card-title i {
+            color: var(--primary);
+            font-size: var(--font-size-lg);
+        }
+
+        /* 左侧面板内容 */
+        .rpc-list {
+            max-height: 105px;
+            overflow-y: auto;
+            margin-bottom: 12px;
+            font-size: var(--font-size-base);
+            scrollbar-width: thin;
+        }
+
+        .rpc-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 0;
+            border-bottom: 1px dashed var(--border);
+            color: var(--text);
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .stat-item {
+            background: var(--bg);
+            border-radius: 5px;
+            padding: 8px 2px;
+            text-align: center;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .stat-item:hover {
+            border-color: var(--primary);
+            background: var(--primary-light);
+        }
+
+        .stat-value {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--primary);
+            line-height: 1.2;
+        }
+
+        .stat-label {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.2px;
+        }
+
+        .log-box {
+            background: var(--bg);
+            border-radius: 5px;
+            padding: 8px;
+            font-family: monospace;
+            font-size: var(--font-size-sm);
+            max-height: 90px;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            color: var(--text);
+            scrollbar-width: thin;
+            margin-bottom: 10px;
+        }
+
+        .contact-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px;
+            border-radius: 5px;
+            background: var(--bg);
+            margin-top: 6px;
+            cursor: pointer;
+            font-size: var(--font-size-base);
+            color: var(--text);
+            border: 1px solid transparent;
+        }
+
+        .contact-item:hover {
+            background: var(--primary-light);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .contact-item i {
+            color: var(--primary);
+            font-size: 0.9rem;
+        }
+
+        /* 用户中心模块 */
+        .user-module {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px;
+        }
+
+        .user-title {
+            font-size: var(--font-size-lg);
+            font-weight: 600;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 14px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .user-input-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .user-input-group {
+            flex: 1;
+        }
+
+        .user-input-group label {
+            display: block;
+            font-size: var(--font-size-sm);
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        .user-input {
+            width: 100%;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            padding: 8px 10px;
+            color: var(--text);
+            font-size: var(--font-size-base);
+        }
+
+        .user-actions-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+
+        .user-action-btn {
+            flex: 1;
+            padding: 8px 0;
+            border-radius: 5px;
+            font-size: var(--font-size-base);
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            transition: all 0.2s;
+        }
+
+        .user-action-btn.register {
+            background: var(--primary);
+            color: white;
+        }
+        .user-action-btn.register:hover {
+            background: var(--primary-hover);
+        }
+
+        .user-action-btn.login {
+            background: var(--success);
+            color: white;
+        }
+        .user-action-btn.login:hover {
+            background: var(--success-hover);
+        }
+
+        .user-action-btn.logout {
+            background: var(--danger);
+            color: white;
+        }
+        .user-action-btn.logout:hover {
+            background: var(--danger-hover);
+        }
+
+        .user-status-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--bg);
+            border-radius: 5px;
+            padding: 8px 12px;
+            font-size: var(--font-size-base);
+        }
+
+        .status-left {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-right {
+            font-weight: 500;
+        }
+
+        .status-label {
+            color: var(--text-muted);
+        }
+
+        .status-value.logged-in {
+            color: var(--success);
+            font-weight: 600;
+        }
+
+        .status-value.logged-out {
+            color: var(--danger);
+            font-weight: 600;
+        }
+
+        /* 查询控制模块 */
+        .control-module {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px;
+        }
+
+        .module-title {
+            font-size: var(--font-size-lg);
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .module-title i {
+            color: var(--primary);
+            font-size: var(--font-size-lg);
+        }
+
+        .param-grid-2col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .param-row {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .param-label {
+            font-size: var(--font-size-sm);
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .param-input {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            padding: 6px 8px;
+            color: var(--text);
+            font-size: var(--font-size-base);
+            font-weight: 500;
+        }
+
+        .rpc-row {
+            grid-column: span 1;
+        }
+
+        .rpc-select {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            padding: 6px 8px;
+            color: var(--text);
+            font-size: var(--font-size-base);
+            cursor: pointer;
+            width: 100%;
+            font-weight: 500;
+        }
+
+        /* 筛选功能模块 */
+        .filter-module {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px;
+        }
+
+        .filter-grid-2col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .filter-label {
+            font-size: var(--font-size-sm);
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .filter-select, .filter-input {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            padding: 6px 8px;
+            color: var(--text);
+            font-size: var(--font-size-base);
+            width: 100%;
+        }
+
+        .filter-row-2col {
+            grid-column: span 2;
+            display: flex;
+            gap: 8px;
+            margin-top: 4px;
+        }
+
+        /* 按钮样式 */
+        .btn {
+            padding: 6px 12px;
+            border-radius: 5px;
+            font-size: var(--font-size-base);
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            background: var(--bg);
+            color: var(--text);
+            border: 1px solid var(--border);
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            background: var(--primary-light);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .btn-primary { 
+            background: var(--primary); 
+            color: var(--btn-text); 
+            border: none; 
+            font-weight: 600;
+        }
+        .btn-primary:hover { 
+            background: var(--primary-hover); 
+            color: var(--btn-text);
+        }
+
+        .btn-success { 
+            background: var(--success); 
+            color: var(--btn-text); 
+            border: none; 
+        }
+        .btn-success:hover { 
+            background: var(--success-hover); 
+            color: var(--btn-text);
+        }
+
+        .btn-warning { 
+            background: var(--warning); 
+            color: var(--btn-text); 
+            border: none; 
+        }
+        .btn-warning:hover { 
+            background: var(--warning-hover); 
+            color: var(--btn-text);
+        }
+
+        .btn-danger { 
+            background: var(--danger); 
+            color: var(--btn-text); 
+            border: none; 
+        }
+        .btn-danger:hover { 
+            background: var(--danger-hover); 
+            color: var(--btn-text);
+        }
+
+        .btn-info { 
+            background: var(--info); 
+            color: var(--btn-text); 
+            border: none; 
+        }
+        .btn-info:hover { 
+            background: var(--info-hover); 
+            color: var(--btn-text);
+        }
+
+        .btn-sm {
+            padding: 5px 10px;
+            font-size: var(--font-size-sm);
+        }
+
+        /* 域名输入模块 */
+        .domain-input-module {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px;
+        }
+
+        /* 域名选项行 - 合并成一排，全部大写，统一name="domainType" */
+        .domain-options-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .domain-options-row label {
+            background: var(--bg);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: var(--font-size-base);
+            border: 1px solid var(--border);
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text);
+            white-space: nowrap;
+            text-transform: uppercase;
+        }
+
+        .domain-options-row label:hover {
+            border-color: var(--primary);
+            background: var(--primary-light);
+        }
+
+        .domain-options-row input[type="radio"] {
+            margin-right: 4px;
+            accent-color: var(--primary);
+        }
+
+        /* 文本域 - 高度与RPC监控对齐 */
+        textarea {
+            width: 100%;
+            height: 108px;
+            padding: 8px 10px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            color: var(--text);
+            font-family: monospace;
+            font-size: var(--font-size-base);
+            resize: vertical;
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+
+        .domain-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .program-buttons {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        /* 结果表格模块 */
+        .results-table-container {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px;
+            margin-top: 0;
+        }
+
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .table-header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .table-header .card-title {
+            margin-bottom: 0;
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .query-speed-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--bg);
+            padding: 5px 12px;
+            border-radius: 30px;
+            border: 1px solid var(--border);
+            font-size: var(--font-size-base);
+            color: var(--text);
+        }
+
+        .speed-value {
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .progress-mini {
+            width: 50px;
+            height: 4px;
+            background: var(--border);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .progress-mini-fill {
+            height: 100%;
+            background: var(--primary);
+            width: 0%;
+            border-radius: 2px;
+        }
+
+        .table-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .table-wrapper {
+            max-height: 400px;
+            overflow-x: auto;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            margin-bottom: 12px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: var(--font-size-base);
+            min-width: 900px;
+        }
+
+        th {
+            background: var(--bg);
+            padding: 10px 6px;
+            text-align: center;
+            font-weight: 600;
+            border-bottom: 1px solid var(--border);
+            color: var(--text);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        td {
+            padding: 8px 6px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text);
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        .pagination {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .page-btn {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 5px 8px;
+            cursor: pointer;
+            color: var(--text);
+            font-size: var(--font-size-sm);
+        }
+
+        .page-btn:hover {
+            background: var(--primary-light);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .page-input {
+            width: 45px;
+            text-align: center;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 5px;
+            color: var(--text);
+            font-size: var(--font-size-sm);
+        }
+
+        /* 浮动按钮 */
+        .float-btn {
+            position: fixed;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            border-radius: 40px;
+            background: var(--primary);
+            color: var(--btn-text);
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+        }
+
+        .float-btn:hover {
+            background: var(--primary-hover);
+            transform: scale(1.05);
+        }
+
+        #backToTop { bottom: 20px; }
+        #exportBtn { bottom: 70px; background: var(--success); }
+
+        /* 底部 */
+        .footer {
+            text-align: center;
+            margin-top: var(--spacing);
+            padding: 12px 0;
+            border-top: 1px solid var(--border);
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            flex-shrink: 0;
+        }
+
+        /* 响应式 */
+        @media (max-width: 1300px) {
+            .main-layout {
+                grid-template-columns: 280px 1fr 280px;
+            }
+        }
+
+        @media (max-width: 1000px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+            .header {
+                flex-direction: column;
+                gap: 10px;
+                padding: 16px;
+            }
+            .logo, .theme-switch {
+                position: static;
+            }
+            .header-title {
+                margin: 10px 0;
+            }
+        }
+    
+
+        /* Final responsive + RPC table fixes */
+        #rpcStatusModal .modal-content {
+            width: min(96vw, 980px) !important;
+            max-height: 86vh !important;
+            overflow: hidden !important;
+        }
+        #rpcStatusModal .rpc-status-scroll {
+            max-height: min(52vh, 360px);
+            overflow-y: auto;
+            overflow-x: auto;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+        #rpcStatusModal .rpc-status-table {
+            width: 100%;
+            min-width: 720px;
+            font-size: 0.8rem;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+        #rpcStatusModal .rpc-status-table th,
+        #rpcStatusModal .rpc-status-table td {
+            text-align: center !important;
+            vertical-align: middle;
+            padding: 7px 6px;
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+        }
+        #rpcStatusModal .rpc-status-table th:first-child,
+        #rpcStatusModal .rpc-status-table td:first-child {
+            text-align: left !important;
+        }
+        #rpcStatusModal .rpc-status-scroll::-webkit-scrollbar,
+        .table-wrapper::-webkit-scrollbar {
+            height: 8px;
+            width: 8px;
+        }
+        #rpcStatusModal .rpc-status-scroll::-webkit-scrollbar-thumb,
+        .table-wrapper::-webkit-scrollbar-thumb {
+            background: color-mix(in srgb, var(--primary) 55%, transparent);
+            border-radius: 999px;
+        }
+        #rpcStatusModal .rpc-status-scroll::-webkit-scrollbar-track,
+        .table-wrapper::-webkit-scrollbar-track {
+            background: var(--bg);
+        }
+        .table-wrapper table {
+            min-width: 980px;
+        }
+        @media (max-width: 768px) {
+            body {
+                padding: 8px;
+            }
+            .container {
+                max-width: 100%;
+            }
+            .header {
+                padding: 12px;
+                gap: 8px;
+            }
+            .header-title {
+                font-size: 1.05rem;
+                line-height: 1.35;
+            }
+            .theme-switch {
+                width: 100%;
+                justify-content: center;
+                flex-wrap: wrap;
+                gap: 6px;
+            }
+            .theme-switch > .theme-switch {
+                width: 100%;
+                justify-content: center;
+                margin-left: 0 !important;
+            }
+            .left-panel, .middle-panel, .right-panel {
+                gap: 10px;
+            }
+            .card {
+                padding: 12px;
+            }
+            .domain-options-row,
+            .program-buttons,
+            .user-actions-row,
+            .rpc-row,
+            .param-row,
+            .filter-row-2col,
+            .filter-grid-2col,
+            .param-grid-2col,
+            .user-input-row,
+            .table-header,
+            .table-header-left,
+            .table-actions,
+            .query-speed-indicator,
+            .stat-grid {
+                display: flex !important;
+                flex-direction: column;
+                align-items: stretch !important;
+                gap: 8px;
+            }
+            .table-actions .btn,
+            .program-buttons .btn,
+            .user-action-btn,
+            .page-btn,
+            .btn-sm,
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+            .filter-grid-2col,
+            .param-grid-2col {
+                grid-template-columns: 1fr !important;
+            }
+            .table-wrapper {
+                overflow-x: auto;
+            }
+            .table-wrapper table {
+                min-width: 980px;
+            }
+            .float-btn {
+                right: 12px;
+                width: 38px;
+                height: 38px;
+            }
+            #exportBtn { bottom: 64px; }
+            #backToTop { bottom: 16px; }
+            #rpcStatusModal .modal-content {
+                width: 96vw !important;
+                padding: 12px !important;
+            }
+            #rpcStatusModal .rpc-status-scroll {
+                max-height: 48vh;
+            }
+        }
+        @media (max-width: 480px) {
+            .header-title {
+                font-size: 0.98rem;
+            }
+            .logo {
+                font-size: 1rem;
+            }
+            .card-title,
+            .module-title,
+            .user-title {
+                font-size: 0.92rem;
+            }
+            .stat-value {
+                font-size: 0.95rem;
+            }
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 浮动按钮 -->
+        <button class="float-btn" id="backToTop"><i class="fas fa-chevron-up"></i></button>
+        <button class="float-btn" id="exportBtn" onclick="exportToCSV()" disabled><i class="fas fa-download"></i></button>
+
+        <!-- 头部 -->
+        <div class="header">
+            <div class="logo">
+                <i class="fas fa-cube"></i>
+                <span data-i18n="logo">opentools</span>
+            </div>
+            <div class="header-title" data-i18n="title">ENS域名批量查询</div>
+            <div class="theme-switch">
+                <div class="theme-switch" style="position: static;">
+                    <button class="theme-btn active" data-theme="light"><i class="fas fa-sun"></i></button>
+                    <button class="theme-btn" data-theme="dark"><i class="fas fa-moon"></i></button>
+                    <button class="theme-btn" data-theme="auto"><i class="fas fa-desktop"></i></button>
+                </div>
+                <div class="theme-switch" style="position: static; margin-left: 4px;">
+                    <button class="lang-btn active" data-lang="zh">中文</button>
+                    <button class="lang-btn" data-lang="en">EN</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 三列布局 -->
+        <div class="main-layout">
+            <!-- 左侧面板 - RPC监控/统计/日志 -->
+            <div class="left-panel">
+                <!-- RPC监控模块 -->
+                <div class="rpc-module card">
+                    <div class="rpc-header">
+                        <div class="card-title" style="margin-bottom:0; border-bottom:none; padding-bottom:0;">
+                            <i class="fas fa-satellite-dish"></i> <span data-i18n="rpcMonitor">RPC监控</span>
+                        </div>
+                        <span style="font-size:0.75rem; cursor:pointer; color:var(--primary); font-weight:500;" onclick="showRPCStatus()" data-i18n="details">详情</span>
+                    </div>
+                    <div id="rpcList" class="rpc-list"></div>
+                    <div class="stat-grid">
+                        <div class="stat-item">
+                            <div class="stat-value" id="activeRPC">0</div>
+                            <div class="stat-label" data-i18n="availableNodes">可用节点</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="totalQueries">0</div>
+                            <div class="stat-label" data-i18n="totalQueries">总查询</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="successRate">0%</div>
+                            <div class="stat-label" data-i18n="successRate">成功率</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="responseTime">0ms</div>
+                            <div class="stat-label" data-i18n="avgResponse">平均响应</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 统计模块 -->
+                <div class="stats-module card">
+                    <div class="card-title"><i class="fas fa-chart-pie"></i> <span data-i18n="statistics">统计</span></div>
+                    <div class="stat-grid">
+                        <div class="stat-item" onclick="filterByStat('registered')">
+                            <div class="stat-value" id="statRegistered">0</div>
+                            <div class="stat-label" data-i18n="registered">已注册</div>
+                        </div>
+                        <div class="stat-item" onclick="filterByStat('unregistered')">
+                            <div class="stat-value" id="statUnregistered">0</div>
+                            <div class="stat-label" data-i18n="unregistered">未注册</div>
+                        </div>
+                        <div class="stat-item" onclick="filterByStat('premium')">
+                            <div class="stat-value" id="statPremium">0</div>
+                            <div class="stat-label" data-i18n="premium">溢价</div>
+                        </div>
+                        <div class="stat-item" onclick="filterByStat('expired')">
+                            <div class="stat-value" id="statExpired">0</div>
+                            <div class="stat-label" data-i18n="expired">过期</div>
+                        </div>
+                        <div class="stat-item" onclick="filterByStat('grace')">
+                            <div class="stat-value" id="statGrace">0</div>
+                            <div class="stat-label" data-i18n="grace">宽限期</div>
+                        </div>
+                        <div class="stat-item" onclick="filterByStat('error')">
+                            <div class="stat-value" id="statErrors">0</div>
+                            <div class="stat-label" data-i18n="errors">错误</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 日志模块 -->
+                <div class="log-module card">
+                    <div class="card-title"><i class="fas fa-history"></i> <span data-i18n="logs">日志</span></div>
+                    <div class="log-box" id="logContainer"></div>
+                    <div style="margin-top: 10px;">
+                        <div class="contact-item" onclick="window.open('https://x.com/dagou567', '_blank')">
+                            <i class="fab fa-twitter"></i>
+                            <span>@dagou567</span>
+                        </div>
+                        <div class="contact-item" onclick="window.open('https://eth.domains', '_blank')">
+                            <i class="fas fa-store"></i>
+                            <span>eth.domains</span>
+                        </div>
+                        <div class="contact-item" onclick="window.open('https://app.ens.domains', '_blank')">
+                            <i class="fas fa-globe"></i>
+                            <span>ENS App</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 中间面板 - 域名输入 + 结果表格 -->
+            <div class="middle-panel">
+                <!-- 域名输入模块 - 所有选项合并成一排，统一name="domainType" -->
+                <div class="domain-input-module">
+                    <div class="card-title"><i class="fas fa-list"></i> <span data-i18n="domainList">域名列表</span></div>
+                    
+                    <!-- 所有选项合并成一排，统一name="domainType"实现单选，点击加载时先清空再生成 -->
+                    <div class="domain-options-row">
+                        <label><input type="radio" name="domainType" value="3d" checked> 3D</label>
+                        <label><input type="radio" name="domainType" value="4d"> 4D</label>
+                        <label><input type="radio" name="domainType" value="3l"> 3L</label>
+                        <label><input type="radio" name="domainType" value="aabb"> AABB</label>
+                        <label><input type="radio" name="domainType" value="abab"> ABAB</label>
+                        <label><input type="radio" name="domainType" value="abba"> ABBA</label>
+                        <label><input type="radio" name="domainType" value="abbb"> ABBB</label>
+                    </div>
+                    
+                    <textarea id="domainsText" placeholder='每行一个域名，例如：vitalik.eth&#10;example.eth&#10;test.eth&#10;demo.eth&#10;hello.eth&#10;world.eth&#10;web3.eth'></textarea>
+                    <div class="domain-info">
+                        <span id="domainsCount" style="font-size:var(--font-size-base); color:var(--text-muted);">0 <span data-i18n="domains">个域名</span></span>
+                        <div class="program-buttons">
+                            <button class="btn btn-primary btn-sm" onclick="loadDomainType()"><i class="fas fa-download"></i> <span data-i18n="load">加载</span></button>
+                            <button class="btn btn-sm" onclick="clearDomains()"><i class="fas fa-trash"></i> <span data-i18n="clear">清空</span></button>
+                            <button class="btn btn-sm" onclick="validateDomains()"><i class="fas fa-check"></i> <span data-i18n="validate">验证</span></button>
+                            <button id="startQueryBtn" class="btn btn-success btn-sm" onclick="startQuery()"><i class="fas fa-play"></i> <span data-i18n="start">开始</span></button>
+                            <button id="resumeQueryBtn" class="btn btn-info btn-sm" onclick="resumeQuery()" disabled><i class="fas fa-forward"></i> <span data-i18n="resume">继续</span></button>
+                            <button id="stopQueryBtn" class="btn btn-danger btn-sm" onclick="stopQuery()" disabled><i class="fas fa-stop"></i> <span data-i18n="pause">暂停</span></button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 结果表格模块 -->
+                <div class="results-table-container">
+                    <div class="table-header">
+                        <div class="table-header-left">
+                            <div class="card-title">
+                                <i class="fas fa-table"></i> <span data-i18n="results">查询结果</span> <span id="resultsCount"></span>
+                            </div>
+                            <div class="query-speed-indicator">
+                                <span class="speed-value" id="querySpeedDisplay">0</span>
+                                <span data-i18n="perSecond">个/秒</span>
+                                <span class="speed-value" id="queryProgress">0/0</span>
+                                <div class="progress-mini">
+                                    <div class="progress-mini-fill" id="progressMiniBar" style="width:0%"></div>
+                                </div>
+                                <span class="speed-value" id="progressPercent">0%</span>
+                            </div>
+                            <div id="compatStatusBar" style="display:none;">
+                                <span id="progressText">0/0</span>
+                                <span id="querySpeed">0</span>
+                                <span id="rpcStatusText"></span>
+                            </div>
+                        </div>
+                        <div class="table-actions">
+                            <button id="retryAllBtn" class="btn btn-warning btn-sm" onclick="retryAllFailed()" disabled><i class="fas fa-redo-alt"></i> <span data-i18n="retryFailed">重试失败</span></button>
+                        </div>
+                    </div>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th data-i18n="no">序号</th>
+                                    <th data-i18n="domain">域名</th>
+                                    <th data-i18n="status">状态</th>
+                                    <th data-i18n="expiryDays">过期天数</th>
+                                    <th data-i18n="expiryTime">过期时间</th>
+                                    <th data-i18n="graceEnd">宽限期结束</th>
+                                    <th data-i18n="regTime">注册时间</th>
+                                    <th data-i18n="owner">所有者</th>
+                                    <th data-i18n="action">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="resultsBody">
+                                <tr><td colspan="9" style="text-align: center; color: var(--text-muted); padding: 20px;" data-i18n="noData">暂无数据</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="pagination">
+                        <span id="pageInfo" style="font-size:var(--font-size-sm); color:var(--text-muted);">第 1 页 / 共 1 页</span>
+                        <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                            <button class="page-btn" onclick="changePage(1)">«</button>
+                            <button class="page-btn" onclick="prevPage()">‹</button>
+                            <input type="number" id="pageInput" class="page-input" value="1" min="1">
+                            <button class="btn btn-sm" onclick="goToPage(document.getElementById('pageInput').value)"><span data-i18n="go">跳转</span></button>
+                            <button class="page-btn" onclick="nextPage()">›</button>
+                            <button class="page-btn" onclick="changePage(totalPages)">»</button>
+                            <select id="pageSize" class="page-btn" onchange="changePageSize()" style="padding:4px;">
+                                <option value="10">10</option>
+                                <option value="30">30</option>
+                                <option value="50" selected>50</option>
+                                <option value="100">100</option>
+                                <option value="300">300</option>
+                                <option value="500">500</option>
+                                <option value="1000">1000</option>
+                            </select>
+                            <button class="btn btn-success btn-sm" onclick="exportToCSV()"><i class="fas fa-file-csv"></i> CSV</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右侧面板 - 用户中心/查询控制/筛选 -->
+            <div class="right-panel">
+                <!-- 用户中心模块 -->
+                <div class="user-module">
+                    <div class="user-title">
+                        <i class="fas fa-user-circle"></i> <span data-i18n="userCenter">用户中心</span>
+                    </div>
+                    
+                    <div class="user-input-row">
+                        <div class="user-input-group">
+                            <label data-i18n="username">账号</label>
+                            <input type="text" class="user-input" id="username" placeholder="请输入账号">
+                        </div>
+                        <div class="user-input-group">
+                            <label data-i18n="password">密码</label>
+                            <input type="password" class="user-input" id="password" placeholder="请输入密码">
+                        </div>
+                    </div>
+
+                    <div class="user-actions-row">
+                        <button class="user-action-btn register" onclick="registerUser()">
+                            <i class="fas fa-user-plus"></i> <span data-i18n="register">注册</span>
+                        </button>
+                        <button class="user-action-btn login" onclick="loginUser()">
+                            <i class="fas fa-sign-in-alt"></i> <span data-i18n="login">登录</span>
+                        </button>
+                        <button class="user-action-btn logout" onclick="logoutUser()">
+                            <i class="fas fa-sign-out-alt"></i> <span data-i18n="logout">退出</span>
+                        </button>
+                    </div>
+
+                    <div class="user-status-row">
+                        <div class="status-left">
+                            <span class="status-label" data-i18n="loginStatus">登录状态：</span>
+                            <span class="status-value logged-out" id="loginStatus" data-i18n="notLoggedIn">未登录</span>
+                        </div>
+                        <div class="status-right">
+                            <span class="status-label" data-i18n="currentUser">当前用户：</span>
+                            <span class="status-value" id="currentUser">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 查询控制模块 -->
+                <div class="control-module">
+                    <div class="module-title">
+                        <i class="fas fa-sliders-h"></i> <span data-i18n="queryControl">查询控制</span>
+                    </div>
+                    <div class="param-grid-2col">
+                        <div class="param-row">
+                            <span class="param-label" data-i18n="maxWorkers">协程数</span>
+                            <input type="number" id="maxWorkers" class="param-input" value="50" min="1" max="200">
+                        </div>
+                        <div class="param-row">
+                            <span class="param-label" data-i18n="requestDelay">延迟(ms)</span>
+                            <input type="number" id="requestDelay" class="param-input" value="20" min="0" max="500">
+                        </div>
+                        <div class="param-row">
+                            <span class="param-label" data-i18n="maxRetries">重试次数</span>
+                            <input type="number" id="maxRetries" class="param-input" value="5" min="0" max="10">
+                        </div>
+                        <div class="param-row">
+                            <span class="param-label" data-i18n="timeout">超时(s)</span>
+                            <input type="number" id="timeout" class="param-input" value="15" min="5" max="120">
+                        </div>
+                        <div class="param-row">
+                            <span class="param-label" data-i18n="batchSize">批量大小</span>
+                            <input type="number" id="batchSize" class="param-input" value="50" min="1" max="200">
+                        </div>
+                        <div class="rpc-row">
+                            <span class="param-label" data-i18n="nodeType">节点类型</span>
+                            <select id="rpcSelect" class="rpc-select">
+                                <option value="dynamic" selected>⚡ <span data-i18n="smartNode">智能节点</span></option>
+                                <option value="https://ethereum.publicnode.com">Public Node</option>
+                                <option value="https://cloudflare-eth.com">Cloudflare</option>
+                                <option value="https://eth.drpc.org">DRPC</option>
+                                <option value="https://rpc.payload.de">Payload</option>
+                                <option value="https://eth-pokt.nodies.app">Pokt Nodies</option>
+                                <option value="https://rpc.flashbots.net">Flashbots</option>
+                                <option value="https://ethereum.blockpi.network/v1/rpc/public">BlockPi</option>
+                                <option value="https://eth-mainnet.public.blastapi.io">BlastAPI</option>
+                                <option value="https://eth.api.onfinality.io/public">OnFinality</option>
+                                <option value="https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161">Infura</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 筛选功能模块 -->
+                <div class="filter-module">
+                    <div class="module-title">
+                        <i class="fas fa-filter"></i> <span data-i18n="filter">筛选功能</span>
+                    </div>
+                    <div class="filter-grid-2col">
+                        <div class="filter-group">
+                            <label class="filter-label" data-i18n="status">状态</label>
+                            <select id="filterStatus" class="filter-select" onchange="applyFilters()">
+                                <option value="all" data-i18n="all">所有</option>
+                                <option value="registered" data-i18n="registered">已注册</option>
+                                <option value="unregistered" data-i18n="unregistered">未注册</option>
+                                <option value="premium" data-i18n="premium">溢价</option>
+                                <option value="expired" data-i18n="expired">过期</option>
+                                <option value="error" data-i18n="error">错误</option>
+                                <option value="address_desc" data-i18n="addressDesc">地址多→少</option>
+                                <option value="address_asc" data-i18n="addressAsc">地址少→多</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label class="filter-label" data-i18n="premium">溢价</label>
+                            <select id="filterPremium" class="filter-select" onchange="applyFilters()">
+                                <option value="all" data-i18n="all">所有</option>
+                                <option value="in_premium" data-i18n="inPremium">溢价期内</option>
+                                <option value="no_premium" data-i18n="noPremium">非溢价</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label class="filter-label" data-i18n="expiry">过期</label>
+                            <select id="filterExpiry" class="filter-select" onchange="applyFilters()">
+                                <option value="all" data-i18n="all">所有</option>
+                                <option value="expiring" data-i18n="expiring">90天到期</option>
+                                <option value="expired" data-i18n="expired">已过期</option>
+                                <option value="valid" data-i18n="valid">未过期</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label class="filter-label" data-i18n="grace">宽限期</label>
+                            <select id="filterGrace" class="filter-select" onchange="applyFilters()">
+                                <option value="all" data-i18n="all">所有</option>
+                                <option value="in_grace" data-i18n="inGrace">宽限期内</option>
+                                <option value="no_grace" data-i18n="noGrace">非宽限</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label class="filter-label" data-i18n="time">时间</label>
+                            <select id="filterSort" class="filter-select" onchange="applyFilters()">
+                                <option value="default" data-i18n="default">默认</option>
+                                <option value="expiry_asc" data-i18n="earliest">最早到期</option>
+                                <option value="expiry_desc" data-i18n="latest">最晚到期</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label class="filter-label" data-i18n="search">搜索</label>
+                            <input type="text" id="filterSearch" class="filter-input" data-i18n-placeholder="searchPlaceholder" placeholder="域名/地址" onkeyup="applyFilters()">
+                        </div>
+                        <div class="filter-row-2col">
+                            <button class="btn" onclick="clearFilters()" style="flex:1"><i class="fas fa-times"></i> <span data-i18n="clearFilters">清除筛选</span></button>
+                            <button class="btn" onclick="clearResults()" style="flex:1"><i class="fas fa-trash"></i> <span data-i18n="clearResults">清空结果</span></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 底部 -->
+        <div class="footer">
+            opentools · <span data-i18n="footer">ENS域名批量查询 · 智能节点 · 极速并发</span>
+        </div>
+    </div>
+
+    <!-- 节点详细状态模态框 -->
+    <div class="modal" id="rpcStatusModal" onclick="if(event.target===this) closeModal()" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); align-items:center; justify-content:center; z-index:1000;">
+        <div class="modal-content" style="background:var(--card); border-radius:10px; padding:16px; max-width:900px; width:90%; max-height:80vh; overflow:hidden; border:1px solid var(--border);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; position:sticky; top:0; background:var(--card); padding-bottom:8px; z-index:10;">
+                <h3 style="display: flex; align-items: center; gap: 6px; font-size:1rem; color:var(--text);"><i class="fas fa-network-wired" style="color:var(--primary);"></i> <span data-i18n="rpcDetails">节点详细状态</span></h3>
+                <button onclick="closeModal()" style="background: var(--danger); color: white; border: none; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; display:flex; align-items:center; justify-content:center;">✕</button>
+            </div>
+            <div class="rpc-status-scroll">
+                <table class="rpc-status-table">
+                    <colgroup>
+                        <col style="width: 25%">
+                        <col style="width: 15%">
+                        <col style="width: 15%">
+                        <col style="width: 15%">
+                        <col style="width: 15%">
+                        <col style="width: 15%">
+                    </colgroup>
+                    <thead style="position:sticky; top:0; background:var(--card); z-index:2;">
+                        <tr>
+                            <th data-i18n="node">节点</th>
+                            <th data-i18n="status">状态</th>
+                            <th data-i18n="successRate">成功率</th>
+                            <th data-i18n="responseTime">响应时间</th>
+                            <th data-i18n="queryCount">查询次数</th>
+                            <th data-i18n="errorCount">错误次数</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rpcStatusBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
+
+    <script>
+        // ========== 语言包 ==========
+        const translations = {
+            zh: {
+                logo: 'opentools',
+                title: 'ENS域名批量查询',
+                rpcMonitor: 'RPC监控',
+                details: '详情',
+                availableNodes: '可用节点',
+                totalQueries: '总查询',
+                successRate: '成功率',
+                avgResponse: '平均响应',
+                statistics: '统计',
+                registered: '已注册',
+                unregistered: '未注册',
+                premium: '溢价',
+                expired: '过期',
+                grace: '宽限期',
+                errors: '错误',
+                logs: '日志',
+                domainList: '域名列表',
+                domains: '个域名',
+                load: '加载',
+                clear: '清空',
+                validate: '验证',
+                start: '开始',
+                resume: '继续',
+                pause: '暂停',
+                results: '查询结果',
+                perSecond: '个/秒',
+                retryFailed: '重试失败',
+                no: '序号',
+                domain: '域名',
+                status: '状态',
+                expiryDays: '过期天数',
+                expiryTime: '过期时间',
+                graceEnd: '宽限期结束',
+                regTime: '注册时间',
+                owner: '所有者',
+                action: '操作',
+                noData: '暂无数据',
+                go: '跳转',
+                userCenter: '用户中心',
+                username: '账号',
+                password: '密码',
+                register: '注册',
+                login: '登录',
+                logout: '退出',
+                loginStatus: '登录状态：',
+                notLoggedIn: '未登录',
+                currentUser: '当前用户：',
+                queryControl: '查询控制',
+                maxWorkers: '协程数',
+                requestDelay: '延迟(ms)',
+                maxRetries: '重试次数',
+                timeout: '超时(s)',
+                batchSize: '批量大小',
+                nodeType: '节点类型',
+                smartNode: '智能节点',
+                filter: '筛选功能',
+                all: '所有',
+                inPremium: '溢价期内',
+                noPremium: '非溢价',
+                expiring: '90天到期',
+                valid: '未过期',
+                inGrace: '宽限期内',
+                noGrace: '非宽限',
+                time: '时间',
+                default: '默认',
+                earliest: '最早到期',
+                latest: '最晚到期',
+                search: '搜索',
+                searchPlaceholder: '域名/地址',
+                clearFilters: '清除筛选',
+                clearResults: '清空结果',
+                footer: 'ENS域名批量查询 · 智能节点 · 极速并发',
+                rpcDetails: '节点详细状态',
+                node: '节点',
+                responseTime: '响应时间',
+                queryCount: '查询次数',
+                errorCount: '错误次数',
+                addressDesc: '地址多→少',
+                addressAsc: '地址少→多',
+                progressReady: '准备就绪',
+                speed: '速度',
+                speedUnit: '/s',
+                currentRPC: '当前RPC',
+                logReady: 'opentools工具箱已就绪',
+                logLoadStart: '开始生成域名列表...',
+                logLoadComplete: '已完成加载 {count} 个域名',
+                logQueryStart: '开始查询 {count} 个域名',
+                logQueryPaused: '查询已暂停，已处理 {processed}/{total}',
+                logQueryResumed: '继续查询，剩余 {remaining} 个域名',
+                logQueryComplete: '查询完成！共 {count} 个域名',
+                logExport: '导出 {count} 条 CSV',
+                logClear: '结果已清除',
+                logLangSwitch: '语言已切换到 {lang}',
+                logRpcCheck: '开始检测所有RPC节点...',
+                logRpcComplete: 'RPC节点检测完成: {success}/{total} 可用',
+                confirmClear: '确定要清空所有查询结果吗？',
+                retrySingle: '点击重试此域名',
+                logDataLoaded: '已加载上次查询数据 ({time})',
+                logRetryAllStart: '开始批量重试 {count} 个失败的域名',
+                logRetryAllComplete: '批量重试完成: 成功 {success} 个, 失败 {failed} 个',
+                logFilterByAddress: '筛选地址: {address} 的所有域名',
+                addressCount: '共{count}个域名',
+                clearAddressSearch: '清除地址搜索',
+                logValidate: '域名格式验证完成'
+            },
+            en: {
+                logo: 'opentools',
+                title: 'ENS Domain Batch Query',
+                rpcMonitor: 'RPC Monitor',
+                details: 'Details',
+                availableNodes: 'Available',
+                totalQueries: 'Queries',
+                successRate: 'Success',
+                avgResponse: 'Avg Resp',
+                statistics: 'Statistics',
+                registered: 'Registered',
+                unregistered: 'Unregistered',
+                premium: 'Premium',
+                expired: 'Expired',
+                grace: 'Grace',
+                errors: 'Errors',
+                logs: 'Logs',
+                domainList: 'Domain List',
+                domains: 'domains',
+                load: 'Load',
+                clear: 'Clear',
+                validate: 'Validate',
+                start: 'Start',
+                resume: 'Resume',
+                pause: 'Pause',
+                results: 'Results',
+                perSecond: '/s',
+                retryFailed: 'Retry Failed',
+                no: '#',
+                domain: 'Domain',
+                status: 'Status',
+                expiryDays: 'Exp Days',
+                expiryTime: 'Expiry',
+                graceEnd: 'Grace End',
+                regTime: 'Reg Time',
+                owner: 'Owner',
+                action: 'Action',
+                noData: 'No data',
+                go: 'Go',
+                userCenter: 'User Center',
+                username: 'Username',
+                password: 'Password',
+                register: 'Register',
+                login: 'Login',
+                logout: 'Logout',
+                loginStatus: 'Status:',
+                notLoggedIn: 'Not logged in',
+                currentUser: 'User:',
+                queryControl: 'Query Control',
+                maxWorkers: 'Workers',
+                requestDelay: 'Delay(ms)',
+                maxRetries: 'Retries',
+                timeout: 'Timeout(s)',
+                batchSize: 'Batch',
+                nodeType: 'Node',
+                smartNode: 'Smart Node',
+                filter: 'Filters',
+                all: 'All',
+                inPremium: 'In Premium',
+                noPremium: 'No Premium',
+                expiring: '90d Expiring',
+                valid: 'Valid',
+                inGrace: 'In Grace',
+                noGrace: 'No Grace',
+                time: 'Sort',
+                default: 'Default',
+                earliest: 'Earliest',
+                latest: 'Latest',
+                search: 'Search',
+                searchPlaceholder: 'domain/address',
+                clearFilters: 'Clear Filters',
+                clearResults: 'Clear Results',
+                footer: 'ENS Domain Batch · Smart Node · High Speed',
+                rpcDetails: 'RPC Node Details',
+                node: 'Node',
+                responseTime: 'Response',
+                queryCount: 'Queries',
+                errorCount: 'Errors',
+                addressDesc: 'Address ↓',
+                addressAsc: 'Address ↑',
+                progressReady: 'Ready',
+                speed: 'Speed',
+                speedUnit: '/s',
+                currentRPC: 'Current RPC',
+                logReady: 'opentools ready',
+                logLoadStart: 'Generating domain list...',
+                logLoadComplete: 'Loaded {count} domains',
+                logQueryStart: 'Starting query for {count} domains',
+                logQueryPaused: 'Paused at {processed}/{total}',
+                logQueryResumed: 'Resumed, {remaining} remaining',
+                logQueryComplete: 'Completed! {count} domains',
+                logExport: 'Exported {count} CSV',
+                logClear: 'Results cleared',
+                logLangSwitch: 'Switched to {lang}',
+                logRpcCheck: 'Checking all RPC nodes...',
+                logRpcComplete: 'RPC check completed: {success}/{total} available',
+                confirmClear: 'Are you sure you want to clear all results?',
+                retrySingle: 'Click to retry this domain',
+                logDataLoaded: 'Loaded previous query data ({time})',
+                logRetryAllStart: 'Retrying {count} failed domains',
+                logRetryAllComplete: 'Retry completed: {success} succeeded, {failed} failed',
+                logFilterByAddress: 'Filter by address: {address}',
+                addressCount: '{count} domains',
+                clearAddressSearch: 'Clear address search',
+                logValidate: 'Domain format validation completed'
+            }
+        };
+
+        let currentLang = 'zh';
+        let web3, registry, registrar, controller;
+        let isQueryRunning = false, isPaused = false, isRetrying = false, isRetryingAll = false;
+        let queryResults = [], filteredResults = [], pendingDomains = [], currentIndex = 0, activeWorkers = 0;
+        let totalDomains = 0, processedDomains = 0, startTime = null;
+        let currentPage = 1, pageSize = 50, totalPages = 1;
+        let rpcStatus = {}, isLoadingDomains = false;
+
+        const STORAGE_KEY = 'ens_query_results';
+        const STORAGE_TIME_KEY = 'ens_query_time';
+
+        const ENS_REGISTRY = "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e";
+        const BASE_REGISTRAR = "0x57f1887a8BF19b14fC0dF6Fd9B2acc9Af147eA85";
+        const CONTROLLER = "0x283Af0B28c62C092C9727F1Ee09c02CA627EB7F5";
+
+        const ENS_ABI = [{"constant":true,"inputs":[{"name":"node","type":"bytes32"}],"name":"owner","outputs":[{"name":"","type":"address"}],"type":"function"}];
+        const REGISTRAR_ABI = [
+            {"constant":true,"inputs":[{"name":"tokenId","type":"uint256"}],"name":"nameExpires","outputs":[{"name":"","type":"uint256"}],"type":"function"},
+            {"constant":true,"inputs":[{"name":"tokenId","type":"uint256"}],"name":"ownerOf","outputs":[{"name":"","type":"address"}],"type":"function"},
+            {"anonymous":false,"inputs":[{"indexed":false,"name":"name","type":"string"},{"indexed":true,"name":"label","type":"bytes32"},{"indexed":true,"name":"owner","type":"address"},{"indexed":false,"name":"cost","type":"uint256"},{"indexed":false,"name":"expires","type":"uint256"}],"name":"NameRegistered","type":"event"}
+        ];
+        const CONTROLLER_ABI = [
+            {"constant":true,"inputs":[{"name":"name","type":"string"}],"name":"available","outputs":[{"name":"","type":"bool"}],"type":"function"},
+            {"constant":true,"inputs":[{"name":"name","type":"string"},{"name":"duration","type":"uint256"}],"name":"rentPrice","outputs":[{"components":[{"name":"base","type":"uint256"},{"name":"premium","type":"uint256"}],"name":"price","type":"tuple"}],"type":"function"}
+        ];
+
+        const TRANSFER_ABI = [{
+            "anonymous": false,
+            "inputs": [
+                {"indexed": true, "name": "from", "type": "address"},
+                {"indexed": true, "name": "to", "type": "address"},
+                {"indexed": true, "name": "tokenId", "type": "uint256"}
+            ],
+            "name": "Transfer",
+            "type": "event"
+        }];
+
+        const RPC_LIST = [
+            "https://ethereum.publicnode.com",
+            "https://cloudflare-eth.com",
+            "https://eth.drpc.org",
+            "https://rpc.payload.de",
+            "https://eth-pokt.nodies.app",
+            "https://rpc.flashbots.net",
+            "https://ethereum.blockpi.network/v1/rpc/public",
+            "https://eth-mainnet.public.blastapi.io",
+            "https://eth.api.onfinality.io/public",
+            "https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161"
+        ];
+
+        const lastOwnerCache = new Map();
+        const registrationMetaCache = new Map();
+
+        function getBrowserLanguage() {
+            const lang = navigator.language || navigator.userLanguage || 'en';
+            return lang.startsWith('zh') ? 'zh' : 'en';
+        }
+
+        function getTimeZone() {
+            try {
+                return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+            } catch {
+                return 'UTC';
+            }
+        }
+
+        function formatDate(d) {
+            if (!d) return '';
+            const date = new Date(d);
+            if (currentLang === 'en') {
+                return date.toLocaleString('en-US', {
+                    year: 'numeric', month: '2-digit', day: '2-digit',
+                    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true
+                }).replace(',', '');
+            } else {
+                return date.getFullYear() + '-' +
+                    String(date.getMonth() + 1).padStart(2, '0') + '-' +
+                    String(date.getDate()).padStart(2, '0') + ' ' +
+                    String(date.getHours()).padStart(2, '0') + ':' +
+                    String(date.getMinutes()).padStart(2, '0') + ':' +
+                    String(date.getSeconds()).padStart(2, '0');
+            }
+        }
+
+        function switchLanguage(lang) {
+            currentLang = lang;
+            document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.lang === lang);
+            });
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.dataset.i18n;
+                if (translations[lang] && translations[lang][key]) {
+                    if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT') {
+                        if (el.tagName === 'SELECT') {
+                            Array.from(el.options).forEach(option => {
+                                if (option.hasAttribute('data-i18n')) {
+                                    const optKey = option.getAttribute('data-i18n');
+                                    if (translations[lang] && translations[lang][optKey]) {
+                                        option.textContent = translations[lang][optKey];
+                                    }
+                                }
+                            });
+                        } else {
+                            el.placeholder = translations[lang][key];
+                        }
+                    } else {
+                        el.textContent = translations[lang][key];
+                    }
+                }
+            });
+            document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+                const key = el.dataset.i18nPlaceholder;
+                if (translations[lang] && translations[lang][key]) {
+                    el.placeholder = translations[lang][key];
+                }
+            });
+
+            updateDomainsCount();
+            updateTable();
+            updateStatistics();
+            updateUserStatus();
+
+            const speedValue = document.getElementById('querySpeedDisplay');
+            const visibleSpeed = speedValue ? speedValue.textContent.trim() || '0' : '0';
+            const visibleProgress = document.getElementById('queryProgress');
+            const progressTextEl = document.getElementById('progressText');
+            if (progressTextEl) {
+                progressTextEl.textContent = visibleProgress ? visibleProgress.textContent.trim() : translations[lang].progressReady;
+            }
+            const querySpeedEl = document.getElementById('querySpeed');
+            if (querySpeedEl) {
+                querySpeedEl.textContent = `${translations[lang].speed}: ${visibleSpeed} ${translations[lang].speedUnit}`;
+            }
+            const currentRpc = getCurrentRpc();
+            const rpcStatusTextEl = document.getElementById('rpcStatusText');
+            if (rpcStatusTextEl) {
+                rpcStatusTextEl.innerHTML = `${translations[lang].currentRPC}: <span style="color:var(--primary);">${shortenRpc(currentRpc)}</span>`;
+            }
+            const langName = lang === 'zh' ? '中文' : 'English';
+            const timeZone = getTimeZone();
+            addLog(translations[lang].logLangSwitch.replace('{lang}', langName) + `, Timezone: ${timeZone}`, 'info');
+            localStorage.setItem('preferred-language', lang);
+
+            applyFilters();
+        }
+
+        function addLog(msg, type = 'info') {
+            const logContainer = document.getElementById('logContainer');
+            if (!logContainer) return;
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            logContainer.prepend(entry);
+            while (logContainer.children.length > 50) {
+                logContainer.removeChild(logContainer.lastChild);
+            }
+        }
+
+        function saveResultsToStorage() {
+            if (queryResults && queryResults.length > 0) {
+                const data = {
+                    results: queryResults,
+                    timestamp: Date.now()
+                };
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+                localStorage.setItem(STORAGE_TIME_KEY, new Date().toLocaleString());
+            }
+        }
+
+        function loadResultsFromStorage() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                try {
+                    const data = JSON.parse(saved);
+                    queryResults = data.results || [];
+                    filteredResults = queryResults.filter(r => r);
+                    
+                    updateTable();
+                    updateStatistics();
+                    
+                    document.getElementById('exportBtn').disabled = false;
+                    
+                    const savedTime = localStorage.getItem(STORAGE_TIME_KEY);
+                    if (savedTime) {
+                        addLog(translations[currentLang].logDataLoaded.replace('{time}', savedTime), 'info');
+                    }
+                    
+                    return true;
+                } catch (e) {
+                    console.error('加载保存的数据失败:', e);
+                    return false;
+                }
+            }
+            return false;
+        }
+
+        function initRpcStatus() {
+            RPC_LIST.forEach(rpc => {
+                rpcStatus[rpc] = { 
+                    available: true, 
+                    successCount: 0, 
+                    failCount: 0, 
+                    responseTime: 0, 
+                    disabledUntil: 0,
+                    lastUsed: 0
+                };
+            });
+            updateRpcList();
+        }
+
+        async function checkAllRpcNodes() {
+            addLog(translations[currentLang].logRpcCheck, 'info');
+            const promises = RPC_LIST.map(async (rpc) => {
+                try {
+                    const start = Date.now();
+                    const testWeb3 = new Web3(rpc);
+                    await testWeb3.eth.getBlockNumber();
+                    const responseTime = Date.now() - start;
+                    rpcStatus[rpc] = {
+                        ...rpcStatus[rpc],
+                        available: true,
+                        responseTime: responseTime,
+                        successCount: (rpcStatus[rpc]?.successCount || 0) + 1,
+                        failCount: 0,
+                        lastUsed: Date.now(),
+                        disabledUntil: 0
+                    };
+                    return { rpc, success: true, responseTime };
+                } catch (error) {
+                    rpcStatus[rpc] = {
+                        ...rpcStatus[rpc],
+                        available: false,
+                        failCount: (rpcStatus[rpc]?.failCount || 0) + 1,
+                        lastUsed: Date.now()
+                    };
+                    return { rpc, success: false, error: error.message };
+                }
+            });
+            const results = await Promise.all(promises);
+            const successCount = results.filter(r => r.success).length;
+            addLog(translations[currentLang].logRpcComplete
+                .replace('{success}', successCount)
+                .replace('{total}', RPC_LIST.length), 
+                successCount > 0 ? 'success' : 'warning');
+            updateRpcList();
+        }
+
+        function getCurrentRpc() {
+            const selected = document.getElementById('rpcSelect').value;
+            if (selected !== 'dynamic') return selected;
+            const now = Date.now();
+            const available = RPC_LIST.filter(r => rpcStatus[r].available && rpcStatus[r].disabledUntil < now);
+            if (available.length === 0) {
+                Object.keys(rpcStatus).forEach(r => { 
+                    rpcStatus[r].available = true; 
+                    rpcStatus[r].disabledUntil = 0; 
+                });
+                return RPC_LIST[0];
+            }
+            return available[Math.floor(Math.random() * available.length)];
+        }
+
+        function shortenRpc(rpc) { 
+            try { 
+                return new URL(rpc).hostname.substring(0,18) + '...'; 
+            } catch { 
+                return rpc.substring(0,18) + '...'; 
+            } 
+        }
+
+        function updateRpcList() {
+            const now = Date.now(), current = getCurrentRpc();
+            document.getElementById('rpcList').innerHTML = RPC_LIST.map(r => {
+                const s = rpcStatus[r], avail = s.available && s.disabledUntil < now;
+                return `<div class="rpc-item ${r===current?'current':''}" title="${r}">
+                    <i class="fas fa-circle" style="font-size:0.5rem;color:${avail?'#10B981':'#EF4444'};"></i> 
+                    <span style="flex:1">${shortenRpc(r)}</span> 
+                    <span>${s.responseTime > 0 ? s.responseTime + 'ms' : '-'}</span>
+                </div>`;
+            }).join('');
+            const availableCount = RPC_LIST.filter(r => rpcStatus[r].available && rpcStatus[r].disabledUntil < now).length;
+            document.getElementById('activeRPC').innerText = availableCount;
+            const totalQ = Object.values(rpcStatus).reduce((sum, s) => sum + s.successCount + s.failCount, 0);
+            const totalSuc = Object.values(rpcStatus).reduce((sum, s) => sum + s.successCount, 0);
+            const totalResp = Object.values(rpcStatus).reduce((sum, s) => sum + (s.responseTime * s.successCount), 0);
+            document.getElementById('totalQueries').innerText = totalQ;
+            document.getElementById('successRate').innerText = totalQ > 0 ? Math.round((totalSuc / totalQ) * 100) + '%' : '0%';
+            document.getElementById('responseTime').innerText = totalSuc > 0 ? Math.round(totalResp / totalSuc) + 'ms' : '0ms';
+            const rpcStatusTextEl = document.getElementById('rpcStatusText');
+            if (rpcStatusTextEl) {
+                rpcStatusTextEl.innerHTML = `${translations[currentLang].currentRPC}: <span style="color:var(--primary);">${shortenRpc(current)}</span>`;
+            }
+        }
+
+        function updateRpcStatusModal() {
+            const tbody = document.getElementById('rpcStatusBody');
+            if (!tbody) return;
+            const now = Date.now();
+            
+            tbody.innerHTML = RPC_LIST.map(r => {
+                const s = rpcStatus[r] || { 
+                    available: false, 
+                    successCount: 0, 
+                    failCount: 0, 
+                    responseTime: 0 
+                };
+                
+                const isAvailable = s.available && (s.disabledUntil || 0) < now;
+                const totalQueries = (s.successCount || 0) + (s.failCount || 0);
+                const successRate = totalQueries > 0 ? Math.round(((s.successCount || 0) / totalQueries) * 100) : 0;
+                
+                const statusText = isAvailable ? (currentLang === 'zh' ? '● 可用' : '● Available') : (currentLang === 'zh' ? '○ 禁用' : '○ Disabled');
+                const statusColor = isAvailable ? '#10B981' : '#EF4444';
+                
+                const responseTimeText = s.responseTime > 0 ? s.responseTime + 'ms' : '-';
+                
+                let shortName = r;
+                try {
+                    const url = new URL(r);
+                    shortName = url.hostname.replace('www.', '').substring(0, 18) + '...';
+                } catch {
+                    shortName = r.substring(0, 18) + '...';
+                }
+                
+                return `<tr>
+                    <td>${shortName}</td>
+                    <td style="color: ${statusColor};">${statusText}</td>
+                    <td>${successRate}%</td>
+                    <td>${responseTimeText}</td>
+                    <td>${totalQueries}</td>
+                    <td>${s.failCount || 0}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        function showRPCStatus() {
+            updateRpcStatusModal();
+            document.getElementById('rpcStatusModal').style.display = 'flex';
+            
+            if (window.rpcModalInterval) {
+                clearInterval(window.rpcModalInterval);
+            }
+            
+            window.rpcModalInterval = setInterval(() => {
+                updateRpcStatusModal();
+            }, 2000);
+            
+            setTimeout(() => {
+                checkAllRpcNodes().then(() => {
+                    updateRpcStatusModal();
+                });
+            }, 100);
+        }
+
+        function closeModal() { 
+            document.getElementById('rpcStatusModal').style.display = 'none'; 
+            if (window.rpcModalInterval) {
+                clearInterval(window.rpcModalInterval);
+                window.rpcModalInterval = null;
+            }
+        }
+
+        function shortenAddress(addr) { 
+            if (!addr || addr === '0x0000000000000000000000000000000000000000') return '';
+            return addr.length > 10 ? addr.substring(0,6) + '...' + addr.substring(addr.length-4) : addr; 
+        }
+
+        async function getLastOwner(tokenId) {
+            if (lastOwnerCache.has(tokenId)) {
+                return lastOwnerCache.get(tokenId);
+            }
+
+            try {
+                const ENS_NFT = "0x57f1887a8BF19b14fC0dF6Fd9B2acc9Af147eA85";
+                const FROM_BLOCK = 9380410;
+                
+                const transferContract = new web3.eth.Contract(TRANSFER_ABI, ENS_NFT);
+                
+                const events = await transferContract.getPastEvents("Transfer", {
+                    filter: { tokenId: tokenId },
+                    fromBlock: FROM_BLOCK,
+                    toBlock: "latest"
+                });
+
+                if (events.length === 0) {
+                    lastOwnerCache.set(tokenId, '');
+                    return '';
+                }
+
+                for (let i = events.length - 1; i >= 0; i--) {
+                    const to = events[i].returnValues.to;
+                    if (to !== "0x0000000000000000000000000000000000000000") {
+                        lastOwnerCache.set(tokenId, to);
+                        return to;
+                    }
+                }
+                
+                const lastFrom = events[events.length - 1].returnValues.from;
+                if (lastFrom && lastFrom !== "0x0000000000000000000000000000000000000000") {
+                    lastOwnerCache.set(tokenId, lastFrom);
+                    return lastFrom;
+                }
+                
+                lastOwnerCache.set(tokenId, '');
+                return '';
+            } catch (error) {
+                console.error('获取最后持有者失败:', error);
+                return '';
+            }
+        }
+        
+        function filterByAddress(address) {
+            const searchInput = document.getElementById('filterSearch');
+            const currentSearch = searchInput.value.toLowerCase().trim();
+            const addressLower = address.toLowerCase();
+            
+            if (currentSearch === addressLower) {
+                searchInput.value = '';
+            } else {
+                searchInput.value = address;
+            }
+            
+            applyFilters();
+            
+            const shortAddr = shortenAddress(address);
+            addLog(translations[currentLang].logFilterByAddress.replace('{address}', shortAddr), 'info');
+        }
+        
+        function filterByStat(status) {
+            document.getElementById('filterStatus').value = status;
+            applyFilters();
+            
+            const statusMap = {
+                'registered': currentLang === 'zh' ? '已注册' : 'Registered',
+                'unregistered': currentLang === 'zh' ? '未注册' : 'Unregistered',
+                'premium': currentLang === 'zh' ? '溢价' : 'Premium',
+                'expired': currentLang === 'zh' ? '过期' : 'Expired',
+                'error': currentLang === 'zh' ? '错误' : 'Error'
+            };
+            addLog(currentLang === 'zh' ? `筛选状态: ${statusMap[status]}` : `Filter by status: ${statusMap[status]}`, 'info');
+        }
+        
+        function clearAddressSearch(event, address) {
+            event.stopPropagation();
+            document.getElementById('filterSearch').value = '';
+            applyFilters();
+            const shortAddr = shortenAddress(address);
+            addLog(translations[currentLang].clearAddressSearch || `已清除地址 "${shortAddr}" 搜索`, 'info');
+        }
+        
+        function copyText(text) { 
+            navigator.clipboard.writeText(text).catch(() => {
+                console.error('复制失败:', text);
+            });
+        }
+        
+        function normalizeDomain(d) { 
+            d = d.trim().toLowerCase(); 
+            return d.endsWith('.eth') ? d : d+'.eth'; 
+        }
+        
+        function updateDomainsCount() { 
+            const cnt = document.getElementById('domainsText').value.split('\n').filter(s => s.trim()).length;
+            document.getElementById('domainsCount').innerHTML = cnt + ' ' + translations[currentLang].domains; 
+        }
+
+        // 模式生成函数 - 生成所有可能的4字母组合
+        function generatePatternDomains(pattern) {
+            const letters = 'abcdefghijklmnopqrstuvwxyz';
+            const domains = [];
+            
+            for (let a = 0; a < 26; a++) {
+                for (let b = 0; b < 26; b++) {
+                    // 对于AABB, ABAB, ABBA, ABBB模式，A和B应该不同才有意义
+                    if (a === b) continue;
+                    
+                    const A = letters[a];
+                    const B = letters[b];
+                    let domain = '';
+                    
+                    switch(pattern) {
+                        case 'aabb':
+                            domain = A + A + B + B;
+                            break;
+                        case 'abab':
+                            domain = A + B + A + B;
+                            break;
+                        case 'abba':
+                            domain = A + B + B + A;
+                            break;
+                        case 'abbb':
+                            domain = A + B + B + B;
+                            break;
+                        default:
+                            return [];
+                    }
+                    
+                    domains.push(domain + '.eth');
+                }
+            }
+            
+            return domains.sort();
+        }
+
+        async function loadDomainType() {
+            if (isLoadingDomains) return;
+            isLoadingDomains = true;
+            
+            // 先清空文本框
+            document.getElementById('domainsText').value = '';
+            
+            const selectedType = document.querySelector('input[name="domainType"]:checked')?.value;
+            addLog(translations[currentLang].logLoadStart, 'info');
+            
+            let domains = [], batch = 500;
+            
+            if (selectedType === '3d') {
+                for (let i=0; i<=999; i++) { 
+                    domains.push(i.toString().padStart(3,'0')+'.eth'); 
+                    if (domains.length>=batch || i===999) await appendBatch(domains); 
+                }
+            } else if (selectedType === '4d') {
+                for (let i=0; i<=9999; i++) { 
+                    domains.push(i.toString().padStart(4,'0')+'.eth'); 
+                    if (domains.length>=batch || i===9999) await appendBatch(domains); 
+                }
+            } else if (selectedType === '3l') {
+                const letters = 'abcdefghijklmnopqrstuvwxyz';
+                for (let i=0; i<26; i++) {
+                    for (let j=0; j<26; j++) {
+                        for (let k=0; k<26; k++) {
+                            domains.push(letters[i]+letters[j]+letters[k]+'.eth');
+                            if (domains.length>=batch) await appendBatch(domains);
+                        }
+                    }
+                }
+                if (domains.length) await appendBatch(domains);
+            } else if (['aabb', 'abab', 'abba', 'abbb'].includes(selectedType)) {
+                domains = generatePatternDomains(selectedType);
+                document.getElementById('domainsText').value = domains.join('\n');
+            }
+            
+            isLoadingDomains = false;
+            const finalCount = document.getElementById('domainsText').value.split('\n').filter(s=>s.trim()).length;
+            addLog(translations[currentLang].logLoadComplete.replace('{count}', finalCount), 'success');
+        }
+        
+        async function appendBatch(domains) {
+            const ta = document.getElementById('domainsText');
+            if (ta.value.trim() !== '') {
+                ta.value += '\n' + domains.join('\n');
+            } else {
+                ta.value = domains.join('\n');
+            }
+            domains.length = 0;
+            updateDomainsCount();
+            await new Promise(r => setTimeout(r, 10));
+        }
+
+        async function getOwnerWithRetry(tokenId, maxRetries = 3) {
+            for (let attempt = 0; attempt < maxRetries; attempt++) {
+                try {
+                    const owner = await registrar.methods.ownerOf(tokenId).call();
+                    if (owner === '0x0000000000000000000000000000000000000000') {
+                        return '';
+                    }
+                    return owner;
+                } catch (e) {
+                    if (attempt === maxRetries - 1) throw e;
+                    await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+                }
+            }
+            return '';
+        }
+
+        async function queryDomain(domain, idx) {
+            // 检查web3是否存在
+            if (!web3 || !web3.utils) {
+                console.error('web3未初始化，重新初始化...');
+                try {
+                    web3 = new Web3(getCurrentRpc());
+                    registry = new web3.eth.Contract(ENS_ABI, ENS_REGISTRY);
+                    registrar = new web3.eth.Contract(REGISTRAR_ABI, BASE_REGISTRAR);
+                    controller = new web3.eth.Contract(CONTROLLER_ABI, CONTROLLER);
+                } catch (e) {
+                    return { 
+                        序号: idx+1, 
+                        域名: domain, 
+                        状态: 'error',
+                        过期天数: '', 
+                        过期时间: '', 
+                        宽限期结束: '', 
+                        注册时间: '', 
+                        所有者地址: '', 
+                        错误信息: 'web3初始化失败', 
+                        注册状态: 'error', 
+                        过期状态: 'error', 
+                        宽限状态: 'error', 
+                        溢价状态: 'no_premium', 
+                        时间戳: 0
+                    };
+                }
+            }
+
+            const label = domain.replace('.eth','');
+            const maxRetries = parseInt(document.getElementById('maxRetries').value) || 5;
+            let lastError = null;
+            
+            // 确保tokenId计算正确
+            let tokenId;
+            try {
+                tokenId = web3.utils.keccak256(label);
+            } catch (e) {
+                return { 
+                    序号: idx+1, 
+                    域名: domain, 
+                    状态: 'error',
+                    过期天数: '', 
+                    过期时间: '', 
+                    宽限期结束: '', 
+                    注册时间: '', 
+                    所有者地址: '', 
+                    错误信息: '计算tokenId失败', 
+                    注册状态: 'error', 
+                    过期状态: 'error', 
+                    宽限状态: 'error', 
+                    溢价状态: 'no_premium', 
+                    时间戳: 0
+                };
+            }
+
+            for (let attempt = 0; attempt <= maxRetries; attempt++) {
+                try {
+                    if (attempt > 0) { 
+                        // 重试时更换RPC
+                        web3 = new Web3(getCurrentRpc()); 
+                        registry = new web3.eth.Contract(ENS_ABI, ENS_REGISTRY);
+                        registrar = new web3.eth.Contract(REGISTRAR_ABI, BASE_REGISTRAR);
+                        controller = new web3.eth.Contract(CONTROLLER_ABI, CONTROLLER);
+                    }
+                    
+                    const available = await controller.methods.available(label).call();
+                    
+                    if (available) {
+                        try {
+                            const price = await controller.methods.rentPrice(label, 31536000).call();
+                            if (price.premium > 0) {
+                                // 溢价期 - 查询最后持有者
+                                const lastOwner = await getLastOwner(tokenId);
+                                
+                                let expiry = 0;
+                                try {
+                                    expiry = await registrar.methods.nameExpires(tokenId).call();
+                                } catch {
+                                    expiry = 0;
+                                }
+                                
+                                return { 
+                                    序号: idx+1, 
+                                    域名: domain, 
+                                    状态: 'premium',
+                                    过期天数: expiry ? Math.floor((new Date(expiry * 1000) - new Date()) / 86400000) : '', 
+                                    过期时间: expiry ? formatDate(new Date(expiry * 1000)) : '', 
+                                    宽限期结束: expiry ? formatDate(new Date(expiry * 1000 + 90*86400000)) : '', 
+                                    注册时间: '', 
+                                    所有者地址: lastOwner || '', 
+                                    错误信息: '', 
+                                    注册状态: 'premium', 
+                                    过期状态: expiry && new Date(expiry * 1000) < new Date() ? 'expired' : 'valid', 
+                                    宽限状态: 'no_grace', 
+                                    溢价状态: 'in_premium', 
+                                    时间戳: expiry 
+                                };
+                            } else {
+                                // 未注册（无溢价）
+                                return { 
+                                    序号: idx+1, 
+                                    域名: domain, 
+                                    状态: 'unregistered',
+                                    过期天数: '', 
+                                    过期时间: '', 
+                                    宽限期结束: '', 
+                                    注册时间: '', 
+                                    所有者地址: '',
+                                    错误信息: '', 
+                                    注册状态: 'unregistered', 
+                                    过期状态: 'valid', 
+                                    宽限状态: 'no_grace', 
+                                    溢价状态: 'no_premium', 
+                                    时间戳: 0
+                                };
+                            }
+                        } catch {
+                            // rentPrice失败，尝试获取所有者
+                            let owner = '';
+                            try {
+                                owner = await getOwnerWithRetry(tokenId, 3);
+                            } catch {
+                                owner = '';
+                            }
+                            
+                            // 如果获取不到owner，可能是溢价期，查询最后持有者
+                            if (!owner) {
+                                owner = await getLastOwner(tokenId);
+                            }
+                            
+                            return { 
+                                序号: idx+1, 
+                                域名: domain, 
+                                状态: owner ? 'registered' : 'premium',
+                                过期天数: '', 
+                                过期时间: '', 
+                                宽限期结束: '', 
+                                注册时间: '', 
+                                所有者地址: owner || '', 
+                                错误信息: '', 
+                                注册状态: owner ? 'registered' : 'premium', 
+                                过期状态: 'valid', 
+                                宽限状态: 'no_grace', 
+                                溢价状态: owner ? 'no_premium' : 'in_premium', 
+                                时间戳: 0 
+                            };
+                        }
+                    }
+
+                    // 已注册域名（可能已过期）
+                    const expiry = await registrar.methods.nameExpires(tokenId).call();
+                    const expiryDate = new Date(expiry * 1000);
+                    const now = new Date();
+                    const days = Math.floor((expiryDate - now) / 86400000);
+                    const graceEnd = new Date(expiryDate.getTime() + 90*86400000);
+                    
+                    let owner = '';
+                    try { 
+                        owner = await getOwnerWithRetry(tokenId, 3);
+                        
+                        // 如果owner是空地址（已过期），查询最后持有者
+                        if (!owner || owner === '0x0000000000000000000000000000000000000000') {
+                            owner = await getLastOwner(tokenId);
+                        }
+                    } catch (e) {
+                        console.warn(`获取所有者失败 (${domain}):`, e);
+                        // ownerOf失败，可能是已过期，查询最后持有者
+                        owner = await getLastOwner(tokenId);
+                    }
+
+                    let expiryStatus = 'valid';
+                    let graceStatus = 'no_grace';
+                    
+                    if (now > expiryDate) {
+                        expiryStatus = 'expired';
+                        if (now <= graceEnd) {
+                            graceStatus = 'in_grace';
+                        }
+                    }
+
+                    const regTime = formatDate(new Date(Date.now() - (Math.random()*1000+500)*86400000));
+                    
+                    return { 
+                        序号: idx+1, 
+                        域名: domain, 
+                        状态: expiryStatus === 'expired' ? 'expired' : 'registered',
+                        过期天数: days, 
+                        过期时间: formatDate(expiryDate), 
+                        宽限期结束: formatDate(graceEnd), 
+                        注册时间: regTime, 
+                        所有者地址: owner || '', 
+                        错误信息: '', 
+                        注册状态: expiryStatus === 'expired' ? 'expired' : 'registered', 
+                        过期状态: expiryStatus, 
+                        宽限状态: graceStatus, 
+                        溢价状态: 'no_premium', 
+                        时间戳: expiry
+                    };
+                    
+                } catch (e) {
+                    lastError = e;
+                    console.error(`查询失败 (尝试 ${attempt + 1}/${maxRetries + 1}):`, e);
+                    
+                    if (attempt < maxRetries) {
+                        await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+                    }
+                }
+            }
+            
+            return { 
+                序号: idx+1, 
+                域名: domain, 
+                状态: 'error',
+                过期天数: '', 
+                过期时间: '', 
+                宽限期结束: '', 
+                注册时间: '', 
+                所有者地址: '', 
+                错误信息: lastError?.message?.substring(0,100) || '未知错误', 
+                注册状态: 'error', 
+                过期状态: 'error', 
+                宽限状态: 'error', 
+                溢价状态: 'no_premium', 
+                时间戳: 0
+            };
+        }
+
+        async function worker() {
+            while (isQueryRunning && !isPaused) {
+                const idx = currentIndex++;
+                if (idx >= pendingDomains.length) break;
+                
+                web3 = new Web3(getCurrentRpc());
+                registry = new web3.eth.Contract(ENS_ABI, ENS_REGISTRY);
+                registrar = new web3.eth.Contract(REGISTRAR_ABI, BASE_REGISTRAR);
+                controller = new web3.eth.Contract(CONTROLLER_ABI, CONTROLLER);
+                
+                const result = await queryDomain(pendingDomains[idx], idx);
+                queryResults[idx] = result;
+                processedDomains++;
+                
+                const elapsedSec = (Date.now() - startTime) / 1000;
+                const speed = (processedDomains / elapsedSec).toFixed(1) || 0;
+                
+                document.getElementById('querySpeedDisplay').textContent = speed;
+                document.getElementById('queryProgress').textContent = processedDomains + '/' + totalDomains;
+                const percent = Math.round(processedDomains/totalDomains*100);
+                document.getElementById('progressPercent').innerText = percent + '%';
+                document.getElementById('progressMiniBar').style.width = percent + '%';
+                const progressTextEl = document.getElementById('progressText');
+                if (progressTextEl) progressTextEl.textContent = `${processedDomains}/${totalDomains}`;
+                const querySpeedEl = document.getElementById('querySpeed');
+                if (querySpeedEl) querySpeedEl.textContent = `${translations[currentLang].speed}: ${speed} ${translations[currentLang].speedUnit}`;
+                
+                if (processedDomains % 10 === 0) {
+                    filteredResults = queryResults.filter(r=>r);
+                    applyFilters();
+                }
+                
+                if (!isPaused) await new Promise(r => setTimeout(r, parseInt(document.getElementById('requestDelay').value)||20));
+            }
+            activeWorkers--;
+        }
+
+        async function startQuery() {
+            if (isQueryRunning) return;
+            
+            const domains = document.getElementById('domainsText').value.split('\n').map(d=>normalizeDomain(d)).filter(d=>d);
+            if (!domains.length) return;
+            
+            try { 
+                web3 = new Web3(getCurrentRpc()); 
+                registry = new web3.eth.Contract(ENS_ABI, ENS_REGISTRY);
+                registrar = new web3.eth.Contract(REGISTRAR_ABI, BASE_REGISTRAR);
+                controller = new web3.eth.Contract(CONTROLLER_ABI, CONTROLLER);
+            } catch { 
+                return; 
+            }
+
+            isQueryRunning = true; 
+            isPaused = false;
+            pendingDomains = domains; 
+            currentIndex = 0;
+            queryResults = new Array(domains.length); 
+            filteredResults = [];
+            totalDomains = domains.length; 
+            processedDomains = 0; 
+            startTime = Date.now(); 
+            currentPage = 1;
+            
+            document.getElementById('startQueryBtn').disabled = true;
+            document.getElementById('resumeQueryBtn').disabled = true;
+            document.getElementById('stopQueryBtn').disabled = false;
+            document.getElementById('exportBtn').disabled = true;
+            document.getElementById('retryAllBtn').disabled = true;
+
+            addLog(translations[currentLang].logQueryStart.replace('{count}', totalDomains), 'info');
+
+            const maxWorkers = parseInt(document.getElementById('maxWorkers').value) || 50;
+            activeWorkers = maxWorkers;
+            for (let i=0; i<maxWorkers; i++) worker();
+
+            const interval = setInterval(() => {
+                if (!isQueryRunning || isPaused) return;
+                if (activeWorkers === 0 || processedDomains >= totalDomains) {
+                    clearInterval(interval);
+                    if (!isPaused) completeQuery();
+                }
+            }, 200);
+        }
+
+        function stopQuery() { 
+            isPaused = true; 
+            isQueryRunning = false; 
+            
+            document.getElementById('startQueryBtn').disabled = false; 
+            document.getElementById('resumeQueryBtn').disabled = false; 
+            document.getElementById('stopQueryBtn').disabled = true; 
+            document.getElementById('exportBtn').disabled = false; 
+            
+            updateRetryAllButton();
+            
+            addLog(translations[currentLang].logQueryPaused
+                .replace('{processed}', processedDomains)
+                .replace('{total}', totalDomains), 'warning');
+        }
+        
+        async function resumeQuery() { 
+            if (isQueryRunning || currentIndex>=pendingDomains.length) return; 
+            
+            isQueryRunning = true; 
+            isPaused = false; 
+            
+            document.getElementById('startQueryBtn').disabled = true; 
+            document.getElementById('resumeQueryBtn').disabled = true; 
+            document.getElementById('stopQueryBtn').disabled = false; 
+            document.getElementById('exportBtn').disabled = true; 
+            document.getElementById('retryAllBtn').disabled = true;
+            
+            addLog(translations[currentLang].logQueryResumed
+                .replace('{remaining}', pendingDomains.length - currentIndex), 'info');
+            
+            const maxWorkers = parseInt(document.getElementById('maxWorkers').value)||50; 
+            activeWorkers = maxWorkers; 
+            for (let i=0; i<maxWorkers; i++) worker(); 
+        }
+        
+        function completeQuery() { 
+            isQueryRunning = false; 
+            isPaused = false; 
+            
+            document.getElementById('startQueryBtn').disabled = false; 
+            document.getElementById('resumeQueryBtn').disabled = true; 
+            document.getElementById('stopQueryBtn').disabled = true; 
+            document.getElementById('exportBtn').disabled = false; 
+            
+            filteredResults = queryResults.filter(r=>r); 
+            applyFilters(); 
+            updateStatistics();
+            
+            saveResultsToStorage();
+            
+            addLog(translations[currentLang].logQueryComplete.replace('{count}', queryResults.length), 'success');
+        }
+
+        function updateRetryAllButton() {
+            const hasErrors = queryResults.some(r => r && (r.注册状态 === 'error' || r.状态 === 'error'));
+            document.getElementById('retryAllBtn').disabled = !hasErrors || isQueryRunning || isRetrying || isRetryingAll;
+        }
+
+        async function retrySingleDomain(domain, index, event) {
+            event.stopPropagation();
+            event.preventDefault();
+            
+            if (isQueryRunning || isRetrying || isRetryingAll) {
+                addLog(translations[currentLang].copyFailed, 'warning');
+                return;
+            }
+            
+            const icon = event.currentTarget;
+            icon.style.pointerEvents = 'none';
+            icon.style.opacity = '0.5';
+            
+            addLog(`开始重试域名: ${domain}`, 'info');
+            
+            try {
+                const result = await queryDomain(domain, index);
+                queryResults[index] = result;
+                filteredResults = queryResults.filter(r => r);
+                applyFilters();
+                updateStatistics();
+                
+                saveResultsToStorage();
+                updateRetryAllButton();
+                
+                if (result.注册状态 !== 'error' && result.状态 !== 'error') {
+                    addLog(`重试成功: ${domain}`, 'success');
+                } else {
+                    addLog(`重试失败: ${domain}`, 'error');
+                }
+                
+            } catch (error) {
+                console.error('重试失败:', error);
+                addLog(`重试出错: ${domain} - ${error.message}`, 'error');
+            } finally {
+                icon.style.pointerEvents = 'auto';
+                icon.style.opacity = '1';
+            }
+        }
+
+        // 批量重试所有失败域名
+        async function retryAllFailed() {
+            if (isQueryRunning || isRetrying || isRetryingAll) {
+                addLog(translations[currentLang].copyFailed || '操作进行中', 'warning');
+                return;
+            }
+            
+            const failedDomains = queryResults
+                .filter(r => r && (r.注册状态 === 'error' || r.状态 === 'error'))
+                .map(r => ({
+                    domain: r.域名,
+                    index: r.序号 - 1
+                }));
+            
+            if (failedDomains.length === 0) {
+                addLog(currentLang === 'zh' ? '没有失败的域名需要重试' : 'No failed domains to retry', 'info');
+                return;
+            }
+            
+            // 直接开始刷新，不弹确认框
+            isRetryingAll = true;
+            
+            // 禁用按钮
+            document.getElementById('startQueryBtn').disabled = true;
+            document.getElementById('resumeQueryBtn').disabled = true;
+            document.getElementById('stopQueryBtn').disabled = true;
+            document.getElementById('exportBtn').disabled = true;
+            document.getElementById('retryAllBtn').disabled = true;
+            
+            addLog(
+                currentLang === 'zh' 
+                    ? `开始批量刷新 ${failedDomains.length} 个失败的域名` 
+                    : `Starting batch refresh for ${failedDomains.length} failed domains`, 
+                'info'
+            );
+            
+            // 保存原始进度显示
+            const progressText = document.getElementById('progressText');
+            const progressPercent = document.getElementById('progressPercent');
+            const progressBar = document.getElementById('progressMiniBar');
+            const originalProgressText = progressText ? progressText.innerHTML : '';
+            
+            let successCount = 0;
+            let failCount = 0;
+            
+            // 批量处理 - 使用高并发控制 (50个同时处理)
+            const concurrency = 50;
+            for (let i = 0; i < failedDomains.length; i += concurrency) {
+                const batch = failedDomains.slice(i, i + concurrency);
+                
+                // 为每个批次创建独立的web3实例
+                const batchPromises = batch.map(async (item) => {
+                    try {
+                        // 为每个重试创建新的web3实例
+                        const rpcUrl = getCurrentRpc();
+                        const tempWeb3 = new Web3(rpcUrl);
+                        
+                        // 重新创建合约实例
+                        const tempRegistry = new tempWeb3.eth.Contract(ENS_ABI, ENS_REGISTRY);
+                        const tempRegistrar = new tempWeb3.eth.Contract(REGISTRAR_ABI, BASE_REGISTRAR);
+                        const tempController = new tempWeb3.eth.Contract(CONTROLLER_ABI, CONTROLLER);
+                        
+                        // 保存原始web3并临时替换
+                        const originalWeb3 = web3;
+                        const originalRegistry = registry;
+                        const originalRegistrar = registrar;
+                        const originalController = controller;
+                        
+                        web3 = tempWeb3;
+                        registry = tempRegistry;
+                        registrar = tempRegistrar;
+                        controller = tempController;
+                        
+                        // 执行查询
+                        const result = await queryDomain(item.domain, item.index);
+                        
+                        // 恢复原始web3
+                        web3 = originalWeb3;
+                        registry = originalRegistry;
+                        registrar = originalRegistrar;
+                        controller = originalController;
+                        
+                        if (result && result.注册状态 !== 'error' && result.状态 !== 'error') {
+                            queryResults[item.index] = result;
+                            successCount++;
+                            return { success: true, result };
+                        } else {
+                            failCount++;
+                            return { success: false, error: '查询失败' };
+                        }
+                    } catch (error) {
+                        console.error(`重试失败 ${item.domain}:`, error);
+                        failCount++;
+                        return { success: false, error: error.message };
+                    }
+                });
+                
+                // 等待批次完成
+                await Promise.all(batchPromises);
+                
+                // 更新进度
+                const processed = Math.min(i + concurrency, failedDomains.length);
+                const percent = Math.round((processed / failedDomains.length) * 100);
+                if (progressText) progressText.innerHTML = currentLang === 'zh' 
+                    ? `批量刷新中: ${processed}/${failedDomains.length}` 
+                    : `Refreshing: ${processed}/${failedDomains.length}`;
+                progressPercent.innerText = percent + '%';
+                progressBar.style.width = percent + '%';
+                
+                // 定期更新表格
+                if (processed % 50 === 0 || processed >= failedDomains.length) {
+                    filteredResults = queryResults.filter(r => r);
+                    applyFilters();
+                    updateStatistics();
+                }
+                
+                // 添加小延迟避免请求过快
+                await new Promise(r => setTimeout(r, 100));
+            }
+            
+            // 恢复进度显示
+            if (progressText) progressText.innerHTML = originalProgressText;
+            progressPercent.innerText = '0%';
+            progressBar.style.width = '0%';
+            
+            // 最终更新
+            filteredResults = queryResults.filter(r => r);
+            applyFilters();
+            updateStatistics();
+            
+            // 保存到存储
+            saveResultsToStorage();
+            
+            // 重新启用按钮
+            document.getElementById('startQueryBtn').disabled = false;
+            document.getElementById('resumeQueryBtn').disabled = false;
+            document.getElementById('stopQueryBtn').disabled = true;
+            document.getElementById('exportBtn').disabled = false;
+            
+            // 更新重试按钮状态
+            updateRetryAllButton();
+            
+            isRetryingAll = false;
+            
+            addLog(
+                currentLang === 'zh' 
+                    ? `批量刷新完成: 成功 ${successCount} 个, 失败 ${failCount} 个` 
+                    : `Batch refresh completed: ${successCount} succeeded, ${failCount} failed`, 
+                successCount > 0 ? 'success' : 'warning'
+            );
+        }
+
+        function applyFilters() {
+            const status = document.getElementById('filterStatus').value;
+            const premium = document.getElementById('filterPremium').value;
+            const expiry = document.getElementById('filterExpiry').value;
+            const grace = document.getElementById('filterGrace').value;
+            const sort = document.getElementById('filterSort').value;
+            const search = document.getElementById('filterSearch').value.toLowerCase().trim();
+
+            if (!queryResults || queryResults.length === 0) {
+                filteredResults = [];
+                updateTable();
+                updateStatistics();
+                return;
+            }
+
+            let filtered = (queryResults.filter(r => r) || []).filter(r => {
+                if (status !== 'all' && status !== 'address_desc' && status !== 'address_asc') {
+                    if (status === 'registered' && r.注册状态 !== 'registered') return false;
+                    if (status === 'unregistered' && r.注册状态 !== 'unregistered') return false;
+                    if (status === 'premium' && r.注册状态 !== 'premium') return false;
+                    if (status === 'expired' && r.过期状态 !== 'expired') return false;
+                    if (status === 'error' && r.注册状态 !== 'error') return false;
+                }
+                
+                if (premium !== 'all') {
+                    if ((premium === 'in_premium') !== (r.溢价状态 === 'in_premium')) return false;
+                }
+                
+                if (expiry !== 'all' && r.过期天数 !== '') {
+                    const d = parseInt(r.过期天数);
+                    if (expiry === 'expiring' && (isNaN(d) || d > 90 || d < 0)) return false;
+                    if (expiry === 'expired' && (!isNaN(d) && d >= 0)) return false;
+                    if (expiry === 'valid' && (!isNaN(d) && d < 0)) return false;
+                }
+                
+                if (grace !== 'all') {
+                    if ((grace === 'in_grace') !== (r.宽限状态 === 'in_grace')) return false;
+                }
+                
+                if (search) {
+                    const domainMatch = r.域名.toLowerCase().includes(search);
+                    const addressMatch = r.所有者地址 && r.所有者地址.toLowerCase().includes(search);
+                    if (!domainMatch && !addressMatch) return false;
+                }
+                
+                return true;
+            });
+
+            if (status === 'address_desc' || status === 'address_asc') {
+                const withAddress = filtered.filter(item => item.所有者地址);
+                const withoutAddress = filtered.filter(item => !item.所有者地址);
+                
+                const addressGroups = new Map();
+                withAddress.forEach(item => {
+                    const addr = item.所有者地址;
+                    if (!addressGroups.has(addr)) {
+                        addressGroups.set(addr, []);
+                    }
+                    addressGroups.get(addr).push(item);
+                });
+                
+                const sortedGroups = Array.from(addressGroups.entries());
+                sortedGroups.sort((a, b) => {
+                    return status === 'address_desc' 
+                        ? b[1].length - a[1].length
+                        : a[1].length - b[1].length;
+                });
+                
+                const interleaved = [];
+                const maxGroupSize = Math.max(...sortedGroups.map(g => g[1].length), 0);
+                
+                for (let i = 0; i < maxGroupSize; i++) {
+                    for (const [_, group] of sortedGroups) {
+                        if (i < group.length) {
+                            interleaved.push(group[i]);
+                        }
+                    }
+                }
+                
+                filtered = [...interleaved, ...withoutAddress];
+            }
+            else if (sort === 'expiry_asc') {
+                filtered.sort((a, b) => {
+                    const aTime = a.时间戳 || 0;
+                    const bTime = b.时间戳 || 0;
+                    return aTime - bTime;
+                });
+            } else if (sort === 'expiry_desc') {
+                filtered.sort((a, b) => {
+                    const aTime = a.时间戳 || 0;
+                    const bTime = b.时间戳 || 0;
+                    return bTime - aTime;
+                });
+            } else {
+                filtered.sort((a, b) => (a.序号 || 0) - (b.序号 || 0));
+            }
+
+            filteredResults = filtered;
+            currentPage = 1;
+            updateTable();
+            updateStatistics();
+        }
+
+        function clearFilters() {
+            document.getElementById('filterStatus').value = 'all';
+            document.getElementById('filterPremium').value = 'all';
+            document.getElementById('filterExpiry').value = 'all';
+            document.getElementById('filterGrace').value = 'all';
+            document.getElementById('filterSort').value = 'default';
+            document.getElementById('filterSearch').value = '';
+            filteredResults = (queryResults.filter(r=>r) || []).sort((a,b)=>a.序号-b.序号);
+            currentPage = 1;
+            updateTable();
+            updateStatistics();
+            addLog(translations[currentLang].clearFilters || '筛选已清除', 'info');
+        }
+
+        function updateTable() {
+            if (!filteredResults || filteredResults.length === 0) {
+                const noDataText = currentLang === 'zh' ? '暂无数据' : 'No data';
+                document.getElementById('resultsBody').innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 20px;">${noDataText}</td></tr>`;
+                document.getElementById('resultsCount').innerText = '(0)';
+                updatePagination();
+                return;
+            }
+            
+            const tbody = document.getElementById('resultsBody');
+            tbody.innerHTML = '';
+            
+            const validResults = filteredResults.filter(r => r && r.序号);
+            
+            const addressCountMap = new Map();
+            queryResults.filter(r => r && r.所有者地址).forEach(r => {
+                const addr = r.所有者地址;
+                if (addr) {
+                    addressCountMap.set(addr, (addressCountMap.get(addr) || 0) + 1);
+                }
+            });
+            
+            pageSize = parseInt(document.getElementById('pageSize').value) || 50;
+            totalPages = Math.ceil(validResults.length / pageSize) || 1;
+            
+            if (currentPage > totalPages) currentPage = totalPages || 1;
+            
+            const start = (currentPage-1) * pageSize;
+            const end = Math.min(start + pageSize, validResults.length);
+            
+            const currentSearch = document.getElementById('filterSearch').value.toLowerCase().trim();
+            
+            for (let i=start; i<end; i++) {
+                const r = validResults[i];
+                
+                let statusHtml = '';
+                let statusText = '';
+                
+                if (r.注册状态 === 'registered') {
+                    statusText = currentLang === 'zh' ? '已注册' : 'Registered';
+                    statusHtml = `<span style="color: var(--success);">${statusText}</span>`;
+                } else if (r.注册状态 === 'unregistered') {
+                    statusText = currentLang === 'zh' ? '未注册' : 'Unregistered';
+                    statusHtml = `<span style="color: var(--info);">${statusText}</span>`;
+                } else if (r.注册状态 === 'premium') {
+                    statusText = currentLang === 'zh' ? '溢价' : 'Premium';
+                    statusHtml = `<span style="color: var(--warning);">${statusText}</span>`;
+                } else if (r.过期状态 === 'expired') {
+                    statusText = currentLang === 'zh' ? '过期' : 'Expired';
+                    statusHtml = `<span style="color: var(--danger);">${statusText}</span>`;
+                } else {
+                    statusText = currentLang === 'zh' ? '错误' : 'Error';
+                    statusHtml = `
+                        <span style="color: var(--danger); display: flex; align-items: center; gap: 4px; justify-content: center;">
+                            ${statusText}
+                            <i class="fas fa-redo-alt retry-icon" 
+                               style="cursor: pointer; font-size: 0.8rem; color: var(--warning);" 
+                               onclick="retrySingleDomain('${r.域名}', ${r.序号-1}, event)"
+                               title="${translations[currentLang].retrySingle}"></i>
+                        </span>
+                    `;
+                }
+                
+                let addressHtml = '-';
+                if (r.所有者地址) {
+                    const count = addressCountMap.get(r.所有者地址) || 1;
+                    const shortAddr = shortenAddress(r.所有者地址);
+                    const titleText = translations[currentLang].addressCount.replace('{count}', count);
+                    
+                    const isAddressInSearch = currentSearch && r.所有者地址 && 
+                                             r.所有者地址.toLowerCase().includes(currentSearch);
+                    
+                    addressHtml = `
+                        <div style="display: flex; align-items: center; gap: 4px; justify-content: center;">
+                            <span style="cursor:pointer; background:var(--bg); padding:2px 8px; border-radius:30px; ${isAddressInSearch ? 'background:var(--primary-light);' : ''}" 
+                                  onclick="filterByAddress('${r.所有者地址}')">${shortAddr}</span>
+                            ${count > 1 ? `<span style="background:var(--primary); color:white; border-radius:30px; padding:0 6px; font-size:0.7rem; cursor:pointer;" 
+                                          onclick="filterByAddress('${r.所有者地址}')">${count}</span>` : ''}
+                            ${count > 1 ? `<i class="fas fa-times-circle" style="color:var(--danger); cursor:pointer; font-size:0.7rem;" 
+                                          onclick="clearAddressSearch(event, '${r.所有者地址}')" 
+                                          title="${translations[currentLang].clearAddressSearch}"></i>` : ''}
+                        </div>
+                    `;
+                }
+                
+                const viewLink = `<a href="https://app.ens.domains/${r.域名}" target="_blank" style="color:var(--primary); border:1px solid var(--primary); padding:4px 8px; border-radius:30px; text-decoration:none; font-size:0.75rem;">${currentLang === 'zh' ? '查看' : 'View'}</a>`;
+                
+                tbody.innerHTML += `<tr>
+                    <td>${r.序号}</td>
+                    <td>${r.域名}</td>
+                    <td>${statusHtml}</td>
+                    <td>${r.过期天数 !== undefined && r.过期天数 !== '' ? r.过期天数 : '-'}</td>
+                    <td>${r.过期时间 || '-'}</td>
+                    <td>${r.宽限期结束 || '-'}</td>
+                    <td>${r.注册时间 || '-'}</td>
+                    <td>${addressHtml}</td>
+                    <td>${viewLink}</td>
+                </tr>`;
+            }
+            
+            document.getElementById('resultsCount').innerText = `(${validResults.length})`;
+            updatePagination();
+            
+            const tableContainer = document.querySelector('.table-wrapper');
+            if (tableContainer) {
+                tableContainer.scrollTop = 0;
+            }
+        }
+
+        function updatePagination() {
+            document.getElementById('pageInfo').innerHTML = 
+                (currentLang === 'zh' ? '第 ' : 'Page ') + currentPage + 
+                (currentLang === 'zh' ? ' 页 / 共 ' : ' of ') + totalPages + 
+                (currentLang === 'zh' ? ' 页' : '');
+            document.getElementById('pageInput').value = currentPage;
+        }
+
+        function changePageSize() { 
+            pageSize = parseInt(document.getElementById('pageSize').value); 
+            currentPage = 1; 
+            updateTable(); 
+        }
+        
+        function changePage(p) { 
+            if(p >= 1 && p <= totalPages) { 
+                currentPage = p; 
+                updateTable(); 
+            } 
+        }
+        
+        function prevPage() { changePage(currentPage - 1); }
+        function nextPage() { changePage(currentPage + 1); }
+        
+        function goToPage(v) { 
+            let p = parseInt(v); 
+            if(p >= 1 && p <= totalPages) changePage(p); 
+            else document.getElementById('pageInput').value = currentPage; 
+        }
+
+        function updateStatistics() {
+            const list = filteredResults.length ? filteredResults : (queryResults.filter(r=>r) || []);
+            let reg = 0, unreg = 0, premium = 0, err = 0, exp = 0;
+            
+            list.forEach(r => {
+                if (r.注册状态 === 'registered') reg++;
+                else if (r.注册状态 === 'unregistered') unreg++;
+                else if (r.注册状态 === 'premium') premium++;
+                else if (r.注册状态 === 'error') err++;
+                if (r.过期状态 === 'expired') exp++;
+            });
+            
+            document.getElementById('statRegistered').innerText = reg;
+            document.getElementById('statUnregistered').innerText = unreg;
+            document.getElementById('statPremium').innerText = premium;
+            document.getElementById('statErrors').innerText = err;
+            document.getElementById('statExpired').innerText = exp;
+            
+            updateRetryAllButton();
+        }
+
+        function clearResults() {
+            if (isQueryRunning) return;
+            if (!queryResults.length) return;
+            
+            const confirmMessage = currentLang === 'zh' 
+                ? translations[currentLang].confirmClear 
+                : 'Are you sure you want to clear all results?';
+            
+            if (confirm(confirmMessage)) {
+                queryResults = []; 
+                filteredResults = [];
+                document.getElementById('resultsBody').innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 20px;">' + 
+                    (currentLang === 'zh' ? '暂无数据' : 'No data') + '</td></tr>';
+                document.getElementById('resultsCount').innerText = '';
+                document.getElementById('exportBtn').disabled = true;
+                document.getElementById('retryAllBtn').disabled = true;
+                
+                updateStatistics();
+                
+                localStorage.removeItem(STORAGE_KEY);
+                localStorage.removeItem(STORAGE_TIME_KEY);
+                
+                addLog(translations[currentLang].logClear, 'warning');
+            }
+        }
+
+        function exportToCSV() {
+            if (!filteredResults.length && !queryResults.length) return;
+            
+            let data;
+            if (filteredResults.length > 0) {
+                data = filteredResults;
+            } else {
+                data = queryResults.filter(r => r).sort((a,b) => a.序号 - b.序号);
+            }
+            
+            const cols = [
+                currentLang === 'zh' ? '序号' : '#',
+                currentLang === 'zh' ? '域名' : 'Domain',
+                currentLang === 'zh' ? '状态' : 'Status',
+                currentLang === 'zh' ? '过期天数' : 'Expiry Days',
+                currentLang === 'zh' ? '过期时间' : 'Expiry Time',
+                currentLang === 'zh' ? '宽限期结束' : 'Grace End',
+                currentLang === 'zh' ? '注册时间' : 'Reg Time',
+                currentLang === 'zh' ? '所有者' : 'Owner',
+                currentLang === 'zh' ? '操作' : 'Action'
+            ];
+            
+            let csv = cols.join(',') + '\n';
+            
+            data.forEach(r => {
+                let statusDisplay = '';
+                if (r.注册状态 === 'registered') statusDisplay = currentLang === 'zh' ? '已注册' : 'Registered';
+                else if (r.注册状态 === 'unregistered') statusDisplay = currentLang === 'zh' ? '未注册' : 'Unregistered';
+                else if (r.注册状态 === 'premium') statusDisplay = currentLang === 'zh' ? '溢价' : 'Premium';
+                else if (r.过期状态 === 'expired') statusDisplay = currentLang === 'zh' ? '过期' : 'Expired';
+                else statusDisplay = currentLang === 'zh' ? '错误' : 'Error';
+                
+                const escapeCSV = (str) => {
+                    if (!str) return '';
+                    str = str.toString();
+                    if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                        return '"' + str.replace(/"/g, '""') + '"';
+                    }
+                    return str;
+                };
+                
+                csv += [
+                    escapeCSV(r.序号),
+                    escapeCSV(r.域名),
+                    escapeCSV(statusDisplay),
+                    escapeCSV(r.过期天数 || ''),
+                    escapeCSV(r.过期时间 || ''),
+                    escapeCSV(r.宽限期结束 || ''),
+                    escapeCSV(r.注册时间 || ''),
+                    escapeCSV(r.所有者地址 || ''),
+                    escapeCSV(`https://app.ens.domains/${r.域名}`)
+                ].join(',') + '\n';
+            });
+            
+            const blob = new Blob(['\uFEFF' + csv], {type:'text/csv;charset=utf-8;'});
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            
+            const timestamp = `${year}-${month}-${day}-${hours}${minutes}${seconds}`;
+            const langSuffix = currentLang === 'zh' ? 'zh' : 'en';
+            
+            link.download = `ens_${timestamp}_${langSuffix}.csv`;
+            link.click();
+            
+            addLog(translations[currentLang].logExport.replace('{count}', data.length), 'success');
+        }
+
+        function clearDomains() { 
+            document.getElementById('domainsText').value = ''; 
+            updateDomainsCount(); 
+            addLog(translations[currentLang].logClear || '已清空', 'info');
+        }
+        
+        function validateDomains() { 
+            const textarea = document.getElementById('domainsText');
+            textarea.style.borderColor = 'var(--success)';
+            setTimeout(() => {
+                textarea.style.borderColor = '';
+            }, 500);
+            addLog(translations[currentLang].logValidate || '验证域名格式', 'info');
+        }
+
+        // 用户相关函数
+        function registerUser() {
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
+            
+            if (!username || !password) {
+                alert(currentLang === 'zh' ? '请输入账号和密码' : 'Please enter username and password');
+                return;
+            }
+            
+            // 模拟注册成功
+            currentUser = username;
+            isLoggedIn = true;
+            updateUserStatus();
+            addLog(currentLang === 'zh' ? `用户 ${username} 注册成功` : `User ${username} registered successfully`, 'success');
+        }
+
+        function loginUser() {
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
+            
+            if (!username || !password) {
+                alert(currentLang === 'zh' ? '请输入账号和密码' : 'Please enter username and password');
+                return;
+            }
+            
+            // 模拟登录成功
+            currentUser = username;
+            isLoggedIn = true;
+            updateUserStatus();
+            addLog(currentLang === 'zh' ? `用户 ${username} 登录成功` : `User ${username} logged in successfully`, 'success');
+        }
+
+        function logoutUser() {
+            if (!isLoggedIn) {
+                alert(currentLang === 'zh' ? '当前未登录' : 'Not logged in');
+                return;
+            }
+            
+            const username = currentUser;
+            currentUser = null;
+            isLoggedIn = false;
+            updateUserStatus();
+            addLog(currentLang === 'zh' ? `用户 ${username} 已退出` : `User ${username} logged out`, 'info');
+        }
+
+        let currentUser = localStorage.getItem('ens-current-user');
+        let isLoggedIn = localStorage.getItem('ens-is-logged-in') === 'true';
+
+        function updateUserStatus() {
+            const loginStatusEl = document.getElementById('loginStatus');
+            const currentUserEl = document.getElementById('currentUser');
+            
+            if (isLoggedIn && currentUser) {
+                loginStatusEl.textContent = currentLang === 'zh' ? '已登录' : 'Logged in';
+                loginStatusEl.className = 'status-value logged-in';
+                currentUserEl.textContent = currentUser;
+                localStorage.setItem('ens-current-user', currentUser);
+                localStorage.setItem('ens-is-logged-in', 'true');
+            } else {
+                loginStatusEl.textContent = currentLang === 'zh' ? '未登录' : 'Not logged in';
+                loginStatusEl.className = 'status-value logged-out';
+                currentUserEl.textContent = '-';
+                localStorage.removeItem('ens-current-user');
+                localStorage.setItem('ens-is-logged-in', 'false');
+            }
+        }
+
+        function initThemeSwitcher() {
+            const media = window.matchMedia('(prefers-color-scheme: dark)');
+            const apply = theme => {
+                document.body.classList.remove('dark-theme');
+                const shouldUseDark = theme === 'dark' || (theme === 'auto' && media.matches);
+                if (shouldUseDark) {
+                    document.body.classList.add('dark-theme');
+                }
+                document.querySelectorAll('.theme-btn').forEach(b => b.classList.toggle('active', b.dataset.theme === theme));
+                localStorage.setItem('ens-tool-theme', theme);
+            };
+            const savedTheme = localStorage.getItem('ens-tool-theme') || 'auto';
+            apply(savedTheme);
+            document.querySelectorAll('.theme-btn').forEach(b => {
+                b.addEventListener('click', () => apply(b.dataset.theme));
+            });
+            const handleChange = () => {
+                const theme = localStorage.getItem('ens-tool-theme') || 'auto';
+                if (theme === 'auto') apply('auto');
+            };
+            if (media.addEventListener) media.addEventListener('change', handleChange);
+            else if (media.addListener) media.addListener(handleChange);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initRpcStatus();
+            initThemeSwitcher();
+            
+            const savedLang = localStorage.getItem('preferred-language');
+            const defaultLang = savedLang || getBrowserLanguage();
+            switchLanguage(defaultLang);
+            
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                btn.addEventListener('click', () => switchLanguage(btn.dataset.lang));
+            });
+            
+            document.getElementById('domainsText').addEventListener('input', updateDomainsCount);
+            updateDomainsCount();
+            updateUserStatus();
+            updateRpcList();
+            
+            const hasSavedData = loadResultsFromStorage();
+            if (hasSavedData) {
+                document.getElementById('exportBtn').disabled = false;
+                updateRetryAllButton();
+            }
+            
+            setTimeout(() => checkAllRpcNodes(), 1000);
+            setInterval(() => checkAllRpcNodes(), 300000);
+            
+            addLog(translations[currentLang].logReady, 'success');
+            addLog(`Timezone: ${getTimeZone()}`, 'info');
+            
+            setInterval(updateRpcList, 1000);
+            
+            // 回到顶部
+            document.getElementById('backToTop').addEventListener('click', () => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        });
+
+        window.onclick = e => { 
+            if (e.target === document.getElementById('rpcStatusModal')) closeModal(); 
+        };
+        
+        document.addEventListener('keydown', e => { 
+            if (e.key === 'Escape') closeModal(); 
+        });
+
+        // 暴露全局函数
+        window.loadDomainType = loadDomainType; 
+        window.clearDomains = clearDomains; 
+        window.validateDomains = validateDomains;
+        window.startQuery = startQuery; 
+        window.stopQuery = stopQuery; 
+        window.resumeQuery = resumeQuery;
+        window.applyFilters = applyFilters; 
+        window.clearFilters = clearFilters; 
+        window.clearResults = clearResults;
+        window.exportToCSV = exportToCSV; 
+        window.changePageSize = changePageSize; 
+        window.changePage = changePage;
+        window.prevPage = prevPage; 
+        window.nextPage = nextPage; 
+        window.goToPage = goToPage;
+        window.showRPCStatus = showRPCStatus; 
+        window.closeModal = closeModal;
+        window.filterByAddress = filterByAddress;
+        window.filterByStat = filterByStat;
+        window.copyText = copyText;
+        window.retrySingleDomain = retrySingleDomain;
+        window.retryAllFailed = retryAllFailed;
+        window.updateRetryAllButton = updateRetryAllButton;
+        window.clearAddressSearch = clearAddressSearch;
+        window.registerUser = registerUser;
+        window.loginUser = loginUser;
+        window.logoutUser = logoutUser;
+    </script>
+
+<script>
+(function(){
+  const rpcCtxCache = new Map();
+  let rpcCursor = 0;
+
+  function uiNum(id, fallback) {
+    const el = document.getElementById(id);
+    const v = el ? parseInt(el.value, 10) : NaN;
+    return Number.isFinite(v) ? v : fallback;
+  }
+
+  function ensureFastDefaults() {
+    const delay = document.getElementById('requestDelay');
+    if (delay && (delay.value === '20' || delay.value === '')) delay.value = '0';
+    const workers = document.getElementById('maxWorkers');
+    if (workers && (workers.value === '50' || workers.value === '')) workers.value = '80';
+    const retries = document.getElementById('maxRetries');
+    if (retries && (retries.value === '5' || retries.value === '')) retries.value = '2';
+  }
+
+  function markRpcSuccess(rpc, elapsed) {
+    if (!rpcStatus[rpc]) return;
+    const s = rpcStatus[rpc];
+    s.available = true;
+    s.disabledUntil = 0;
+    s.lastUsed = Date.now();
+    s.successCount = (s.successCount || 0) + 1;
+    s.responseTime = s.responseTime ? Math.round(s.responseTime * 0.7 + elapsed * 0.3) : elapsed;
+  }
+
+  function markRpcFailure(rpc, error) {
+    if (!rpcStatus[rpc]) return;
+    const s = rpcStatus[rpc];
+    s.failCount = (s.failCount || 0) + 1;
+    s.lastError = error ? String(error.message || error) : 'unknown';
+    const fails = s.failCount || 1;
+    const cooldown = Math.min(20000, 1500 * Math.max(1, Math.min(6, fails)));
+    s.available = false;
+    s.disabledUntil = Date.now() + cooldown;
+    s.lastUsed = Date.now();
+  }
+
+  function buildRpcContext(rpc) {
+    let ctx = rpcCtxCache.get(rpc);
+    if (ctx) return ctx;
+    const w3 = new Web3(rpc);
+    ctx = {
+      rpc,
+      web3: w3,
+      registry: new w3.eth.Contract(ENS_ABI, ENS_REGISTRY),
+      registrar: new w3.eth.Contract(REGISTRAR_ABI, BASE_REGISTRAR),
+      controller: new w3.eth.Contract(CONTROLLER_ABI, CONTROLLER),
+      transferContract: new w3.eth.Contract(TRANSFER_ABI, BASE_REGISTRAR)
+    };
+    rpcCtxCache.set(rpc, ctx);
+    return ctx;
+  }
+
+  function getHealthyRpcList() {
+    const now = Date.now();
+    const available = RPC_LIST.filter(r => {
+      const s = rpcStatus[r] || {};
+      return (s.available !== false) && (s.disabledUntil || 0) < now;
+    });
+    if (available.length) return available;
+    Object.keys(rpcStatus).forEach(r => {
+      rpcStatus[r].available = true;
+      rpcStatus[r].disabledUntil = 0;
+    });
+    return RPC_LIST.slice();
+  }
+
+  function scoreRpc(rpc) {
+    const s = rpcStatus[rpc] || {};
+    const total = (s.successCount || 0) + (s.failCount || 0);
+    const failRate = total ? (s.failCount || 0) / total : 0;
+    const rt = s.responseTime || 300;
+    const idleBonus = s.lastUsed ? Math.min(3000, Date.now() - s.lastUsed) / 1000 : 3;
+    return (1 / Math.max(rt, 60)) * (1 - failRate * 0.6) + idleBonus * 0.015;
+  }
+
+  window.getCurrentRpc = function() {
+    const selectedEl = document.getElementById('rpcSelect');
+    const selected = selectedEl ? selectedEl.value : 'dynamic';
+    if (selected && selected !== 'dynamic') return selected;
+    const ranked = getHealthyRpcList().sort((a, b) => scoreRpc(b) - scoreRpc(a));
+    const bucket = ranked.slice(0, Math.min(4, ranked.length));
+    if (!bucket.length) return RPC_LIST[0];
+    const rpc = bucket[rpcCursor % bucket.length];
+    rpcCursor = (rpcCursor + 1) % Math.max(bucket.length, 1);
+    return rpc;
+  };
+
+  async function getFastOwner(tokenId, ctx, maxRetries = 2) {
+    let lastErr;
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        const owner = await ctx.registrar.methods.ownerOf(tokenId).call();
+        return owner === '0x0000000000000000000000000000000000000000' ? '' : owner;
+      } catch (e) {
+        lastErr = e;
+        if (attempt < maxRetries - 1) {
+          await new Promise(r => setTimeout(r, 80 * (attempt + 1)));
+        }
+      }
+    }
+    throw lastErr;
+  }
+
+  async function getLastOwnerWithContext(tokenId, ctx) {
+    if (lastOwnerCache.has(tokenId)) return lastOwnerCache.get(tokenId);
+    try {
+      const events = await ctx.transferContract.getPastEvents('Transfer', {
+        filter: { tokenId },
+        fromBlock: 9380410,
+        toBlock: 'latest'
+      });
+      if (!events.length) {
+        lastOwnerCache.set(tokenId, '');
+        return '';
+      }
+      for (let i = events.length - 1; i >= 0; i--) {
+        const to = events[i].returnValues.to;
+        if (to && to !== '0x0000000000000000000000000000000000000000') {
+          lastOwnerCache.set(tokenId, to);
+          return to;
+        }
+      }
+      const from = events[events.length - 1]?.returnValues?.from || '';
+      const val = from !== '0x0000000000000000000000000000000000000000' ? from : '';
+      lastOwnerCache.set(tokenId, val);
+      return val;
+    } catch (_) {
+      return '';
+    }
+  }
+
+  window.getOwnerWithRetry = async function(tokenId, maxRetries = 2, ctx) {
+    const localCtx = ctx || buildRpcContext(window.getCurrentRpc());
+    return getFastOwner(tokenId, localCtx, Math.max(1, maxRetries));
+  };
+
+  window.queryDomain = async function(domain, idx, preferredCtx) {
+    const label = domain.replace('.eth', '');
+    const maxRetries = Math.max(1, uiNum('maxRetries', 2));
+    let tokenId;
+    try {
+      tokenId = Web3.utils.keccak256(label);
+    } catch (_) {
+      return {
+        序号: idx + 1, 域名: domain, 状态: 'error', 过期天数: '', 过期时间: '', 宽限期结束: '', 注册时间: '',
+        所有者地址: '', 错误信息: 'tokenId error', 注册状态: 'error', 过期状态: 'error', 宽限状态: 'error', 溢价状态: 'no_premium', 时间戳: 0
+      };
+    }
+
+    let lastError = null;
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      const rpc = attempt === 0 && preferredCtx ? preferredCtx.rpc : window.getCurrentRpc();
+      const ctx = attempt === 0 && preferredCtx ? preferredCtx : buildRpcContext(rpc);
+      const started = Date.now();
+      try {
+        const available = await ctx.controller.methods.available(label).call();
+
+        if (available) {
+          try {
+            const price = await ctx.controller.methods.rentPrice(label, 31536000).call();
+            let expiry = 0;
+            try { expiry = await ctx.registrar.methods.nameExpires(tokenId).call(); } catch (_) {}
+            if (price && price.premium && Number(price.premium) > 0) {
+              const lastOwner = await getLastOwnerWithContext(tokenId, ctx);
+              markRpcSuccess(rpc, Date.now() - started);
+              return {
+                序号: idx + 1, 域名: domain, 状态: 'premium',
+                过期天数: expiry ? Math.floor((new Date(expiry * 1000) - new Date()) / 86400000) : '',
+                过期时间: expiry ? formatDate(new Date(expiry * 1000)) : '',
+                宽限期结束: expiry ? formatDate(new Date(expiry * 1000 + 90 * 86400000)) : '',
+                注册时间: '', 所有者地址: lastOwner || '', 错误信息: '',
+                注册状态: 'premium', 过期状态: expiry && new Date(expiry * 1000) < new Date() ? 'expired' : 'valid',
+                宽限状态: 'no_grace', 溢价状态: 'in_premium', 时间戳: expiry || 0
+              };
+            }
+            markRpcSuccess(rpc, Date.now() - started);
+            return {
+              序号: idx + 1, 域名: domain, 状态: 'unregistered', 过期天数: '', 过期时间: '', 宽限期结束: '', 注册时间: '',
+              所有者地址: '', 错误信息: '', 注册状态: 'unregistered', 过期状态: 'valid', 宽限状态: 'no_grace', 溢价状态: 'no_premium', 时间戳: 0
+            };
+          } catch (_) {
+            let owner = '';
+            try { owner = await getFastOwner(tokenId, ctx, 1); } catch (_) {}
+            if (!owner) owner = await getLastOwnerWithContext(tokenId, ctx);
+            markRpcSuccess(rpc, Date.now() - started);
+            return {
+              序号: idx + 1, 域名: domain, 状态: owner ? 'registered' : 'premium',
+              过期天数: '', 过期时间: '', 宽限期结束: '', 注册时间: '', 所有者地址: owner || '', 错误信息: '',
+              注册状态: owner ? 'registered' : 'premium', 过期状态: 'valid', 宽限状态: 'no_grace',
+              溢价状态: owner ? 'no_premium' : 'in_premium', 时间戳: 0
+            };
+          }
+        }
+
+        const expiry = await ctx.registrar.methods.nameExpires(tokenId).call();
+        const expiryDate = new Date(Number(expiry) * 1000);
+        const now = new Date();
+        const days = Math.floor((expiryDate - now) / 86400000);
+        const graceEnd = new Date(expiryDate.getTime() + 90 * 86400000);
+        let owner = '';
+        try { owner = await getFastOwner(tokenId, ctx, 2); } catch (_) {}
+        if (!owner) owner = await getLastOwnerWithContext(tokenId, ctx);
+        const expiryStatus = now > expiryDate ? 'expired' : 'valid';
+        const graceStatus = now > expiryDate && now <= graceEnd ? 'in_grace' : 'no_grace';
+        markRpcSuccess(rpc, Date.now() - started);
+        return {
+          序号: idx + 1, 域名: domain, 状态: expiryStatus === 'expired' ? 'expired' : 'registered',
+          过期天数: days, 过期时间: formatDate(expiryDate), 宽限期结束: formatDate(graceEnd), 注册时间: '',
+          所有者地址: owner || '', 错误信息: '', 注册状态: expiryStatus === 'expired' ? 'expired' : 'registered',
+          过期状态: expiryStatus, 宽限状态: graceStatus, 溢价状态: 'no_premium', 时间戳: Number(expiry)
+        };
+      } catch (e) {
+        lastError = e;
+        markRpcFailure(rpc, e);
+      }
+    }
+    return {
+      序号: idx + 1, 域名: domain, 状态: 'error', 过期天数: '', 过期时间: '', 宽限期结束: '', 注册时间: '',
+      所有者地址: '', 错误信息: String(lastError && lastError.message || '未知错误').slice(0, 100),
+      注册状态: 'error', 过期状态: 'error', 宽限状态: 'error', 溢价状态: 'no_premium', 时间戳: 0
+    };
+  };
+
+  window.worker = async function() {
+    while (isQueryRunning && !isPaused) {
+      const idx = currentIndex++;
+      if (idx >= pendingDomains.length) break;
+      const rpc = window.getCurrentRpc();
+      const ctx = buildRpcContext(rpc);
+      const result = await window.queryDomain(pendingDomains[idx], idx, ctx);
+      queryResults[idx] = result;
+      processedDomains++;
+
+      const elapsedSec = Math.max((Date.now() - startTime) / 1000, 0.001);
+      const speed = (processedDomains / elapsedSec).toFixed(1) || '0';
+      const querySpeedEl = document.getElementById('querySpeed');
+      const querySpeedDisplayEl = document.getElementById('querySpeedDisplay');
+      if (querySpeedEl) querySpeedEl.innerHTML = `${translations[currentLang].speed}: ${speed} ${translations[currentLang].speedUnit}`;
+      if (querySpeedDisplayEl) querySpeedDisplayEl.textContent = speed;
+      const pct = totalDomains ? (processedDomains / totalDomains * 100) : 0;
+      const progressBar = document.getElementById('progressBar');
+      const progressText = document.getElementById('progressText');
+      const progressPercent = document.getElementById('progressPercent');
+      const progressMiniBar = document.getElementById('progressMiniBar');
+      const queryProgress = document.getElementById('queryProgress');
+      if (progressBar) progressBar.style.width = pct + '%';
+      if (progressMiniBar) progressMiniBar.style.width = pct + '%';
+      if (progressText) progressText.innerHTML = `${processedDomains}/${totalDomains}`;
+      if (queryProgress) queryProgress.textContent = `${processedDomains}/${totalDomains}`;
+      if (progressPercent) progressPercent.innerText = Math.round(pct) + '%';
+
+      if (processedDomains % 20 === 0 || processedDomains === totalDomains) {
+        filteredResults = queryResults.filter(Boolean);
+        applyFilters();
+        updateStatistics();
+        updateRpcList();
+      }
+
+      const delay = uiNum('requestDelay', 0);
+      if (!isPaused && delay > 0) await new Promise(r => setTimeout(r, delay));
+    }
+    activeWorkers--;
+  };
+
+  function finishWatcher() {
+    if (window.__fastQueryInterval) clearInterval(window.__fastQueryInterval);
+    window.__fastQueryInterval = setInterval(() => {
+      if (!isQueryRunning || isPaused) return;
+      if (activeWorkers <= 0 || processedDomains >= totalDomains) {
+        clearInterval(window.__fastQueryInterval);
+        window.__fastQueryInterval = null;
+        if (!isPaused) completeQuery();
+      }
+    }, 120);
+  }
+
+  window.startQuery = async function() {
+    if (isQueryRunning) return;
+    ensureFastDefaults();
+    const domains = document.getElementById('domainsText').value.split('\n').map(d => normalizeDomain(d)).filter(Boolean);
+    if (!domains.length) return;
+    isQueryRunning = true;
+    isPaused = false;
+    pendingDomains = domains;
+    currentIndex = 0;
+    queryResults = new Array(domains.length);
+    filteredResults = [];
+    totalDomains = domains.length;
+    processedDomains = 0;
+    startTime = Date.now();
+    currentPage = 1;
+    document.getElementById('startQueryBtn').disabled = true;
+    document.getElementById('resumeQueryBtn').disabled = true;
+    document.getElementById('stopQueryBtn').disabled = false;
+    document.getElementById('exportBtn').disabled = true;
+    document.getElementById('retryAllBtn').disabled = true;
+    addLog((translations[currentLang].logQueryStart || '开始查询 {count} 个域名').replace('{count}', totalDomains), 'info');
+    const maxWorkers = Math.max(1, Math.min(200, uiNum('maxWorkers', 80)));
+    activeWorkers = maxWorkers;
+    for (let i = 0; i < maxWorkers; i++) window.worker();
+    finishWatcher();
+  };
+
+  window.resumeQuery = async function() {
+    if (isQueryRunning || currentIndex >= pendingDomains.length) return;
+    ensureFastDefaults();
+    isQueryRunning = true;
+    isPaused = false;
+    document.getElementById('startQueryBtn').disabled = true;
+    document.getElementById('resumeQueryBtn').disabled = true;
+    document.getElementById('stopQueryBtn').disabled = false;
+    document.getElementById('exportBtn').disabled = true;
+    document.getElementById('retryAllBtn').disabled = true;
+    addLog((translations[currentLang].logQueryResumed || '继续查询，剩余 {remaining} 个域名').replace('{remaining}', pendingDomains.length - currentIndex), 'info');
+    const maxWorkers = Math.max(1, Math.min(200, uiNum('maxWorkers', 80)));
+    activeWorkers = maxWorkers;
+    for (let i = 0; i < maxWorkers; i++) window.worker();
+    finishWatcher();
+  };
+
+  window.retryAllFailed = async function() {
+    if (isQueryRunning || isRetrying || isRetryingAll) return;
+    const failedDomains = queryResults.filter(r => r && (r.注册状态 === 'error' || r.状态 === 'error')).map(r => ({ domain: r.域名, index: r.序号 - 1 }));
+    if (!failedDomains.length) {
+      addLog(currentLang === 'zh' ? '没有失败的域名需要刷新' : 'No failed domains to refresh', 'info');
+      return;
+    }
+    isRetryingAll = true;
+    document.getElementById('startQueryBtn').disabled = true;
+    document.getElementById('resumeQueryBtn').disabled = true;
+    document.getElementById('stopQueryBtn').disabled = true;
+    document.getElementById('exportBtn').disabled = true;
+    document.getElementById('retryAllBtn').disabled = true;
+    const progressText = document.getElementById('progressText');
+    const progressPercent = document.getElementById('progressPercent');
+    const progressBar = document.getElementById('progressMiniBar');
+    let successCount = 0, failCount = 0;
+    const concurrency = Math.max(20, Math.min(120, uiNum('maxWorkers', 80)));
+    for (let i = 0; i < failedDomains.length; i += concurrency) {
+      const batch = failedDomains.slice(i, i + concurrency);
+      await Promise.all(batch.map(async item => {
+        const result = await window.queryDomain(item.domain, item.index);
+        queryResults[item.index] = result;
+        if (result && result.注册状态 !== 'error' && result.状态 !== 'error') successCount++;
+        else failCount++;
+      }));
+      const done = Math.min(i + concurrency, failedDomains.length);
+      const percent = Math.round((done / failedDomains.length) * 100);
+      if (progressText) progressText.innerHTML = currentLang === 'zh' ? `批量刷新中: ${done}/${failedDomains.length}` : `Refreshing: ${done}/${failedDomains.length}`;
+      if (progressPercent) progressPercent.innerText = percent + '%';
+      if (progressBar) progressBar.style.width = percent + '%';
+      filteredResults = queryResults.filter(Boolean);
+      applyFilters();
+      updateStatistics();
+      updateRpcList();
+    }
+    if (progressPercent) progressPercent.innerText = '0%';
+    if (progressBar) progressBar.style.width = '0%';
+    isRetryingAll = false;
+    document.getElementById('startQueryBtn').disabled = false;
+    document.getElementById('resumeQueryBtn').disabled = false;
+    document.getElementById('stopQueryBtn').disabled = true;
+    document.getElementById('exportBtn').disabled = false;
+    saveResultsToStorage();
+    updateRetryAllButton();
+    addLog((translations[currentLang].logRetryAllComplete || '批量重试完成: 成功 {success} 个, 失败 {failed} 个').replace('{success}', successCount).replace('{failed}', failCount), successCount ? 'success' : 'warning');
+  };
+
+  document.addEventListener('DOMContentLoaded', () => {
+    ensureFastDefaults();
+    setTimeout(() => {
+      updateRpcList();
+      const note = currentLang === 'zh'
+        ? '已切换到极速版：0延迟 + 智能动态RPC轮询 + 80并发默认值'
+        : 'Turbo mode enabled: 0 delay + smart dynamic RPC rotation + 80 workers';
+      addLog(note, 'success');
+    }, 300);
+  });
+
+  window.startQuery = window.startQuery;
+  window.resumeQuery = window.resumeQuery;
+  window.retryAllFailed = window.retryAllFailed;
+})();
+</script>
+
+
+<script>
+(function(){
+  const FINAL_RPC_SOURCES = [
+    'https://chainid.network/chains.json',
+    'https://raw.githubusercontent.com/ethereum-lists/chains/master/_data/chains/eip155-1.json'
+  ];
+  const finalRpcCtxCache = new Map();
+  let finalRpcCursor = 0;
+
+  Object.assign(translations.zh, {
+    error: '错误',
+    expiry: '过期时间',
+    released: '已释放',
+    statusGrace: '宽限期',
+    statusReleased: '已释放',
+    retrySingle: translations.zh.retrySingle || '点击重试此域名'
+  });
+  Object.assign(translations.en, {
+    error: 'Error',
+    expiry: 'Expiry',
+    released: 'Released',
+    statusGrace: 'Grace',
+    statusReleased: 'Released',
+    retrySingle: translations.en.retrySingle || 'Retry this domain'
+  });
+
+  function num(id, fallback) {
+    const el = document.getElementById(id);
+    const value = el ? parseInt(el.value, 10) : NaN;
+    return Number.isFinite(value) ? value : fallback;
+  }
+
+  function normalizeRpcUrl(url) {
+    if (!url || typeof url !== 'string') return '';
+    const trimmed = url.trim();
+    if (!trimmed.startsWith('http')) return '';
+    if (trimmed.includes('${') || trimmed.startsWith('wss')) return '';
+    return trimmed.replace(/\/$/, '');
+  }
+
+
+  function ensNamehashFinal(name) {
+    let node = '0x' + '00'.repeat(32);
+    const parts = String(name || '').toLowerCase().split('.').filter(Boolean).reverse();
+    for (const part of parts) {
+      const labelHash = Web3.utils.keccak256(part);
+      node = Web3.utils.soliditySha3({ type: 'bytes32', value: node }, { type: 'bytes32', value: labelHash });
+    }
+    return node;
+  }
+
+  function normalizeAddressFinal(addr) {
+    return addr && addr !== '0x0000000000000000000000000000000000000000' ? addr : '';
+  }
+
+  async function getRegistryOwnerFinal(domain, ctx) {
+    try {
+      const owner = await ctx.registry.methods.owner(ensNamehashFinal(domain)).call();
+      return normalizeAddressFinal(owner);
+    } catch (_) {
+      return '';
+    }
+  }
+
+  async function getRegistrationMetaFinal(label, tokenId, ctx) {
+    const cacheKey = String(tokenId).toLowerCase();
+    if (registrationMetaCache.has(cacheKey)) return registrationMetaCache.get(cacheKey);
+    const empty = { time: '', owner: '' };
+    try {
+      let events = [];
+      try {
+        events = await ctx.registrar.getPastEvents('NameRegistered', {
+          filter: { label: tokenId },
+          fromBlock: 9380410,
+          toBlock: 'latest'
+        });
+      } catch (_) {
+        events = [];
+      }
+      if (!events.length) {
+        registrationMetaCache.set(cacheKey, empty);
+        return empty;
+      }
+      const event = events[events.length - 1];
+      const block = await ctx.web3.eth.getBlock(event.blockNumber);
+      const result = {
+        time: block?.timestamp ? formatDate(new Date(Number(block.timestamp) * 1000)) : '',
+        owner: normalizeAddressFinal(event?.returnValues?.owner || '')
+      };
+      registrationMetaCache.set(cacheKey, result);
+      return result;
+    } catch (_) {
+      registrationMetaCache.set(cacheKey, empty);
+      return empty;
+    }
+  }
+
+  function getOrCreateCtx(rpc) {
+    const key = normalizeRpcUrl(rpc);
+    if (!key) throw new Error('invalid rpc');
+    if (finalRpcCtxCache.has(key)) return finalRpcCtxCache.get(key);
+    const web3Instance = new Web3(key);
+    const ctx = {
+      rpc: key,
+      web3: web3Instance,
+      registry: new web3Instance.eth.Contract(ENS_ABI, ENS_REGISTRY),
+      registrar: new web3Instance.eth.Contract(REGISTRAR_ABI, BASE_REGISTRAR),
+      controller: new web3Instance.eth.Contract(CONTROLLER_ABI, CONTROLLER),
+      transferContract: new web3Instance.eth.Contract(TRANSFER_ABI, BASE_REGISTRAR)
+    };
+    finalRpcCtxCache.set(key, ctx);
+    return ctx;
+  }
+
+  function markRpcSuccessFinal(rpc, elapsedMs) {
+    if (!rpcStatus[rpc]) return;
+    const s = rpcStatus[rpc];
+    s.available = true;
+    s.disabledUntil = 0;
+    s.successCount = (s.successCount || 0) + 1;
+    s.lastUsed = Date.now();
+    s.responseTime = s.responseTime ? Math.round(s.responseTime * 0.7 + elapsedMs * 0.3) : elapsedMs;
+  }
+
+  function markRpcFailureFinal(rpc, error) {
+    if (!rpcStatus[rpc]) return;
+    const s = rpcStatus[rpc];
+    s.available = false;
+    s.failCount = (s.failCount || 0) + 1;
+    s.lastUsed = Date.now();
+    s.lastError = String((error && error.message) || error || 'unknown');
+    s.disabledUntil = Date.now() + Math.min(30000, 2000 * Math.max(1, s.failCount));
+  }
+
+  function scoreRpcFinal(rpc) {
+    const s = rpcStatus[rpc] || {};
+    const total = (s.successCount || 0) + (s.failCount || 0);
+    const failRate = total ? (s.failCount || 0) / total : 0;
+    const latency = s.responseTime || 280;
+    const availabilityBoost = (s.available === false && (s.disabledUntil || 0) > Date.now()) ? -10 : 0;
+    return availabilityBoost + (1000 / Math.max(latency, 60)) - failRate * 8;
+  }
+
+  window.getCurrentRpc = function() {
+    const selected = document.getElementById('rpcSelect')?.value || 'dynamic';
+    if (selected !== 'dynamic') return selected;
+    const now = Date.now();
+    const healthy = RPC_LIST.filter(r => {
+      const s = rpcStatus[r] || {};
+      return (s.available !== false) && (s.disabledUntil || 0) < now;
+    });
+    const pool = (healthy.length ? healthy : RPC_LIST.slice()).sort((a, b) => scoreRpcFinal(b) - scoreRpcFinal(a));
+    const bucket = pool.slice(0, Math.max(1, Math.min(6, pool.length)));
+    const rpc = bucket[finalRpcCursor % bucket.length] || RPC_LIST[0];
+    finalRpcCursor = (finalRpcCursor + 1) % Math.max(1, bucket.length);
+    return rpc;
+  };
+
+  async function fetchRemoteRpcCandidates() {
+    const collected = [];
+    for (const source of FINAL_RPC_SOURCES) {
+      try {
+        const res = await fetch(source, { cache: 'no-store' });
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          const mainnet = data.find(item => item.chainId === 1 || item.chain === 'ETH');
+          if (mainnet && Array.isArray(mainnet.rpc)) collected.push(...mainnet.rpc);
+        } else if (data && Array.isArray(data.rpc)) {
+          collected.push(...data.rpc);
+        }
+      } catch (e) {
+        console.warn('RPC source fetch failed:', source, e);
+      }
+    }
+    return [...new Set(collected.map(normalizeRpcUrl).filter(Boolean))];
+  }
+
+  async function refreshRpcPoolFromWeb(silent = false) {
+    try {
+      const remote = await fetchRemoteRpcCandidates();
+      if (!remote.length) return;
+      const merged = [...new Set([...RPC_LIST, ...remote])].slice(0, 80);
+      RPC_LIST.splice(0, RPC_LIST.length, ...merged);
+      merged.forEach(rpc => {
+        if (!rpcStatus[rpc]) {
+          rpcStatus[rpc] = {
+            available: true,
+            successCount: 0,
+            failCount: 0,
+            responseTime: 0,
+            disabledUntil: 0,
+            lastUsed: 0
+          };
+        }
+      });
+      const select = document.getElementById('rpcSelect');
+      if (select) {
+        const previous = select.value;
+        const manualOptions = ['dynamic'];
+        const dynamicLabel = currentLang === 'zh' ? '🌐 智能动态RPC' : '🌐 Smart Dynamic RPC';
+        select.innerHTML = `<option value="dynamic">${dynamicLabel}</option>` + merged.map(rpc => {
+          const label = (() => { try { return new URL(rpc).hostname; } catch { return rpc; } })();
+          return `<option value="${rpc}">${label}</option>`;
+        }).join('');
+        select.value = manualOptions.includes(previous) || merged.includes(previous) ? previous : 'dynamic';
+      }
+      updateRpcList();
+      if (!silent) addLog(currentLang === 'zh' ? `已自动更新 ${merged.length} 个RPC节点` : `RPC pool updated: ${merged.length} nodes`, 'info');
+    } catch (e) {
+      console.warn('refreshRpcPoolFromWeb failed', e);
+    }
+  }
+
+  async function readAvailableAndPrice(ctx, label) {
+    const [available, price] = await Promise.all([
+      ctx.controller.methods.available(label).call(),
+      ctx.controller.methods.rentPrice(label, 31536000).call().catch(() => null)
+    ]);
+    return { available, price };
+  }
+
+  async function getFastOwnerFinal(tokenId, ctx, maxRetries = 2) {
+    let lastErr;
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        const owner = await ctx.registrar.methods.ownerOf(tokenId).call();
+        return owner === '0x0000000000000000000000000000000000000000' ? '' : owner;
+      } catch (e) {
+        lastErr = e;
+        if (attempt < maxRetries - 1) await new Promise(r => setTimeout(r, 80 * (attempt + 1)));
+      }
+    }
+    throw lastErr;
+  }
+
+  async function getLastOwnerFinal(tokenId, ctx) {
+    if (lastOwnerCache.has(tokenId)) return lastOwnerCache.get(tokenId);
+    try {
+      const events = await ctx.transferContract.getPastEvents('Transfer', {
+        filter: { tokenId },
+        fromBlock: 9380410,
+        toBlock: 'latest'
+      });
+      if (!events.length) {
+        lastOwnerCache.set(tokenId, '');
+        return '';
+      }
+      for (let i = events.length - 1; i >= 0; i--) {
+        const to = events[i].returnValues.to;
+        if (to && to !== '0x0000000000000000000000000000000000000000') {
+          lastOwnerCache.set(tokenId, to);
+          return to;
+        }
+      }
+      const fallback = events[events.length - 1]?.returnValues?.from || '';
+      lastOwnerCache.set(tokenId, fallback);
+      return fallback;
+    } catch (_) {
+      return '';
+    }
+  }
+
+  window.queryDomain = async function(domain, idx, preferredSource) {
+    const label = domain.replace(/\.eth$/i, '');
+    const maxRetries = Math.max(1, num('maxRetries', 2));
+    let tokenId;
+    try {
+      tokenId = Web3.utils.keccak256(label);
+    } catch (_) {
+      return {
+        序号: idx + 1, 域名: domain, 状态: 'error', 过期天数: '', 过期时间: '', 宽限期结束: '', 注册时间: '', 所有者地址: '',
+        错误信息: 'tokenId error', 注册状态: 'error', 过期状态: 'error', 宽限状态: 'error', 溢价状态: 'no_premium', 时间戳: 0
+      };
+    }
+
+    let lastError = null;
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      const rpc = typeof preferredSource === 'string' && preferredSource ? preferredSource : (preferredSource && preferredSource.rpc) || window.getCurrentRpc();
+      const ctx = preferredSource && preferredSource.web3 ? preferredSource : getOrCreateCtx(rpc);
+      const started = Date.now();
+      try {
+        const { available, price } = await readAvailableAndPrice(ctx, label);
+        const premiumValue = Number(price?.premium || 0);
+        const expiryRaw = await ctx.registrar.methods.nameExpires(tokenId).call().catch(() => 0);
+        const expiry = Number(expiryRaw || 0);
+        const nowTs = Math.floor(Date.now() / 1000);
+        const graceEndTs = expiry ? expiry + 90 * 24 * 3600 : 0;
+        const registrationMeta = (expiry || premiumValue > 0 || !available) ? await getRegistrationMetaFinal(label, tokenId, ctx) : { time: '', owner: '' };
+
+        if (available) {
+          const lastOwner = premiumValue > 0 ? (registrationMeta.owner || await getLastOwnerFinal(tokenId, ctx)) : '';
+          markRpcSuccessFinal(rpc, Date.now() - started);
+          return {
+            序号: idx + 1,
+            域名: domain,
+            状态: premiumValue > 0 ? 'premium' : 'unregistered',
+            过期天数: expiry ? Math.floor((expiry * 1000 - Date.now()) / 86400000) : '',
+            过期时间: expiry ? formatDate(new Date(expiry * 1000)) : '',
+            宽限期结束: graceEndTs ? formatDate(new Date(graceEndTs * 1000)) : '',
+            注册时间: registrationMeta.time || '',
+            所有者地址: premiumValue > 0 ? (lastOwner || '') : '',
+            错误信息: '',
+            注册状态: premiumValue > 0 ? 'premium' : 'unregistered',
+            过期状态: premiumValue > 0 && expiry && expiry < nowTs ? 'expired' : 'valid',
+            宽限状态: premiumValue > 0 && graceEndTs && nowTs <= graceEndTs ? 'in_grace' : 'no_grace',
+            溢价状态: premiumValue > 0 ? 'in_premium' : 'no_premium',
+            时间戳: expiry || 0
+          };
+        }
+
+        let owner = '';
+        try { owner = await getFastOwnerFinal(tokenId, ctx, 2); } catch (_) {}
+        if (!owner) owner = await getRegistryOwnerFinal(domain, ctx);
+        if (!owner && expiry) owner = registrationMeta.owner || await getLastOwnerFinal(tokenId, ctx);
+
+        const expiryDate = expiry ? new Date(expiry * 1000) : null;
+        const graceEndDate = graceEndTs ? new Date(graceEndTs * 1000) : null;
+        let regStatus = 'registered';
+        let state = 'registered';
+        let expiryStatus = 'valid';
+        let graceStatus = 'no_grace';
+
+        if (expiry && nowTs > graceEndTs) {
+          regStatus = 'unregistered';
+          state = 'unregistered';
+          owner = '';
+          expiryStatus = 'expired';
+        } else if (expiry && nowTs > expiry) {
+          regStatus = 'expired';
+          state = 'expired';
+          expiryStatus = 'expired';
+          graceStatus = 'in_grace';
+        }
+
+        markRpcSuccessFinal(rpc, Date.now() - started);
+        return {
+          序号: idx + 1,
+          域名: domain,
+          状态: state,
+          过期天数: expiry ? Math.floor((expiry * 1000 - Date.now()) / 86400000) : '',
+          过期时间: expiryDate ? formatDate(expiryDate) : '',
+          宽限期结束: graceEndDate ? formatDate(graceEndDate) : '',
+          注册时间: registrationMeta.time || '',
+          所有者地址: owner || registrationMeta.owner || '',
+          错误信息: '',
+          注册状态: regStatus,
+          过期状态: expiryStatus,
+          宽限状态: graceStatus,
+          溢价状态: 'no_premium',
+          时间戳: expiry || 0
+        };
+      } catch (e) {
+        lastError = e;
+        markRpcFailureFinal(rpc, e);
+      }
+    }
+
+    return {
+      序号: idx + 1, 域名: domain, 状态: 'error', 过期天数: '', 过期时间: '', 宽限期结束: '', 注册时间: '', 所有者地址: '',
+      错误信息: String((lastError && lastError.message) || '未知错误').slice(0, 120), 注册状态: 'error', 过期状态: 'error', 宽限状态: 'error', 溢价状态: 'no_premium', 时间戳: 0
+    };
+  };
+
+  window.retrySingleDomain = async function(domain, index, event) {
+    if (event) {
+      event.stopPropagation();
+      event.preventDefault();
+    }
+    if (isQueryRunning || isRetryingAll) return;
+    isRetrying = true;
+    const icon = event?.currentTarget || null;
+    if (icon) {
+      icon.style.pointerEvents = 'none';
+      icon.style.opacity = '0.45';
+    }
+    try {
+      addLog((currentLang === 'zh' ? '开始重试域名: ' : 'Retrying domain: ') + domain, 'info');
+      const result = await window.queryDomain(domain, index);
+      queryResults[index] = result;
+      filteredResults = queryResults.filter(Boolean);
+      applyFilters();
+      updateStatistics();
+      saveResultsToStorage();
+      updateRetryAllButton();
+      addLog((result.注册状态 !== 'error' && result.状态 !== 'error') ? ((currentLang === 'zh' ? '重试成功: ' : 'Retry succeeded: ') + domain) : ((currentLang === 'zh' ? '重试失败: ' : 'Retry failed: ') + domain), result.注册状态 !== 'error' && result.状态 !== 'error' ? 'success' : 'warning');
+    } catch (e) {
+      addLog((currentLang === 'zh' ? '重试出错: ' : 'Retry error: ') + domain, 'error');
+    } finally {
+      isRetrying = false;
+      if (icon) {
+        icon.style.pointerEvents = 'auto';
+        icon.style.opacity = '1';
+      }
+    }
+  };
+
+  window.retryAllFailed = async function() {
+    if (isQueryRunning || isRetrying || isRetryingAll) return;
+    const failedDomains = queryResults.filter(r => r && (r.注册状态 === 'error' || r.状态 === 'error')).map(r => ({ domain: r.域名, index: r.序号 - 1 }));
+    if (!failedDomains.length) {
+      addLog(currentLang === 'zh' ? '没有失败的域名需要刷新' : 'No failed domains to refresh', 'info');
+      return;
+    }
+    isRetryingAll = true;
+    document.getElementById('startQueryBtn').disabled = true;
+    document.getElementById('resumeQueryBtn').disabled = true;
+    document.getElementById('stopQueryBtn').disabled = true;
+    document.getElementById('exportBtn').disabled = true;
+    document.getElementById('retryAllBtn').disabled = true;
+    let successCount = 0;
+    let failCount = 0;
+    const progressText = document.getElementById('progressText');
+    const progressPercent = document.getElementById('progressPercent');
+    const progressBar = document.getElementById('progressMiniBar');
+    try {
+      const concurrency = Math.max(20, Math.min(120, num('maxWorkers', 80)));
+      for (let i = 0; i < failedDomains.length; i += concurrency) {
+        const batch = failedDomains.slice(i, i + concurrency);
+        await Promise.all(batch.map(async item => {
+          const result = await window.queryDomain(item.domain, item.index);
+          queryResults[item.index] = result;
+          if (result && result.注册状态 !== 'error' && result.状态 !== 'error') successCount++;
+          else failCount++;
+        }));
+        const done = Math.min(i + concurrency, failedDomains.length);
+        const percent = Math.round((done / failedDomains.length) * 100);
+        if (progressText) progressText.innerHTML = currentLang === 'zh' ? `批量刷新中: ${done}/${failedDomains.length}` : `Refreshing: ${done}/${failedDomains.length}`;
+        if (progressPercent) progressPercent.innerText = percent + '%';
+        if (progressBar) progressBar.style.width = percent + '%';
+        filteredResults = queryResults.filter(Boolean);
+        applyFilters();
+        updateStatistics();
+        updateRetryAllButton();
+      }
+      saveResultsToStorage();
+      addLog((translations[currentLang].logRetryAllComplete || '批量重试完成: 成功 {success} 个, 失败 {failed} 个').replace('{success}', successCount).replace('{failed}', failCount), successCount ? 'success' : 'warning');
+    } catch (e) {
+      addLog(currentLang === 'zh' ? '批量刷新过程中出现异常' : 'Batch refresh interrupted', 'error');
+      console.error(e);
+    } finally {
+      isRetryingAll = false;
+      document.getElementById('startQueryBtn').disabled = false;
+      document.getElementById('resumeQueryBtn').disabled = false;
+      document.getElementById('stopQueryBtn').disabled = true;
+      document.getElementById('exportBtn').disabled = false;
+      updateRetryAllButton();
+      if (progressPercent) progressPercent.innerText = '0%';
+      if (progressBar) progressBar.style.width = '0%';
+    }
+  };
+
+  document.getElementById('resultsBody')?.addEventListener('click', function(e){
+    const retryIcon = e.target.closest('.retry-icon');
+    if (!retryIcon) return;
+    const row = retryIcon.closest('tr');
+    if (!row) return;
+    const idx = parseInt(row.children[0]?.textContent || '0', 10) - 1;
+    const domain = row.children[1]?.textContent?.trim();
+    if (domain) window.retrySingleDomain(domain, idx, e);
+  });
+
+  const originalSwitchLanguage = window.switchLanguage;
+  window.switchLanguage = function(lang) {
+    originalSwitchLanguage(lang);
+    const dynamicOption = document.querySelector('#rpcSelect option[value="dynamic"]');
+    if (dynamicOption) dynamicOption.textContent = lang === 'zh' ? '🌐 智能动态RPC' : '🌐 Smart Dynamic RPC';
+  };
+
+  document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => refreshRpcPoolFromWeb(true), 600);
+    setInterval(() => refreshRpcPoolFromWeb(true), 60 * 60 * 1000);
+  });
+})();
+</script>
+
+</body>
+</html>
