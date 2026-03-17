@@ -822,6 +822,63 @@
             vertical-align: middle;
         }
 
+        .status-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 10px;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border: 1px solid transparent;
+            white-space: nowrap;
+        }
+
+        .status-registered { background: rgba(5,150,105,0.12); color: var(--success); border-color: rgba(5,150,105,0.35); }
+        .status-unregistered { background: rgba(124,58,237,0.10); color: var(--info); border-color: rgba(124,58,237,0.30); }
+        .status-premium { background: rgba(217,119,6,0.12); color: var(--warning); border-color: rgba(217,119,6,0.35); }
+        .status-expired { background: rgba(220,38,38,0.10); color: var(--danger); border-color: rgba(220,38,38,0.30); }
+
+        .action-menu { position: relative; display: inline-block; }
+        .action-menu > summary {
+            list-style: none;
+            cursor: pointer;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 1px solid var(--border);
+            background: var(--bg);
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            line-height: 1;
+        }
+        .action-menu > summary::-webkit-details-marker { display: none; }
+        .action-menu[open] > summary { border-color: var(--primary); color: var(--primary); background: var(--primary-light); }
+        .action-menu-list {
+            position: absolute;
+            right: 0;
+            top: 32px;
+            min-width: 110px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            box-shadow: 0 8px 18px rgba(0,0,0,0.16);
+            z-index: 40;
+            overflow: hidden;
+        }
+        .action-menu-list a {
+            display: block;
+            padding: 8px 10px;
+            color: var(--text);
+            text-decoration: none;
+            font-size: 0.78rem;
+            text-align: left;
+        }
+        .action-menu-list a:hover { background: var(--primary-light); color: var(--primary); }
+
         .pagination {
             display: flex;
             align-items: center;
@@ -1731,7 +1788,7 @@
         const REGISTRAR_ABI = [
             {"constant":true,"inputs":[{"name":"tokenId","type":"uint256"}],"name":"nameExpires","outputs":[{"name":"","type":"uint256"}],"type":"function"},
             {"constant":true,"inputs":[{"name":"tokenId","type":"uint256"}],"name":"ownerOf","outputs":[{"name":"","type":"address"}],"type":"function"},
-            {"anonymous":false,"inputs":[{"indexed":false,"name":"name","type":"string"},{"indexed":true,"name":"label","type":"bytes32"},{"indexed":true,"name":"owner","type":"address"},{"indexed":false,"name":"cost","type":"uint256"},{"indexed":false,"name":"expires","type":"uint256"}],"name":"NameRegistered","type":"event"}
+            {"anonymous":false,"inputs":[{"indexed":true,"name":"id","type":"uint256"},{"indexed":true,"name":"owner","type":"address"},{"indexed":false,"name":"expires","type":"uint256"}],"name":"NameRegistered","type":"event"}
         ];
         const CONTROLLER_ABI = [
             {"constant":true,"inputs":[{"name":"name","type":"string"}],"name":"available","outputs":[{"name":"","type":"bool"}],"type":"function"},
@@ -3015,27 +3072,27 @@
                 
                 if (r.注册状态 === 'registered') {
                     statusText = currentLang === 'zh' ? '已注册' : 'Registered';
-                    statusHtml = `<span style="color: var(--success);">${statusText}</span>`;
+                    statusHtml = `<span class="status-chip status-registered"><i class="fas fa-check-circle"></i>${statusText}</span>`;
                 } else if (r.注册状态 === 'unregistered') {
                     statusText = currentLang === 'zh' ? '未注册' : 'Unregistered';
-                    statusHtml = `<span style="color: var(--info);">${statusText}</span>`;
+                    statusHtml = `<span class="status-chip status-unregistered">${statusText}</span>`;
                 } else if (r.注册状态 === 'premium') {
                     statusText = currentLang === 'zh' ? '溢价' : 'Premium';
-                    statusHtml = `<span style="color: var(--warning);">${statusText}</span>`;
+                    statusHtml = `<span class="status-chip status-premium">${statusText}</span>`;
                 } else if (r.过期状态 === 'expired') {
                     statusText = currentLang === 'zh' ? '过期' : 'Expired';
-                    statusHtml = `<span style="color: var(--danger);">${statusText}</span>`;
+                    statusHtml = `<span class="status-chip status-expired">${statusText}</span>`;
                 } else {
                     statusText = currentLang === 'zh' ? '错误' : 'Error';
                     const errMsg = String(r.错误信息 || (currentLang === 'zh' ? '无错误详情' : 'No error details'));
+                    const retryActionHtml = r.重试中
+                        ? `<i class="fas fa-spinner fa-spin" style="font-size: 0.8rem; color: var(--warning);" title="${currentLang === 'zh' ? '重试中...' : 'Retrying...'}"></i>`
+                        : `<i class="fas fa-redo-alt retry-icon" style="cursor: pointer; font-size: 0.8rem; color: var(--warning);" onclick="retrySingleDomain('${r.域名}', ${r.序号-1}, event)" title="${translations[currentLang].retrySingle}"></i>`;
                     statusHtml = `
                         <span style="color: var(--danger); display: flex; align-items: center; gap: 4px; justify-content: center;">
                             ${statusText}
                             <i class="fas fa-circle-info" style="cursor: help; font-size: 0.78rem; color: var(--danger);" title="${errMsg.replace(/"/g, '&quot;')}"></i>
-                            <i class="fas fa-redo-alt retry-icon" 
-                               style="cursor: pointer; font-size: 0.8rem; color: var(--warning);" 
-                               onclick="retrySingleDomain('${r.域名}', ${r.序号-1}, event)"
-                               title="${translations[currentLang].retrySingle}"></i>
+                            ${retryActionHtml}
                         </span>
                     `;
                 }
@@ -3062,7 +3119,14 @@
                     `;
                 }
                 
-                const viewLink = `<a href="https://app.ens.domains/${r.域名}" target="_blank" style="color:var(--primary); border:1px solid var(--primary); padding:4px 8px; border-radius:30px; text-decoration:none; font-size:0.75rem;">${currentLang === 'zh' ? '查看' : 'View'}</a>`;
+                const viewLink = `
+                    <details class="action-menu">
+                        <summary title="${currentLang === 'zh' ? '操作' : 'Actions'}">⋯</summary>
+                        <div class="action-menu-list">
+                            <a href="https://app.ens.domains/${r.域名}" target="_blank" rel="noopener noreferrer">${currentLang === 'zh' ? '查看' : 'View'}</a>
+                            <a href="https://opensea.io/zh-CN/collection/ens" target="_blank" rel="noopener noreferrer">${currentLang === 'zh' ? '市场' : 'Market'}</a>
+                        </div>
+                    </details>`;
                 
                 tbody.innerHTML += `<tr>
                     <td>${r.序号}</td>
@@ -3927,7 +3991,7 @@
       let events = [];
       try {
         events = await ctx.registrar.getPastEvents('NameRegistered', {
-          filter: { label: tokenId },
+          filter: { id: tokenId },
           fromBlock: 9380410,
           toBlock: 'latest'
         });
@@ -4079,7 +4143,7 @@
 
   function getPremiumAmount(price) {
     if (!price) return 0n;
-    const raw = price.premium ?? price[1] ?? price['1'] ?? 0;
+    const raw = price.premium ?? price?.price?.premium ?? price?.[0]?.premium ?? price[1] ?? price['1'] ?? 0;
     try {
       return BigInt(raw);
     } catch (_) {
@@ -4167,6 +4231,14 @@
         if (available) {
           // ENS official flow: available=true means name can be registered now.
           // premium > 0 indicates Dutch-auction premium period, not an active registration.
+          let previousOwner = '';
+          if (premiumAmount > 0n) {
+            previousOwner = await getLastOwnerFinal(tokenId, ctx);
+            if (!previousOwner) {
+              const registrationMeta = await getRegistrationMetaFinal(label, tokenId, ctx);
+              previousOwner = registrationMeta.owner || '';
+            }
+          }
           markRpcSuccessFinal(rpc, Date.now() - started);
           return {
             序号: idx + 1,
@@ -4176,11 +4248,11 @@
             过期时间: '',
             宽限期结束: '',
             注册时间: '',
-            所有者地址: '',
+            所有者地址: premiumAmount > 0n ? previousOwner : '',
             错误信息: '',
             注册状态: premiumAmount > 0n ? 'premium' : 'unregistered',
             过期状态: premiumAmount > 0n ? 'expired' : 'valid',
-            宽限状态: premiumAmount > 0n && graceEndTs && nowTs <= graceEndTs ? 'in_grace' : 'no_grace',
+            宽限状态: 'no_grace',
             溢价状态: premiumAmount > 0n ? 'in_premium' : 'no_premium',
             时间戳: 0
           };
@@ -4190,7 +4262,7 @@
         let owner = '';
         try { owner = await getFastOwnerFinal(tokenId, ctx, 2); } catch (_) {}
         if (!owner) owner = await getRegistryOwnerFinal(domain, ctx);
-        if (!owner && expiry) owner = registrationMeta.owner || await getLastOwnerFinal(tokenId, ctx);
+        if (!owner) owner = registrationMeta.owner || await getLastOwnerFinal(tokenId, ctx);
 
         const expiryDate = expiry ? new Date(expiry * 1000) : null;
         const graceEndDate = graceEndTs ? new Date(graceEndTs * 1000) : null;
@@ -4261,8 +4333,15 @@
     }
     try {
       addLog((currentLang === 'zh' ? '开始重试域名: ' : 'Retrying domain: ') + domain, 'info');
+      const previous = queryResults[index] || { 序号: index + 1, 域名: domain, 状态: 'error', 注册状态: 'error' };
+      queryResults[index] = { ...previous, 重试中: true, 错误信息: currentLang === 'zh' ? '重试中...' : 'Retrying...' };
+      filteredResults = queryResults.filter(Boolean);
+      applyFilters();
+      updateStatistics();
+      await new Promise(resolve => requestAnimationFrame(resolve));
+
       const result = await window.queryDomain(domain, index);
-      queryResults[index] = result;
+      queryResults[index] = { ...result, 重试中: false };
       filteredResults = queryResults.filter(Boolean);
       applyFilters();
       updateStatistics();
@@ -4270,6 +4349,11 @@
       updateRetryAllButton();
       addLog((result.注册状态 !== 'error' && result.状态 !== 'error') ? ((currentLang === 'zh' ? '重试成功: ' : 'Retry succeeded: ') + domain) : ((currentLang === 'zh' ? '重试失败: ' : 'Retry failed: ') + domain), result.注册状态 !== 'error' && result.状态 !== 'error' ? 'success' : 'warning');
     } catch (e) {
+      const previous = queryResults[index] || { 序号: index + 1, 域名: domain, 状态: 'error', 注册状态: 'error' };
+      queryResults[index] = { ...previous, 重试中: false };
+      filteredResults = queryResults.filter(Boolean);
+      applyFilters();
+      updateStatistics();
       addLog((currentLang === 'zh' ? '重试出错: ' : 'Retry error: ') + domain, 'error');
     } finally {
       isRetrying = false;
@@ -4323,8 +4407,13 @@
         const batch = failedDomains.slice(i, i + concurrency);
         await Promise.all(batch.map(async item => {
           try {
+            const previous = queryResults[item.index] || { 序号: item.index + 1, 域名: item.domain, 状态: 'error', 注册状态: 'error' };
+            queryResults[item.index] = { ...previous, 重试中: true, 错误信息: currentLang === 'zh' ? '重试中...' : 'Retrying...' };
+            filteredResults = queryResults.filter(Boolean);
+            applyFilters();
+
             const result = await window.queryDomain(item.domain, item.index);
-            queryResults[item.index] = result;
+            queryResults[item.index] = { ...result, 重试中: false };
             if (result && result.注册状态 !== 'error' && result.状态 !== 'error') {
               successCount++;
               addLog((currentLang === 'zh' ? '重试成功: ' : 'Retry succeeded: ') + item.domain, 'success');
@@ -4334,6 +4423,8 @@
             }
           } catch (e) {
             failCount++;
+            const previous = queryResults[item.index] || { 序号: item.index + 1, 域名: item.domain, 状态: 'error', 注册状态: 'error' };
+            queryResults[item.index] = { ...previous, 重试中: false };
             addLog((currentLang === 'zh' ? '重试出错: ' : 'Retry error: ') + item.domain, 'error');
           } finally {
             doneCount++;
