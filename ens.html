@@ -2876,13 +2876,14 @@
                 if (status !== 'all' && status !== 'address_desc' && status !== 'address_asc') {
                     if (status === 'registered' && r.注册状态 !== 'registered') return false;
                     if (status === 'unregistered' && r.注册状态 !== 'unregistered') return false;
-                    if (status === 'premium' && r.注册状态 !== 'premium') return false;
+                    if (status === 'premium' && r.注册状态 !== 'premium' && r.溢价状态 !== 'in_premium') return false;
                     if (status === 'expired' && r.过期状态 !== 'expired') return false;
                     if (status === 'error' && r.注册状态 !== 'error') return false;
                 }
                 
                 if (premium !== 'all') {
-                    if ((premium === 'in_premium') !== (r.溢价状态 === 'in_premium')) return false;
+                    if (premium === 'in_premium' && r.溢价状态 !== 'in_premium' && r.注册状态 !== 'premium') return false;
+                    if (premium === 'no_premium' && (r.溢价状态 === 'in_premium' || r.注册状态 === 'premium')) return false;
                 }
                 
                 if (expiry !== 'all' && r.过期天数 !== '') {
@@ -3785,6 +3786,10 @@
   };
 
   window.retryAllFailed = async function() {
+    if (isQueryRunning) {
+      addLog(currentLang === 'zh' ? '请先暂停查询再重试失败域名' : 'Pause query before retrying failed domains', 'warning');
+      return;
+    }
     if (isRetrying || isRetryingAll) return;
     const failedDomains = queryResults.filter(r => r && (r.注册状态 === 'error' || r.状态 === 'error')).map(r => ({ domain: r.域名, index: r.序号 - 1 }));
     if (!failedDomains.length) {
@@ -4072,6 +4077,17 @@
     return { available, price };
   }
 
+  function getPremiumAmount(price) {
+    if (!price) return 0n;
+    const raw = price.premium ?? price[1] ?? price['1'] ?? 0;
+    try {
+      return BigInt(raw);
+    } catch (_) {
+      const parsed = Number(raw);
+      return Number.isFinite(parsed) && parsed > 0 ? 1n : 0n;
+    }
+  }
+
   async function getFastOwnerFinal(tokenId, ctx, maxRetries = 2) {
     let lastErr;
     for (let attempt = 0; attempt < maxRetries; attempt++) {
@@ -4143,7 +4159,7 @@
       const started = Date.now();
       try {
         const { available, price } = await readAvailableAndPrice(ctx, label);
-        const premiumValue = Number(price?.premium || 0);
+        const premiumAmount = getPremiumAmount(price);
         const expiryRaw = await ctx.registrar.methods.nameExpires(tokenId).call().catch(() => 0);
         const expiry = Number(expiryRaw || 0);
         const nowTs = Math.floor(Date.now() / 1000);
@@ -4155,22 +4171,22 @@
           return {
             序号: idx + 1,
             域名: domain,
-            状态: premiumValue > 0 ? 'premium' : 'unregistered',
+            状态: premiumAmount > 0n ? 'premium' : 'unregistered',
             过期天数: '',
             过期时间: '',
             宽限期结束: '',
             注册时间: '',
             所有者地址: '',
             错误信息: '',
-            注册状态: premiumValue > 0 ? 'premium' : 'unregistered',
-            过期状态: premiumValue > 0 ? 'expired' : 'valid',
-            宽限状态: premiumValue > 0 && graceEndTs && nowTs <= graceEndTs ? 'in_grace' : 'no_grace',
-            溢价状态: premiumValue > 0 ? 'in_premium' : 'no_premium',
+            注册状态: premiumAmount > 0n ? 'premium' : 'unregistered',
+            过期状态: premiumAmount > 0n ? 'expired' : 'valid',
+            宽限状态: premiumAmount > 0n && graceEndTs && nowTs <= graceEndTs ? 'in_grace' : 'no_grace',
+            溢价状态: premiumAmount > 0n ? 'in_premium' : 'no_premium',
             时间戳: 0
           };
         }
 
-        const registrationMeta = (expiry || premiumValue > 0 || !available) ? await getRegistrationMetaFinal(label, tokenId, ctx) : { time: '', owner: '' };
+        const registrationMeta = (expiry || premiumAmount > 0n || !available) ? await getRegistrationMetaFinal(label, tokenId, ctx) : { time: '', owner: '' };
         let owner = '';
         try { owner = await getFastOwnerFinal(tokenId, ctx, 2); } catch (_) {}
         if (!owner) owner = await getRegistryOwnerFinal(domain, ctx);
@@ -4265,6 +4281,10 @@
   };
 
   window.retryAllFailed = async function() {
+    if (isQueryRunning) {
+      addLog(currentLang === 'zh' ? '请先暂停查询再重试失败域名' : 'Pause query before retrying failed domains', 'warning');
+      return;
+    }
     if (isRetrying || isRetryingAll) return;
     const failedDomains = queryResults.filter(r => r && (r.注册状态 === 'error' || r.状态 === 'error')).map(r => ({ domain: r.域名, index: r.序号 - 1 }));
     if (!failedDomains.length) {
@@ -4296,6 +4316,7 @@
       if (progressBar) progressBar.style.width = percent + '%';
     };
     updateRetryProgress();
+    addLog((translations[currentLang].logRetryAllStart || '开始批量重试 {count} 个失败的域名').replace('{count}', failedDomains.length), 'info');
     try {
       const concurrency = Math.max(20, Math.min(120, num('maxWorkers', 80)));
       for (let i = 0; i < failedDomains.length; i += concurrency) {
