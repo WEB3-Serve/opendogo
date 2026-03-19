@@ -134,18 +134,26 @@
             flex: 1;
         }
 
-        .theme-switch {
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            position: absolute;
+            right: 24px;
+        }
+
+        .theme-switch,
+        .lang-switch {
             display: flex;
             gap: 4px;
             background: var(--bg);
             padding: 4px;
             border-radius: 30px;
             border: 1px solid var(--border);
-            position: absolute;
-            right: 24px;
         }
 
-        .theme-btn {
+        .theme-btn,
+        .lang-btn {
             border: none;
             background: transparent;
             padding: 6px 12px;
@@ -157,14 +165,21 @@
             font-weight: 500;
         }
 
-        .theme-btn:hover {
+        .theme-btn:hover,
+        .lang-btn:hover {
             background: var(--primary-light);
             color: var(--primary);
         }
 
-        .theme-btn.active {
+        .theme-btn.active,
+        .lang-btn.active {
             background: var(--primary);
             color: var(--btn-text);
+        }
+
+        .lang-btn {
+            min-width: 48px;
+            padding-inline: 14px;
         }
 
         /* 三列布局 */
@@ -304,18 +319,28 @@
             margin-bottom: 10px;
         }
 
+        .contact-module {
+            padding: 14px;
+        }
+
+        .contact-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
         .contact-item {
             display: flex;
             align-items: center;
             gap: 8px;
-            padding: 6px 10px;
-            border-radius: 5px;
+            padding: 12px 14px;
+            border-radius: 8px;
             background: var(--bg);
-            margin-top: 6px;
             cursor: pointer;
             font-size: var(--font-size-base);
             color: var(--text);
             border: 1px solid transparent;
+            transition: all 0.2s;
         }
 
         .contact-item:hover {
@@ -991,15 +1016,15 @@
         .action-menu > summary::-webkit-details-marker { display: none; }
         .action-menu[open] > summary { border-color: var(--primary); color: var(--primary); background: var(--primary-light); }
         .action-menu-list {
-            position: absolute;
-            right: 0;
-            top: 32px;
+            position: fixed;
+            left: 8px;
+            top: 8px;
             min-width: 110px;
             background: var(--card);
             border: 1px solid var(--border);
             border-radius: 8px;
             box-shadow: 0 8px 18px rgba(0,0,0,0.16);
-            z-index: 40;
+            z-index: 2000;
             overflow: hidden;
         }
         .action-menu-list a {
@@ -1014,8 +1039,7 @@
 
 
         .action-menu.open-up .action-menu-list {
-            top: auto;
-            bottom: 32px;
+            top: 8px;
         }
 
         .owner-cell {
@@ -1168,7 +1192,7 @@
                 gap: 10px;
                 padding: 16px;
             }
-            .logo, .theme-switch {
+            .logo, .header-controls {
                 position: static;
             }
             .header-title {
@@ -1242,16 +1266,16 @@
                 font-size: 1.05rem;
                 line-height: 1.35;
             }
-            .theme-switch {
+            .header-controls {
                 width: 100%;
                 justify-content: center;
                 flex-wrap: wrap;
                 gap: 6px;
             }
-            .theme-switch > .theme-switch {
-                width: 100%;
+            .theme-switch,
+            .lang-switch {
+                width: auto;
                 justify-content: center;
-                margin-left: 0 !important;
             }
             .left-panel, .middle-panel, .right-panel {
                 gap: 10px;
@@ -1429,9 +1453,16 @@
                 <span data-i18n="logo">opentools</span>
             </div>
             <div class="header-title" data-i18n="title">ENS域名批量查询</div>
-            <div class="theme-switch">
-                <button class="theme-btn active" data-theme="light"><i class="fas fa-sun"></i></button>
-                <button class="theme-btn" data-theme="dark"><i class="fas fa-moon"></i></button>
+            <div class="header-controls">
+                <div class="theme-switch">
+                    <button class="theme-btn" data-theme="auto" title="Auto theme"><i class="fas fa-gear"></i></button>
+                    <button class="theme-btn" data-theme="dark" title="Dark theme"><i class="fas fa-moon"></i></button>
+                    <button class="theme-btn" data-theme="light" title="Light theme"><i class="fas fa-desktop"></i></button>
+                </div>
+                <div class="lang-switch">
+                    <button class="lang-btn" data-lang="zh" onclick="switchLanguage('zh')">中文</button>
+                    <button class="lang-btn" data-lang="en" onclick="switchLanguage('en')">EN</button>
+                </div>
             </div>
         </div>
 
@@ -1503,7 +1534,12 @@
                 <div class="log-module card">
                     <div class="card-title"><i class="fas fa-history"></i> <span data-i18n="logs">日志</span></div>
                     <div class="log-box" id="logContainer"></div>
-                    <div style="margin-top: 10px;">
+                </div>
+
+                <!-- 联系我们模块 -->
+                <div class="contact-module card">
+                    <div class="card-title"><i class="fas fa-address-card"></i> <span data-i18n="contactUs">联系我们</span></div>
+                    <div class="contact-list">
                         <div class="contact-item" onclick="window.open('https://x.com/dagou567', '_blank')">
                             <i class="fab fa-twitter"></i>
                             <span>@dagou567</span>
@@ -1703,7 +1739,7 @@
                     <div class="param-grid-2col">
                         <div class="param-row">
                             <span class="param-label" data-i18n="maxWorkers">协程数</span>
-                            <input type="number" id="maxWorkers" class="param-input" value="50" min="1" max="200">
+                            <input type="number" id="maxWorkers" class="param-input" value="60" min="1" max="200">
                         </div>
                         <div class="param-row">
                             <span class="param-label" data-i18n="requestDelay">延迟(ms)</span>
@@ -1872,6 +1908,7 @@
                 grace: '宽限期',
                 errors: '错误',
                 logs: '日志',
+                contactUs: '联系我们',
                 domainList: '域名列表',
                 domains: '个域名',
                 load: '加载',
@@ -1993,6 +2030,7 @@
                 grace: 'Grace',
                 errors: 'Errors',
                 logs: 'Logs',
+                contactUs: 'Contact Us',
                 domainList: 'Domain List',
                 domains: 'domains',
                 load: 'Load',
@@ -2156,7 +2194,14 @@
         const lastOwnerCache = new Map();
         const registrationMetaCache = new Map();
 
+        function getSavedLanguage() {
+            const saved = localStorage.getItem('ens-tool-language');
+            return saved === 'zh' || saved === 'en' ? saved : null;
+        }
+
         function getBrowserLanguage() {
+            const saved = getSavedLanguage();
+            if (saved) return saved;
             const lang = navigator.language || navigator.userLanguage || 'en';
             return lang.startsWith('zh') ? 'zh' : 'en';
         }
@@ -2218,6 +2263,10 @@
         function switchLanguage(lang) {
             currentLang = lang;
             document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
+            localStorage.setItem('ens-tool-language', lang);
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.lang === lang);
+            });
             document.querySelectorAll('[data-i18n]').forEach(el => {
                 const key = el.dataset.i18n;
                 if (translations[lang] && translations[lang][key]) {
@@ -3185,7 +3234,7 @@
 
             addLog(translations[currentLang].logQueryStart.replace('{count}', totalDomains), 'info');
 
-            const maxWorkers = parseInt(document.getElementById('maxWorkers').value) || 50;
+            const maxWorkers = parseInt(document.getElementById('maxWorkers').value) || 60;
             activeWorkers = maxWorkers;
             for (let i=0; i<maxWorkers; i++) worker();
 
@@ -3229,7 +3278,7 @@
             addLog(translations[currentLang].logQueryResumed
                 .replace('{remaining}', pendingDomains.length - currentIndex), 'info');
 
-            const maxWorkers = parseInt(document.getElementById('maxWorkers').value)||50;
+            const maxWorkers = parseInt(document.getElementById('maxWorkers').value)||60;
             activeWorkers = maxWorkers;
             for (let i=0; i<maxWorkers; i++) worker();
         }
@@ -4064,7 +4113,7 @@
             initRpcStatus();
             initThemeSwitcher();
 
-            switchLanguage(getBrowserLanguage());
+            switchLanguage(currentLang);
 
             document.getElementById('domainsText').addEventListener('input', updateDomainsCount);
             updateDomainsCount();
@@ -4452,7 +4501,7 @@
     resetRpcRunQueryCount();
     addLog((translations[currentLang].logQueryStart || '开始查询 {count} 个域名').replace('{count}', totalDomains), 'info');
     scheduleSessionSave(true);
-    const maxWorkers = Math.max(1, Math.min(200, uiNum('maxWorkers', 80)));
+    const maxWorkers = Math.max(1, Math.min(200, uiNum('maxWorkers', 60)));
     activeWorkers = maxWorkers;
     for (let i = 0; i < maxWorkers; i++) window.worker();
     finishWatcher();
@@ -4470,7 +4519,7 @@
     document.getElementById('retryAllBtn').disabled = true;
     addLog((translations[currentLang].logQueryResumed || '继续查询，剩余 {remaining} 个域名').replace('{remaining}', pendingDomains.length - currentIndex), 'info');
     scheduleSessionSave(true);
-    const maxWorkers = Math.max(1, Math.min(200, uiNum('maxWorkers', 80)));
+    const maxWorkers = Math.max(1, Math.min(200, uiNum('maxWorkers', 60)));
     activeWorkers = maxWorkers;
     for (let i = 0; i < maxWorkers; i++) window.worker();
     finishWatcher();
@@ -4497,7 +4546,7 @@
     const progressPercent = document.getElementById('progressPercent');
     const progressBar = document.getElementById('progressMiniBar');
     let successCount = 0, failCount = 0;
-    const concurrency = Math.max(20, Math.min(120, uiNum('maxWorkers', 80)));
+    const concurrency = Math.max(20, Math.min(120, uiNum('maxWorkers', 60)));
     for (let i = 0; i < failedDomains.length; i += concurrency) {
       const batch = failedDomains.slice(i, i + concurrency);
       await Promise.all(batch.map(async item => {
@@ -5161,7 +5210,7 @@
     updateRetryProgress();
     addLog((translations[currentLang].logRetryAllStart || '开始批量重试 {count} 个失败的域名').replace('{count}', failedDomains.length), 'info');
     try {
-      const concurrency = Math.max(20, Math.min(120, num('maxWorkers', 80)));
+      const concurrency = Math.max(20, Math.min(120, num('maxWorkers', 60)));
       for (let i = 0; i < failedDomains.length; i += concurrency) {
         const batch = failedDomains.slice(i, i + concurrency);
         batch.forEach(item => {
@@ -5220,6 +5269,35 @@
     }
   };
 
+  function positionActionMenu(details) {
+    if (!details) return;
+    const summary = details.querySelector('summary');
+    const menu = details.querySelector('.action-menu-list');
+    if (!summary || !menu) return;
+
+    const spacing = 8;
+    const summaryRect = summary.getBoundingClientRect();
+    const menuWidth = menu.offsetWidth || 110;
+    const menuHeight = menu.offsetHeight || 84;
+
+    let left = summaryRect.right - menuWidth;
+    left = Math.max(spacing, Math.min(left, window.innerWidth - menuWidth - spacing));
+
+    const openUp = summaryRect.bottom + spacing + menuHeight > window.innerHeight - spacing
+      && summaryRect.top - spacing - menuHeight >= spacing;
+    const top = openUp
+      ? Math.max(spacing, summaryRect.top - menuHeight - spacing)
+      : Math.min(window.innerHeight - menuHeight - spacing, summaryRect.bottom + spacing);
+
+    details.classList.toggle('open-up', openUp);
+    menu.style.left = `${left}px`;
+    menu.style.top = `${top}px`;
+  }
+
+  function repositionOpenActionMenus() {
+    document.querySelectorAll('.action-menu[open]').forEach(positionActionMenu);
+  }
+
   document.getElementById('resultsBody')?.addEventListener('click', function(e){
     const menuSummary = e.target.closest('.action-menu > summary');
     if (menuSummary) {
@@ -5235,16 +5313,7 @@
       });
       if (willOpen) {
         details.setAttribute('open', 'open');
-        details.classList.remove('open-up');
-        const menu = details.querySelector('.action-menu-list');
-        const wrapper = details.closest('.table-wrapper');
-        if (menu && wrapper) {
-          const wrapperRect = wrapper.getBoundingClientRect();
-          const detailsRect = details.getBoundingClientRect();
-          const menuHeight = menu.offsetHeight || 84;
-          const needsOpenUp = detailsRect.bottom + menuHeight > wrapperRect.bottom - 4;
-          if (needsOpenUp) details.classList.add('open-up');
-        }
+        positionActionMenu(details);
       } else {
         details.removeAttribute('open');
         details.classList.remove('open-up');
@@ -5269,6 +5338,10 @@
       });
     }
   });
+
+  window.addEventListener('resize', repositionOpenActionMenus);
+  window.addEventListener('scroll', repositionOpenActionMenus, true);
+  document.querySelector('.table-wrapper')?.addEventListener('scroll', repositionOpenActionMenus);
 
   const originalSwitchLanguage = window.switchLanguage;
   window.switchLanguage = function(lang) {
