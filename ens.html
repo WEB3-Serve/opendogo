@@ -1161,8 +1161,8 @@
             white-space: nowrap;
             text-align: center;
             width: max-content;
-            min-width: max-content;
-            max-width: min(520px, calc(100vw - 24px));
+            min-width: 168px;
+            max-width: min(420px, calc(100vw - 24px));
             word-break: break-word;
         }
 
@@ -1180,6 +1180,13 @@
             justify-content: flex-end;
             gap: 6px;
             flex-wrap: wrap;
+        }
+
+        .pagination-controls {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+            align-items: stretch;
         }
 
         .page-btn {
@@ -1403,7 +1410,7 @@
             }
             .domain-options-row {
                 display: grid !important;
-                grid-template-columns: repeat(3, minmax(0, 1fr));
+                grid-template-columns: repeat(4, minmax(0, 1fr));
                 gap: 8px;
                 justify-content: stretch;
             }
@@ -1424,7 +1431,11 @@
                 padding-inline: 6px;
             }
             .domain-info {
-                align-items: flex-start;
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .domain-info > span {
+                text-align: center;
             }
             .stat-grid,
             .filter-grid-2col {
@@ -1488,7 +1499,7 @@
                 gap: 8px;
             }
             .pagination-controls {
-                display: grid;
+                display: grid !important;
                 grid-template-columns: repeat(4, minmax(0, 1fr));
                 gap: 6px;
                 width: 100%;
@@ -1546,10 +1557,13 @@
                 font-size: 0.95rem;
             }
             .program-buttons {
-                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+            }
+            .domain-options-row {
+                grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
             }
             .pagination-controls {
-                grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
             }
         }
 
@@ -1754,7 +1768,7 @@
                     </div>
                     <div class="pagination">
                         <span id="pageInfo" style="font-size:var(--font-size-sm); color:var(--text-muted);">第 1 页 / 共 1 页</span>
-                        <div class="pagination-controls" style="display: flex; gap: 4px; flex-wrap: wrap;">
+                        <div class="pagination-controls">
                             <button class="page-btn" onclick="changePage(1)">«</button>
                             <button class="page-btn" onclick="prevPage()">‹</button>
                             <input type="number" id="pageInput" class="page-input" value="1" min="1">
@@ -4767,25 +4781,25 @@ ENS域名批量查询 · 以太坊域名工具 · 动态RPC节点 · eth批量�
     const rect = target.getBoundingClientRect();
     const spacing = 10;
     const viewportPadding = 12;
+    const preferredMinWidth = Math.min(168, Math.max(120, window.innerWidth - viewportPadding * 2));
     ownerTooltipEl.classList.remove('is-multiline');
     ownerTooltipEl.style.left = '0px';
     ownerTooltipEl.style.top = '0px';
     ownerTooltipEl.style.width = 'max-content';
-    ownerTooltipEl.style.minWidth = 'max-content';
+    ownerTooltipEl.style.minWidth = `${preferredMinWidth}px`;
+    ownerTooltipEl.style.maxWidth = `${Math.max(220, window.innerWidth - viewportPadding * 2)}px`;
     ownerTooltipEl.style.transform = 'translate3d(-9999px, -9999px, 0)';
 
     let width = ownerTooltipEl.offsetWidth;
     const maxWidth = Math.max(220, window.innerWidth - viewportPadding * 2);
     if (width > maxWidth) {
       ownerTooltipEl.classList.add('is-multiline');
-      ownerTooltipEl.style.maxWidth = `${maxWidth}px`;
       ownerTooltipEl.style.width = `${maxWidth}px`;
       ownerTooltipEl.style.minWidth = '0';
       width = ownerTooltipEl.offsetWidth;
     } else {
       ownerTooltipEl.style.width = 'max-content';
-      ownerTooltipEl.style.minWidth = 'max-content';
-      ownerTooltipEl.style.maxWidth = `min(520px, calc(100vw - ${viewportPadding * 2}px))`;
+      ownerTooltipEl.style.minWidth = `${preferredMinWidth}px`;
       width = ownerTooltipEl.offsetWidth;
     }
 
