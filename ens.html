@@ -145,7 +145,7 @@
             right: 24px;
         }
 
-        .theme-btn, .lang-btn {
+        .theme-btn {
             border: none;
             background: transparent;
             padding: 6px 12px;
@@ -157,12 +157,12 @@
             font-weight: 500;
         }
 
-        .theme-btn:hover, .lang-btn:hover {
+        .theme-btn:hover {
             background: var(--primary-light);
             color: var(--primary);
         }
 
-        .theme-btn.active, .lang-btn.active {
+        .theme-btn.active {
             background: var(--primary);
             color: var(--btn-text);
         }
@@ -895,7 +895,7 @@
 
         .table-wrapper {
             max-height: 400px;
-            overflow-x: hidden;
+            overflow-x: auto;
             overflow-y: auto;
             border: 1px solid var(--border);
             border-radius: 5px;
@@ -906,7 +906,7 @@
             width: 100%;
             border-collapse: collapse;
             font-size: var(--font-size-base);
-            min-width: 0;
+            min-width: 1320px;
             table-layout: fixed;
         }
 
@@ -941,13 +941,19 @@
 
         th:nth-child(1), td:nth-child(1) { width: 5%; }
         th:nth-child(2), td:nth-child(2) { width: 8%; }
-        th:nth-child(3), td:nth-child(3) { width: 8%; }
-        th:nth-child(4), td:nth-child(4) { width: 6%; }
-        th:nth-child(5), td:nth-child(5) { width: 16%; }
-        th:nth-child(6), td:nth-child(6) { width: 16%; }
-        th:nth-child(7), td:nth-child(7) { width: 16%; }
-        th:nth-child(8), td:nth-child(8) { width: 15%; }
-        th:nth-child(9), td:nth-child(9) { width: 10%; }
+        th:nth-child(3), td:nth-child(3) { width: 10%; }
+        th:nth-child(4), td:nth-child(4) { width: 7%; }
+        th:nth-child(5), td:nth-child(5) { width: 15%; }
+        th:nth-child(6), td:nth-child(6) { width: 15%; }
+        th:nth-child(7), td:nth-child(7) { width: 15%; }
+        th:nth-child(8), td:nth-child(8) { width: 17%; }
+        th:nth-child(9), td:nth-child(9) { width: 8%; }
+
+        td.status-cell,
+        td.owner-column {
+            overflow: visible;
+            text-overflow: clip;
+        }
 
         .status-chip {
             display: inline-flex;
@@ -1424,15 +1430,8 @@
             </div>
             <div class="header-title" data-i18n="title">ENS域名批量查询</div>
             <div class="theme-switch">
-                <div class="theme-switch" style="position: static;">
-                    <button class="theme-btn active" data-theme="light"><i class="fas fa-sun"></i></button>
-                    <button class="theme-btn" data-theme="dark"><i class="fas fa-moon"></i></button>
-                    <button class="theme-btn" data-theme="auto"><i class="fas fa-desktop"></i></button>
-                </div>
-                <div class="theme-switch" style="position: static; margin-left: 4px;">
-                    <button class="lang-btn active" data-lang="zh">中文</button>
-                    <button class="lang-btn" data-lang="en">EN</button>
-                </div>
+                <button class="theme-btn active" data-theme="light"><i class="fas fa-sun"></i></button>
+                <button class="theme-btn" data-theme="dark"><i class="fas fa-moon"></i></button>
             </div>
         </div>
 
@@ -2100,7 +2099,7 @@
             }
         };
 
-        let currentLang = 'zh';
+        let currentLang = getBrowserLanguage();
         let web3, registry, registrar, controller;
         let isQueryRunning = false, isPaused = false, isRetrying = false, isRetryingAll = false;
         let queryResults = [], filteredResults = [], pendingDomains = [], currentIndex = 0, activeWorkers = 0;
@@ -2219,9 +2218,6 @@
         function switchLanguage(lang) {
             currentLang = lang;
             document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
-            document.querySelectorAll('.lang-btn').forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.lang === lang);
-            });
             document.querySelectorAll('[data-i18n]').forEach(el => {
                 const key = el.dataset.i18n;
                 if (translations[lang] && translations[lang][key]) {
@@ -2274,8 +2270,6 @@
             const langName = lang === 'zh' ? '中文' : 'English';
             const timeZone = getTimeZone();
             addLog(translations[lang].logLangSwitch.replace('{lang}', langName) + `, Timezone: ${timeZone}`, 'info');
-            localStorage.setItem('preferred-language', lang);
-
             applyFilters();
         }
 
@@ -3682,12 +3676,12 @@
                 tbody.innerHTML += `<tr>
                     <td>${r.序号}</td>
                     <td>${r.域名}</td>
-                    <td>${statusHtml}</td>
+                    <td class="status-cell">${statusHtml}</td>
                     <td>${r.过期天数 !== undefined && r.过期天数 !== '' ? r.过期天数 : '-'}</td>
                     <td>${r.过期时间 ? formatDisplayDate(r.过期时间) : '-'}</td>
                     <td>${r.宽限期结束 ? formatDisplayDate(r.宽限期结束) : '-'}</td>
                     <td>${r.注册时间 ? formatDisplayDate(r.注册时间) : '-'}</td>
-                    <td>${addressHtml}</td>
+                    <td class="owner-column">${addressHtml}</td>
                     <td class="action-cell">${viewLink}</td>
                 </tr>`;
             }
@@ -4070,13 +4064,7 @@
             initRpcStatus();
             initThemeSwitcher();
 
-            const savedLang = localStorage.getItem('preferred-language');
-            const defaultLang = savedLang || getBrowserLanguage();
-            switchLanguage(defaultLang);
-
-            document.querySelectorAll('.lang-btn').forEach(btn => {
-                btn.addEventListener('click', () => switchLanguage(btn.dataset.lang));
-            });
+            switchLanguage(getBrowserLanguage());
 
             document.getElementById('domainsText').addEventListener('input', updateDomainsCount);
             updateDomainsCount();
@@ -4622,54 +4610,79 @@
     }
   }
 
-  async function getRegistrationMetaFinal(label, tokenId, ctx) {
-    const cacheKey = String(tokenId).toLowerCase();
-    if (registrationMetaCache.has(cacheKey)) return registrationMetaCache.get(cacheKey);
-    const empty = { time: '', owner: '' };
+  function getLookupContexts(preferredCtx) {
+    const currentRpc = typeof window.getCurrentRpc === 'function' ? window.getCurrentRpc() : '';
+    const rankedRpcs = RPC_LIST
+      .slice()
+      .sort((a, b) => scoreRpcFinal(b) - scoreRpcFinal(a))
+      .slice(0, 6);
+    const rpcCandidates = [preferredCtx?.rpc, currentRpc, ...rankedRpcs].filter(Boolean);
+    const unique = [];
+    const seen = new Set();
+    rpcCandidates.forEach(rpc => {
+      const normalized = normalizeRpcUrl(rpc);
+      if (normalized && !seen.has(normalized)) {
+        seen.add(normalized);
+        unique.push(normalized);
+      }
+    });
+    if (preferredCtx?.web3) return [preferredCtx, ...unique.filter(rpc => rpc !== preferredCtx.rpc).map(getOrCreateCtx)];
+    return unique.map(getOrCreateCtx);
+  }
+
+  async function loadRegistrationMetaFromCtx(tokenId, ctx) {
+    let events = [];
     try {
-      let events = [];
-      try {
-        events = await ctx.registrar.getPastEvents('NameRegistered', {
-          filter: { id: tokenId },
-          fromBlock: 9380410,
-          toBlock: 'latest'
-        });
-      } catch (_) {
-        events = [];
-      }
-      if (!events.length) {
-        try {
-          const transferEvents = await ctx.transferContract.getPastEvents('Transfer', {
-            filter: { tokenId },
-            fromBlock: 9380410,
-            toBlock: 'latest'
-          });
-          const mintEvent = transferEvents.find(ev => /^0x0{40}$/i.test(ev?.returnValues?.from || ''));
-          if (mintEvent) {
-            const mintBlock = await ctx.web3.eth.getBlock(mintEvent.blockNumber);
-            const fallback = {
-              time: mintBlock?.timestamp ? formatDate(new Date(Number(mintBlock.timestamp) * 1000)) : '',
-              owner: normalizeAddressFinal(mintEvent?.returnValues?.to || '')
-            };
-            registrationMetaCache.set(cacheKey, fallback);
-            return fallback;
-          }
-        } catch (_) {}
-        registrationMetaCache.set(cacheKey, empty);
-        return empty;
-      }
+      events = await ctx.registrar.getPastEvents('NameRegistered', {
+        filter: { id: tokenId },
+        fromBlock: 9380410,
+        toBlock: 'latest'
+      });
+    } catch (_) {
+      events = [];
+    }
+
+    if (events.length) {
       const event = events[events.length - 1];
       const block = await ctx.web3.eth.getBlock(event.blockNumber);
-      const result = {
+      return {
         time: block?.timestamp ? formatDate(new Date(Number(block.timestamp) * 1000)) : '',
         owner: normalizeAddressFinal(event?.returnValues?.owner || '')
       };
-      registrationMetaCache.set(cacheKey, result);
-      return result;
-    } catch (_) {
-      registrationMetaCache.set(cacheKey, empty);
-      return empty;
     }
+
+    const transferEvents = await ctx.transferContract.getPastEvents('Transfer', {
+      filter: { tokenId },
+      fromBlock: 9380410,
+      toBlock: 'latest'
+    });
+    const mintEvent = transferEvents.find(ev => /^0x0{40}$/i.test(ev?.returnValues?.from || ''));
+    if (!mintEvent) return { time: '', owner: '' };
+
+    const mintBlock = await ctx.web3.eth.getBlock(mintEvent.blockNumber);
+    return {
+      time: mintBlock?.timestamp ? formatDate(new Date(Number(mintBlock.timestamp) * 1000)) : '',
+      owner: normalizeAddressFinal(mintEvent?.returnValues?.to || '')
+    };
+  }
+
+  async function getRegistrationMetaFinal(label, tokenId, ctx) {
+    const cacheKey = String(tokenId).toLowerCase();
+    if (registrationMetaCache.has(cacheKey)) return registrationMetaCache.get(cacheKey);
+
+    const empty = { time: '', owner: '' };
+    for (const lookupCtx of getLookupContexts(ctx)) {
+      try {
+        const result = await loadRegistrationMetaFromCtx(tokenId, lookupCtx);
+        if (result.time || result.owner) {
+          registrationMetaCache.set(cacheKey, result);
+          return result;
+        }
+      } catch (_) {}
+    }
+
+    registrationMetaCache.set(cacheKey, empty);
+    return empty;
   }
 
   function getOrCreateCtx(rpc) {
@@ -4827,30 +4840,36 @@
   }
 
   async function getLastOwnerFinal(tokenId, ctx) {
-    if (lastOwnerCache.has(tokenId)) return lastOwnerCache.get(tokenId);
-    try {
-      const events = await ctx.transferContract.getPastEvents('Transfer', {
-        filter: { tokenId },
-        fromBlock: 9380410,
-        toBlock: 'latest'
-      });
-      if (!events.length) {
-        lastOwnerCache.set(tokenId, '');
-        return '';
-      }
-      for (let i = events.length - 1; i >= 0; i--) {
-        const to = events[i].returnValues.to;
-        if (to && to !== '0x0000000000000000000000000000000000000000') {
-          lastOwnerCache.set(tokenId, to);
-          return to;
+    const cacheKey = String(tokenId).toLowerCase();
+    if (lastOwnerCache.has(cacheKey)) return lastOwnerCache.get(cacheKey);
+
+    for (const lookupCtx of getLookupContexts(ctx)) {
+      try {
+        const events = await lookupCtx.transferContract.getPastEvents('Transfer', {
+          filter: { tokenId },
+          fromBlock: 9380410,
+          toBlock: 'latest'
+        });
+        if (!events.length) continue;
+
+        for (let i = events.length - 1; i >= 0; i--) {
+          const to = normalizeAddressFinal(events[i]?.returnValues?.to || '');
+          if (to) {
+            lastOwnerCache.set(cacheKey, to);
+            return to;
+          }
         }
-      }
-      const fallback = events[events.length - 1]?.returnValues?.from || '';
-      lastOwnerCache.set(tokenId, fallback);
-      return fallback;
-    } catch (_) {
-      return '';
+
+        const fallback = normalizeAddressFinal(events[events.length - 1]?.returnValues?.from || '');
+        if (fallback) {
+          lastOwnerCache.set(cacheKey, fallback);
+          return fallback;
+        }
+      } catch (_) {}
     }
+
+    lastOwnerCache.set(cacheKey, '');
+    return '';
   }
 
   window.queryDomain = async function(domain, idx, preferredSource) {
