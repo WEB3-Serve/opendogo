@@ -836,10 +836,15 @@
         }
 
         .domain-options-row label {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
             background: var(--bg);
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: var(--font-size-base);
+            padding: 4px 10px;
+            border-radius: 18px;
+            font-size: calc(var(--font-size-base) - 1px);
             border: 1px solid var(--border);
             cursor: pointer;
             transition: all 0.2s;
@@ -854,17 +859,55 @@
         }
 
         .domain-options-row input[type="radio"] {
-            margin-right: 4px;
+            margin: 0 2px 0 0;
             accent-color: var(--primary);
+            transform: scale(0.92);
+            transform-origin: center;
         }
 
-        .domain-type-hint {
-            min-height: 20px;
-            margin: -2px 0 12px;
-            text-align: center;
-            color: var(--text-muted);
+        .domain-option-tooltip {
+            position: absolute;
+            left: 50%;
+            bottom: calc(100% + 10px);
+            transform: translateX(-50%) translateY(4px);
+            min-width: 260px;
+            max-width: min(360px, calc(100vw - 32px));
+            padding: 8px 10px;
+            border-radius: 10px;
+            background: color-mix(in srgb, var(--card) 92%, #000 8%);
+            border: 1px solid color-mix(in srgb, var(--primary) 22%, var(--border) 78%);
+            color: var(--text);
             font-size: var(--font-size-sm);
             line-height: 1.45;
+            text-align: left;
+            text-transform: none;
+            white-space: normal;
+            box-shadow: 0 10px 24px rgba(0,0,0,0.18);
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transition: opacity 0.16s ease, transform 0.16s ease, visibility 0.16s ease;
+            z-index: 20;
+        }
+
+        .domain-option-tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            width: 10px;
+            height: 10px;
+            background: inherit;
+            border-right: 1px solid color-mix(in srgb, var(--primary) 22%, var(--border) 78%);
+            border-bottom: 1px solid color-mix(in srgb, var(--primary) 22%, var(--border) 78%);
+            transform: translate(-50%, -50%) rotate(45deg);
+        }
+
+        .domain-option.has-tooltip:hover .domain-option-tooltip,
+        .domain-option.has-tooltip:focus-within .domain-option-tooltip {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
         }
 
         /* 文本域 - 高度与RPC监控对齐 */
@@ -1105,6 +1148,7 @@
             grid-template-columns: 18px minmax(106px, auto) 18px;
             align-items: center;
             justify-content: center;
+            justify-items: center;
             gap: 4px;
             min-height: 24px;
             padding: 2px 0;
@@ -1786,9 +1830,8 @@
                         <label><input type="radio" name="domainType" value="abab"> ABAB</label>
                         <label><input type="radio" name="domainType" value="abba"> ABBA</label>
                         <label><input type="radio" name="domainType" value="abbb"> ABBB</label>
-                        <label><input type="radio" name="domainType" value="numSame3to9"> 3A-9A（数字）</label>
+                        <label class="domain-option has-tooltip" id="numSame3to9Option"><input type="radio" name="domainType" value="numSame3to9"> <span>3A-9A（数字）</span><span class="domain-option-tooltip" id="domainTypeHint" role="tooltip" aria-hidden="true"></span></label>
                     </div>
-                    <div id="domainTypeHint" class="domain-type-hint"></div>
 
                     <textarea id="domainsText" placeholder='每行一个域名，例如：vitalik.eth&#10;example.eth&#10;test.eth&#10;demo.eth&#10;hello.eth&#10;world.eth&#10;web3.eth'></textarea>
                     <div class="domain-info">
@@ -3143,11 +3186,13 @@
 
         function updateDomainTypeHint() {
             const hintEl = document.getElementById('domainTypeHint');
-            const selectedType = document.querySelector('input[name="domainType"]:checked')?.value;
-            if (!hintEl) return;
-            hintEl.textContent = selectedType === 'numSame3to9'
-                ? (translations[currentLang]?.domainTypeHintNumeric || '')
-                : '';
+            const optionEl = document.getElementById('numSame3to9Option');
+            const hintText = translations[currentLang]?.domainTypeHintNumeric || '';
+            if (!hintEl || !optionEl) return;
+            hintEl.textContent = hintText;
+            optionEl.setAttribute('title', hintText);
+            optionEl.setAttribute('aria-label', hintText);
+            hintEl.setAttribute('aria-hidden', hintText ? 'false' : 'true');
         }
 
         async function loadDomainType() {
