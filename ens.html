@@ -423,13 +423,13 @@
 
         .user-status-row {
             display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            align-items: center;
+            grid-template-columns: minmax(0, 1fr);
+            align-items: stretch;
             background: var(--bg);
             border-radius: 5px;
-            padding: 8px 10px;
+            padding: 10px;
             font-size: var(--font-size-base);
-            gap: 6px 12px;
+            gap: 8px;
         }
 
         .user-submodule {
@@ -511,24 +511,42 @@
         .status-left {
             display: flex;
             align-items: center;
-            gap: 6px;
+            justify-content: space-between;
+            gap: 10px;
             min-width: 0;
+            padding: 6px 8px;
+            border-radius: 6px;
+            background: color-mix(in srgb, var(--card) 45%, transparent 55%);
         }
 
         .status-right {
             display: flex;
             align-items: center;
-            gap: 6px;
+            justify-content: space-between;
+            gap: 10px;
             font-weight: 500;
             min-width: 0;
+            padding: 6px 8px;
+            border-radius: 6px;
+            background: color-mix(in srgb, var(--card) 45%, transparent 55%);
         }
 
         .user-status-row > :nth-child(3) {
-            grid-column: 1 / -1;
+            grid-column: auto;
         }
 
         .status-label {
             color: var(--text-muted);
+            white-space: nowrap;
+            flex: 0 0 auto;
+        }
+
+        .status-value {
+            min-width: 0;
+            text-align: right;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
         .status-value.logged-in {
@@ -916,13 +934,18 @@
             text-overflow: ellipsis;
         }
 
-        th:nth-child(1), td:nth-child(1) { width: 6%; }
-        th:nth-child(2), td:nth-child(2) { width: 9%; }
-        th:nth-child(3), td:nth-child(3) { width: 10%; }
-        th:nth-child(4), td:nth-child(4) { width: 8%; }
-        th:nth-child(5), td:nth-child(5) { width: 14%; }
-        th:nth-child(6), td:nth-child(6) { width: 14%; }
-        th:nth-child(7), td:nth-child(7) { width: 14%; }
+        td.action-cell {
+            overflow: visible;
+            position: relative;
+        }
+
+        th:nth-child(1), td:nth-child(1) { width: 5%; }
+        th:nth-child(2), td:nth-child(2) { width: 8%; }
+        th:nth-child(3), td:nth-child(3) { width: 8%; }
+        th:nth-child(4), td:nth-child(4) { width: 6%; }
+        th:nth-child(5), td:nth-child(5) { width: 16%; }
+        th:nth-child(6), td:nth-child(6) { width: 16%; }
+        th:nth-child(7), td:nth-child(7) { width: 16%; }
         th:nth-child(8), td:nth-child(8) { width: 15%; }
         th:nth-child(9), td:nth-child(9) { width: 10%; }
 
@@ -990,12 +1013,14 @@
         }
 
         .owner-cell {
-            display: inline-flex;
+            display: inline-grid;
+            grid-template-columns: 18px minmax(106px, auto) 18px;
             align-items: center;
             justify-content: center;
             gap: 4px;
             min-height: 24px;
             padding: 2px 0;
+            margin: 0 auto;
         }
 
         .owner-count,
@@ -1015,6 +1040,13 @@
             border-radius: 999px;
             background: color-mix(in srgb, var(--primary-light) 72%, var(--card) 28%);
             box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary) 20%, transparent 80%);
+        }
+
+        .owner-count.is-placeholder {
+            visibility: hidden;
+            cursor: default;
+            background: transparent;
+            box-shadow: none;
         }
 
         .owner-count:hover,
@@ -2702,7 +2734,15 @@
         }
 
         function filterByStat(status) {
-            document.getElementById('filterStatus').value = status;
+            const statusFilter = document.getElementById('filterStatus');
+            const graceFilter = document.getElementById('filterGrace');
+            if (status === 'grace') {
+                if (statusFilter) statusFilter.value = 'all';
+                if (graceFilter) graceFilter.value = 'in_grace';
+            } else {
+                if (statusFilter) statusFilter.value = status;
+                if (graceFilter) graceFilter.value = 'all';
+            }
             applyFilters();
 
             const statusMap = {
@@ -2710,6 +2750,7 @@
                 'unregistered': currentLang === 'zh' ? '未注册' : 'Unregistered',
                 'premium': currentLang === 'zh' ? '溢价' : 'Premium',
                 'expired': currentLang === 'zh' ? '过期' : 'Expired',
+                'grace': currentLang === 'zh' ? '宽限期' : 'Grace',
                 'error': currentLang === 'zh' ? '错误' : 'Error'
             };
             addLog(currentLang === 'zh' ? `筛选状态: ${statusMap[status]}` : `Filter by status: ${statusMap[status]}`, 'info');
@@ -3573,7 +3614,10 @@
                 let statusHtml = '';
                 let statusText = '';
 
-                if (r.注册状态 === 'registered') {
+                if (r.宽限状态 === 'in_grace') {
+                    statusText = currentLang === 'zh' ? '宽限期' : 'Grace';
+                    statusHtml = `<span class="status-chip status-expired">${statusText}</span>`;
+                } else if (r.注册状态 === 'registered') {
                     statusText = currentLang === 'zh' ? '已注册' : 'Registered';
                     statusHtml = `<span class="status-chip status-registered"><i class="fas fa-check-circle"></i>${statusText}</span>`;
                 } else if (r.注册状态 === 'unregistered') {
@@ -3612,7 +3656,7 @@
                                              r.所有者地址.toLowerCase().includes(currentSearch);
                     const countBadgeHtml = count > 1
                         ? `<span class="owner-count" onclick="filterByAddress('${r.所有者地址}')" title="${titleText}">${count}</span>`
-                        : '';
+                        : '<span class="owner-count is-placeholder" aria-hidden="true"></span>';
 
                     addressHtml = `
                         <div class="owner-cell">
@@ -3644,7 +3688,7 @@
                     <td>${r.宽限期结束 ? formatDisplayDate(r.宽限期结束) : '-'}</td>
                     <td>${r.注册时间 ? formatDisplayDate(r.注册时间) : '-'}</td>
                     <td>${addressHtml}</td>
-                    <td>${viewLink}</td>
+                    <td class="action-cell">${viewLink}</td>
                 </tr>`;
             }
 
@@ -3689,7 +3733,7 @@
         function updateStatistics() {
             const hasActiveFilter = isAnyFilterActive();
             const list = hasActiveFilter ? filteredResults : (queryResults.filter(r=>r) || []);
-            let reg = 0, unreg = 0, premium = 0, err = 0, exp = 0;
+            let reg = 0, unreg = 0, premium = 0, err = 0, exp = 0, grace = 0;
 
             list.forEach(r => {
                 if (r.注册状态 === 'registered') reg++;
@@ -3697,6 +3741,7 @@
                 else if (r.注册状态 === 'premium' || r.溢价状态 === 'in_premium') premium++;
                 else if (r.注册状态 === 'error') err++;
                 if (r.过期状态 === 'expired') exp++;
+                if (r.宽限状态 === 'in_grace') grace++;
             });
 
             document.getElementById('statRegistered').innerText = reg;
@@ -3704,6 +3749,7 @@
             document.getElementById('statPremium').innerText = premium;
             document.getElementById('statErrors').innerText = err;
             document.getElementById('statExpired').innerText = exp;
+            document.getElementById('statGrace').innerText = grace;
 
             updateRetryAllButton();
         }
@@ -3761,7 +3807,8 @@
 
             data.forEach(r => {
                 let statusDisplay = '';
-                if (r.注册状态 === 'registered') statusDisplay = currentLang === 'zh' ? '已注册' : 'Registered';
+                if (r.宽限状态 === 'in_grace') statusDisplay = currentLang === 'zh' ? '宽限期' : 'Grace';
+                else if (r.注册状态 === 'registered') statusDisplay = currentLang === 'zh' ? '已注册' : 'Registered';
                 else if (r.注册状态 === 'unregistered') statusDisplay = currentLang === 'zh' ? '未注册' : 'Unregistered';
                 else if (r.注册状态 === 'premium') statusDisplay = currentLang === 'zh' ? '溢价' : 'Premium';
                 else if (r.过期状态 === 'expired') statusDisplay = currentLang === 'zh' ? '过期' : 'Expired';
@@ -4853,7 +4900,8 @@
           // ENS official flow: available=true means name can be registered now.
           // premium > 0 indicates Dutch-auction premium period, not an active registration.
           let previousOwner = '';
-          if (isPremiumAvailable) {
+          const isGracePeriod = Boolean(expiry && nowTs > expiry && nowTs <= graceEndTs);
+          if (isPremiumAvailable || isGracePeriod) {
             previousOwner = await getLastOwnerFinal(tokenId, ctx);
             if (!previousOwner) {
               const registrationMeta = await getRegistrationMetaFinal(label, tokenId, ctx);
@@ -4861,6 +4909,24 @@
             }
           }
           markRpcSuccessFinal(rpc, Date.now() - started);
+          if (isGracePeriod) {
+            return {
+              序号: idx + 1,
+              域名: domain,
+              状态: 'expired',
+              过期天数: Math.floor((expiry * 1000 - Date.now()) / 86400000),
+              过期时间: formatDate(new Date(expiry * 1000)),
+              宽限期结束: formatDate(new Date(graceEndTs * 1000)),
+              注册时间: '',
+              所有者地址: previousOwner,
+              错误信息: '',
+              注册状态: 'expired',
+              过期状态: 'expired',
+              宽限状态: 'in_grace',
+              溢价状态: 'no_premium',
+              时间戳: expiry || 0
+            };
+          }
           return {
             序号: idx + 1,
             域名: domain,
