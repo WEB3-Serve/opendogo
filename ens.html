@@ -413,6 +413,10 @@
             margin-bottom: 3px;
         }
 
+        .user-input-group.compact-label label {
+            display: none;
+        }
+
         .user-input {
             width: 100%;
             background: var(--bg);
@@ -503,6 +507,13 @@
 
         .user-input-row.stack-mobile {
             align-items: flex-end;
+        }
+
+        .card-key-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 8px;
+            align-items: end;
         }
 
         .user-option-row {
@@ -1262,7 +1273,7 @@
         }
 
         .footer-mobile {
-            display: none;
+            display: block;
         }
 
         .footer-mobile .footer-keywords,
@@ -1274,6 +1285,10 @@
         .footer-mobile .footer-copyright {
             margin-top: 8px;
             text-align: center;
+        }
+
+        .footer-desktop {
+            display: none;
         }
 
         /* 响应式 */
@@ -1352,19 +1367,21 @@
         }
         @media (max-width: 768px) {
             body {
-                padding: 8px;
+                padding: 6px;
             }
             .container {
                 max-width: 100%;
                 width: 100%;
             }
             .header {
-                padding: 12px;
-                gap: 8px;
+                padding: 10px 12px;
+                gap: 6px;
+                margin-bottom: 8px;
             }
             .header-title {
                 font-size: 1.05rem;
                 line-height: 1.35;
+                margin: 4px 0;
             }
             .header-controls {
                 width: 100%;
@@ -1417,11 +1434,40 @@
             .user-input-row,
             .user-input-row.stack-mobile,
             .user-actions-row {
-                flex-direction: column;
+                flex-direction: row;
+                align-items: stretch;
+                gap: 8px;
             }
-            .user-inline-btn,
+            .user-input-row {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+            .user-actions-row {
+                display: grid;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+            .card-key-row {
+                display: grid;
+                grid-template-columns: minmax(0, 1fr) auto;
+            }
+            .user-inline-btn {
+                width: auto;
+                min-width: 84px;
+            }
             .user-action-btn {
                 width: 100%;
+                min-width: 0;
+                padding-inline: 4px;
+            }
+            .user-submodule {
+                padding: 10px;
+            }
+            .user-option-row {
+                gap: 8px 12px;
+            }
+            .footer {
+                margin-top: 8px;
+                padding: 10px 0 4px;
             }
             .domain-options-row {
                 display: grid !important;
@@ -1555,14 +1601,11 @@
             #rpcStatusModal .rpc-status-scroll {
                 max-height: 48vh;
             }
-            .footer-desktop {
-                display: none !important;
-            }
-            .footer-mobile {
-                display: block;
-            }
         }
         @media (max-width: 480px) {
+            body {
+                padding: 4px;
+            }
             .header-title {
                 font-size: 0.98rem;
             }
@@ -1579,6 +1622,29 @@
             }
             .program-buttons {
                 grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+            }
+            .user-input-row {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 6px;
+            }
+            .user-actions-row {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                gap: 6px;
+            }
+            .card-key-row {
+                grid-template-columns: minmax(0, 1fr) 76px;
+                gap: 6px;
+            }
+            .user-input {
+                padding: 7px 8px;
+            }
+            .user-action-btn,
+            .user-inline-btn {
+                font-size: var(--font-size-sm);
+            }
+            .footer {
+                font-size: 0.72rem;
+                line-height: 1.5;
             }
             .domain-options-row {
                 grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
@@ -1847,8 +1913,8 @@
                             <i class="fas fa-key"></i>
                             <span data-i18n="cardKey">卡密激活</span>
                         </div>
-                        <div class="user-input-row stack-mobile">
-                            <div class="user-input-group">
+                        <div class="user-input-row stack-mobile card-key-row">
+                            <div class="user-input-group compact-label">
                                 <label data-i18n="cardKey">卡密激活</label>
                                 <input type="password" class="user-input" id="cardKey" data-i18n-placeholder="cardKeyPlaceholder" placeholder="请输入卡密">
                             </div>
