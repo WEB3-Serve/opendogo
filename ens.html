@@ -83,8 +83,8 @@
         }
 
         .container {
-            max-width: 1520px;
-            width: min(1520px, 100%);
+            max-width: 1720px;
+            width: min(1720px, 100%);
             margin: 0 auto;
             display: flex;
             flex-direction: column;
@@ -170,7 +170,7 @@
         /* 三列布局 */
         .main-layout {
             display: grid;
-            grid-template-columns: minmax(280px, 300px) minmax(0, 1fr) minmax(280px, 300px);
+            grid-template-columns: minmax(240px, 280px) minmax(0, 1fr) minmax(240px, 280px);
             gap: var(--spacing);
             width: 100%;
             flex: 1;
@@ -200,6 +200,7 @@
             display: flex;
             flex-direction: column;
             gap: var(--spacing);
+            min-width: 0;
         }
 
         /* 通用卡片 */
@@ -333,7 +334,7 @@
             background: var(--card);
             border: 1px solid var(--border);
             border-radius: var(--radius);
-            padding: 14px;
+            padding: 12px;
         }
 
         .user-title {
@@ -343,15 +344,15 @@
             display: flex;
             align-items: center;
             gap: 6px;
-            margin-bottom: 14px;
+            margin-bottom: 10px;
             padding-bottom: 8px;
             border-bottom: 1px solid var(--border);
         }
 
         .user-input-row {
             display: flex;
-            gap: 10px;
-            margin-bottom: 14px;
+            gap: 8px;
+            margin-bottom: 10px;
         }
 
         .user-input-group {
@@ -362,7 +363,7 @@
             display: block;
             font-size: var(--font-size-sm);
             color: var(--text-muted);
-            margin-bottom: 4px;
+            margin-bottom: 3px;
         }
 
         .user-input {
@@ -370,20 +371,20 @@
             background: var(--bg);
             border: 1px solid var(--border);
             border-radius: 5px;
-            padding: 8px 10px;
+            padding: 7px 10px;
             color: var(--text);
             font-size: var(--font-size-base);
         }
 
         .user-actions-row {
             display: flex;
-            gap: 8px;
-            margin-bottom: 14px;
+            gap: 6px;
+            margin-bottom: 10px;
         }
 
         .user-action-btn {
             flex: 1;
-            padding: 8px 0;
+            padding: 7px 0;
             border-radius: 5px;
             font-size: var(--font-size-base);
             font-weight: 600;
@@ -421,20 +422,19 @@
         }
 
         .user-status-row {
-            display: flex;
-            justify-content: space-between;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
             align-items: center;
             background: var(--bg);
             border-radius: 5px;
-            padding: 8px 12px;
+            padding: 8px 10px;
             font-size: var(--font-size-base);
-            gap: 10px;
-            flex-wrap: wrap;
+            gap: 6px 12px;
         }
 
         .user-submodule {
-            margin-bottom: 14px;
-            padding: 12px;
+            margin-bottom: 10px;
+            padding: 10px;
             background: color-mix(in srgb, var(--bg) 84%, var(--card) 16%);
             border: 1px solid var(--border);
             border-radius: 8px;
@@ -447,7 +447,7 @@
             font-size: var(--font-size-sm);
             font-weight: 600;
             color: var(--text);
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
 
         .user-submodule-title i {
@@ -461,8 +461,8 @@
         .user-option-row {
             display: flex;
             flex-wrap: wrap;
-            gap: 12px;
-            margin-top: 10px;
+            gap: 10px;
+            margin-top: 8px;
         }
 
         .user-check {
@@ -481,7 +481,7 @@
 
         .user-inline-btn {
             min-width: 92px;
-            padding: 8px 12px;
+            padding: 7px 12px;
             border: none;
             border-radius: 6px;
             background: var(--warning);
@@ -497,9 +497,10 @@
         }
 
         .user-tip {
-            margin-top: 8px;
+            margin-top: 6px;
             font-size: var(--font-size-sm);
             color: var(--text-muted);
+            line-height: 1.35;
         }
 
         .status-value.card-active {
@@ -511,10 +512,19 @@
             display: flex;
             align-items: center;
             gap: 6px;
+            min-width: 0;
         }
 
         .status-right {
+            display: flex;
+            align-items: center;
+            gap: 6px;
             font-weight: 500;
+            min-width: 0;
+        }
+
+        .user-status-row > :nth-child(3) {
+            grid-column: 1 / -1;
         }
 
         .status-label {
@@ -867,7 +877,7 @@
 
         .table-wrapper {
             max-height: 400px;
-            overflow-x: auto;
+            overflow-x: hidden;
             overflow-y: auto;
             border: 1px solid var(--border);
             border-radius: 5px;
@@ -878,7 +888,8 @@
             width: 100%;
             border-collapse: collapse;
             font-size: var(--font-size-base);
-            min-width: 900px;
+            min-width: 0;
+            table-layout: fixed;
         }
 
         th {
@@ -891,6 +902,7 @@
             position: sticky;
             top: 0;
             z-index: 10;
+            white-space: nowrap;
         }
 
         td {
@@ -899,7 +911,20 @@
             color: var(--text);
             text-align: center;
             vertical-align: middle;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
+
+        th:nth-child(1), td:nth-child(1) { width: 6%; }
+        th:nth-child(2), td:nth-child(2) { width: 9%; }
+        th:nth-child(3), td:nth-child(3) { width: 10%; }
+        th:nth-child(4), td:nth-child(4) { width: 8%; }
+        th:nth-child(5), td:nth-child(5) { width: 14%; }
+        th:nth-child(6), td:nth-child(6) { width: 14%; }
+        th:nth-child(7), td:nth-child(7) { width: 14%; }
+        th:nth-child(8), td:nth-child(8) { width: 15%; }
+        th:nth-child(9), td:nth-child(9) { width: 10%; }
 
         .status-chip {
             display: inline-flex;
@@ -990,6 +1015,12 @@
             border-radius: 999px;
             background: color-mix(in srgb, var(--primary-light) 72%, var(--card) 28%);
             box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary) 20%, transparent 80%);
+        }
+
+        .owner-count:hover,
+        .owner-address:hover {
+            background: var(--primary-light);
+            box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary) 28%, transparent 72%);
         }
 
         .owner-address {
@@ -1086,7 +1117,7 @@
         /* 响应式 */
         @media (max-width: 1300px) {
             .main-layout {
-                grid-template-columns: 280px 1fr 280px;
+                grid-template-columns: 240px 1fr 240px;
             }
         }
 
@@ -1155,7 +1186,7 @@
             background: var(--bg);
         }
         .table-wrapper table {
-            min-width: 980px;
+            min-width: 0;
         }
         @media (max-width: 768px) {
             body {
@@ -1186,6 +1217,17 @@
             }
             .left-panel, .middle-panel, .right-panel {
                 gap: 10px;
+            }
+            .table-wrapper {
+                overflow-x: auto;
+            }
+            table {
+                min-width: 900px;
+                table-layout: auto;
+            }
+            th,
+            td {
+                white-space: nowrap;
             }
             .card,
             .results-table-container,
@@ -1861,6 +1903,7 @@
                 noGrace: '非宽限',
                 time: '时间',
                 default: '默认',
+                addressCountDetail: '{address} 共有 {count} 个域名',
                 earliest: '最早到期',
                 latest: '最晚到期',
                 search: '搜索',
@@ -1981,6 +2024,7 @@
                 noGrace: 'No Grace',
                 time: 'Sort',
                 default: 'Default',
+                addressCountDetail: '{address} owns {count} domains',
                 earliest: 'Earliest',
                 latest: 'Latest',
                 search: 'Search',
@@ -3560,15 +3604,20 @@
                 if (r.所有者地址) {
                     const count = addressCountMap.get(r.所有者地址) || 1;
                     const shortAddr = shortenAddress(r.所有者地址);
-                    const titleText = translations[currentLang].addressCount.replace('{count}', count);
+                    const titleText = (translations[currentLang].addressCountDetail || '{address} owns {count} domains')
+                        .replace('{address}', r.所有者地址)
+                        .replace('{count}', count);
 
                     const isAddressInSearch = currentSearch && r.所有者地址 &&
                                              r.所有者地址.toLowerCase().includes(currentSearch);
+                    const countBadgeHtml = count > 1
+                        ? `<span class="owner-count" onclick="filterByAddress('${r.所有者地址}')" title="${titleText}">${count}</span>`
+                        : '';
 
                     addressHtml = `
                         <div class="owner-cell">
-                            <span class="owner-count" onclick="filterByAddress('${r.所有者地址}')">${count > 1 ? count : ''}</span>
-                            <span class="owner-address ${isAddressInSearch ? 'active' : ''}" onclick="filterByAddress('${r.所有者地址}')">${shortAddr}</span>
+                            ${countBadgeHtml}
+                            <span class="owner-address ${isAddressInSearch ? 'active' : ''}" onclick="filterByAddress('${r.所有者地址}')" title="${titleText}">${shortAddr}</span>
                             <i class="fas fa-times-circle owner-clear"
                                onclick="clearAddressSearch(event, '${r.所有者地址}')"
                                title="${translations[currentLang].clearAddressSearch}"
@@ -4787,19 +4836,24 @@
       const started = Date.now();
       try {
         const { available, price, priceError } = await readAvailableAndPrice(ctx, label);
-        if (available && priceError) {
-          throw new Error('rentPrice unavailable');
-        }
-        const premiumAmount = getPremiumAmount(price);
         const expiryRaw = await ctx.registrar.methods.nameExpires(tokenId).call().catch(() => 0);
         const expiry = Number(expiryRaw || 0);
         const nowTs = Math.floor(Date.now() / 1000);
         const graceEndTs = expiry ? expiry + 90 * 24 * 3600 : 0;
+        const premiumEndTs = graceEndTs ? graceEndTs + 21 * 24 * 3600 : 0;
+        const premiumAmount = getPremiumAmount(price);
+        const inferredPremiumByExpiry = Boolean(
+          available &&
+          expiry &&
+          nowTs > graceEndTs &&
+          nowTs <= premiumEndTs
+        );
+        const isPremiumAvailable = premiumAmount > 0n || inferredPremiumByExpiry;
         if (available) {
           // ENS official flow: available=true means name can be registered now.
           // premium > 0 indicates Dutch-auction premium period, not an active registration.
           let previousOwner = '';
-          if (premiumAmount > 0n) {
+          if (isPremiumAvailable) {
             previousOwner = await getLastOwnerFinal(tokenId, ctx);
             if (!previousOwner) {
               const registrationMeta = await getRegistrationMetaFinal(label, tokenId, ctx);
@@ -4810,17 +4864,19 @@
           return {
             序号: idx + 1,
             域名: domain,
-            状态: premiumAmount > 0n ? 'premium' : 'unregistered',
+            状态: isPremiumAvailable ? 'premium' : 'unregistered',
             过期天数: '',
             过期时间: '',
             宽限期结束: '',
             注册时间: '',
-            所有者地址: premiumAmount > 0n ? previousOwner : '',
-            错误信息: '',
-            注册状态: premiumAmount > 0n ? 'premium' : 'unregistered',
-            过期状态: premiumAmount > 0n ? 'expired' : 'valid',
+            所有者地址: isPremiumAvailable ? previousOwner : '',
+            错误信息: (!price && priceError && !inferredPremiumByExpiry)
+              ? String(priceError.message || priceError.reason || priceError.code || '').slice(0, 80)
+              : '',
+            注册状态: isPremiumAvailable ? 'premium' : 'unregistered',
+            过期状态: isPremiumAvailable ? 'expired' : 'valid',
             宽限状态: 'no_grace',
-            溢价状态: premiumAmount > 0n ? 'in_premium' : 'no_premium',
+            溢价状态: isPremiumAvailable ? 'in_premium' : 'no_premium',
             时间戳: 0
           };
         }
