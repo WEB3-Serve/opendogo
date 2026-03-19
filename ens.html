@@ -73,17 +73,18 @@
             background: var(--bg);
             color: var(--text);
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            padding: 20px;
+            padding: 20px 24px;
             transition: background 0.2s, color 0.2s;
             line-height: 1.5;
             display: flex;
             justify-content: center;
+            align-items: flex-start;
             min-height: 100vh;
         }
 
         .container {
-            max-width: 1600px;
-            width: 100%;
+            max-width: 1520px;
+            width: min(1520px, 100%);
             margin: 0 auto;
             display: flex;
             flex-direction: column;
@@ -169,11 +170,12 @@
         /* 三列布局 */
         .main-layout {
             display: grid;
-            grid-template-columns: 300px 1fr 300px;
+            grid-template-columns: minmax(280px, 300px) minmax(0, 1fr) minmax(280px, 300px);
             gap: var(--spacing);
             width: 100%;
             flex: 1;
             min-height: 0;
+            align-items: start;
         }
 
         /* 左右面板 - 顶部对齐 */
@@ -426,6 +428,83 @@
             border-radius: 5px;
             padding: 8px 12px;
             font-size: var(--font-size-base);
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .user-submodule {
+            margin-bottom: 14px;
+            padding: 12px;
+            background: color-mix(in srgb, var(--bg) 84%, var(--card) 16%);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+
+        .user-submodule-title {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: var(--font-size-sm);
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 10px;
+        }
+
+        .user-submodule-title i {
+            color: var(--warning);
+        }
+
+        .user-input-row.stack-mobile {
+            align-items: flex-end;
+        }
+
+        .user-option-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        .user-check {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-light);
+            font-size: var(--font-size-sm);
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .user-check input {
+            accent-color: var(--primary);
+        }
+
+        .user-inline-btn {
+            min-width: 92px;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            background: var(--warning);
+            color: #fff;
+            font-size: var(--font-size-sm);
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .user-inline-btn:hover {
+            background: var(--warning-hover);
+        }
+
+        .user-tip {
+            margin-top: 8px;
+            font-size: var(--font-size-sm);
+            color: var(--text-muted);
+        }
+
+        .status-value.card-active {
+            color: var(--warning);
+            font-weight: 600;
         }
 
         .status-left {
@@ -889,28 +968,34 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 6px;
+            gap: 4px;
             min-height: 24px;
+            padding: 2px 0;
         }
 
         .owner-count,
         .owner-clear {
-            width: 16px;
+            width: 18px;
+            height: 18px;
             text-align: center;
-            flex: 0 0 16px;
+            flex: 0 0 18px;
             font-size: 0.7rem;
+            line-height: 18px;
         }
 
         .owner-count {
             color: var(--primary);
             font-weight: 700;
             cursor: pointer;
+            border-radius: 999px;
+            background: color-mix(in srgb, var(--primary-light) 72%, var(--card) 28%);
+            box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary) 20%, transparent 80%);
         }
 
         .owner-address {
             cursor: pointer;
             background: var(--bg);
-            padding: 2px 8px;
+            padding: 2px 10px;
             border-radius: 30px;
             min-width: 106px;
             text-align: center;
@@ -1078,6 +1163,7 @@
             }
             .container {
                 max-width: 100%;
+                width: 100%;
             }
             .header {
                 padding: 12px;
@@ -1101,40 +1187,109 @@
             .left-panel, .middle-panel, .right-panel {
                 gap: 10px;
             }
-            .card {
+            .card,
+            .results-table-container,
+            .user-module,
+            .control-module,
+            .filter-module,
+            .domain-input-module {
                 padding: 12px;
             }
-            .domain-options-row,
-            .program-buttons,
-            .user-actions-row,
-            .rpc-row,
-            .param-row,
-            .filter-row-2col,
-            .filter-grid-2col,
-            .param-grid-2col,
             .user-input-row,
-            .table-header,
-            .table-header-left,
-            .table-actions,
-            .query-speed-indicator,
-            .stat-grid {
-                display: flex !important;
+            .user-input-row.stack-mobile,
+            .user-actions-row {
                 flex-direction: column;
-                align-items: stretch !important;
+            }
+            .user-inline-btn,
+            .user-action-btn {
+                width: 100%;
+            }
+            .domain-options-row {
+                display: grid !important;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                gap: 8px;
+                justify-content: stretch;
+            }
+            .domain-options-row label {
+                width: 100%;
+                text-align: center;
+                padding: 8px 6px;
+            }
+            .program-buttons {
+                display: grid !important;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                gap: 8px;
+                width: 100%;
+            }
+            .program-buttons .btn {
+                width: 100%;
+                min-width: 0;
+                padding-inline: 6px;
+            }
+            .domain-info {
+                align-items: flex-start;
+            }
+            .stat-grid,
+            .param-grid-2col,
+            .filter-grid-2col {
+                display: grid !important;
+                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
                 gap: 8px;
             }
-            .table-actions .btn,
-            .program-buttons .btn,
-            .user-action-btn,
-            .page-btn,
-            .btn-sm,
-            .btn {
-                width: 100%;
-                justify-content: center;
+            .filter-row-2col {
+                display: grid !important;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 8px;
             }
-            .filter-grid-2col,
-            .param-grid-2col {
-                grid-template-columns: 1fr !important;
+            .rpc-row {
+                grid-column: span 2;
+            }
+            .param-row,
+            .filter-group {
+                min-width: 0;
+            }
+            .table-header {
+                align-items: stretch;
+                gap: 10px;
+                flex-wrap: wrap;
+            }
+            .table-header-left {
+                display: flex;
+                flex-direction: column;
+                align-items: stretch;
+                gap: 10px;
+                width: 100%;
+            }
+            .query-speed-indicator {
+                display: flex !important;
+                flex-wrap: wrap;
+                justify-content: flex-start;
+                border-radius: 12px;
+                padding: 8px 10px;
+                gap: 6px;
+            }
+            .table-actions {
+                width: 100%;
+            }
+            .table-actions .btn {
+                width: 100%;
+            }
+            .pagination {
+                justify-content: center;
+                gap: 8px;
+            }
+            .pagination > div {
+                display: grid;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                gap: 6px;
+                width: 100%;
+            }
+            .pagination .page-btn,
+            .pagination .btn,
+            .pagination .page-input,
+            .pagination select {
+                width: 100%;
+                min-width: 0;
             }
             .table-wrapper {
                 overflow-x: auto;
@@ -1171,6 +1326,11 @@
             }
             .stat-value {
                 font-size: 0.95rem;
+            }
+            .domain-options-row,
+            .program-buttons,
+            .pagination > div {
+                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
             }
         }
 
@@ -1419,6 +1579,33 @@
                         </button>
                     </div>
 
+                    <div class="user-submodule">
+                        <div class="user-submodule-title">
+                            <i class="fas fa-key"></i>
+                            <span data-i18n="cardKey">卡密激活</span>
+                        </div>
+                        <div class="user-input-row stack-mobile">
+                            <div class="user-input-group">
+                                <label data-i18n="cardKey">卡密激活</label>
+                                <input type="password" class="user-input" id="cardKey" data-i18n-placeholder="cardKeyPlaceholder" placeholder="请输入卡密">
+                            </div>
+                            <button class="user-inline-btn" onclick="activateCardKey()">
+                                <i class="fas fa-bolt"></i> <span data-i18n="activate">激活</span>
+                            </button>
+                        </div>
+                        <div class="user-option-row">
+                            <label class="user-check">
+                                <input type="checkbox" id="rememberCardKey" onchange="handleCardKeyOptionsChange()">
+                                <span data-i18n="rememberCardKey">记住卡密</span>
+                            </label>
+                            <label class="user-check">
+                                <input type="checkbox" id="hideCardKey" onchange="handleCardKeyOptionsChange()" checked>
+                                <span data-i18n="hideCardKey">隐藏卡密</span>
+                            </label>
+                        </div>
+                        <div class="user-tip" data-i18n="cardKeyTip">卡密仅保存在当前浏览器本地。</div>
+                    </div>
+
                     <div class="user-status-row">
                         <div class="status-left">
                             <span class="status-label" data-i18n="loginStatus">登录状态：</span>
@@ -1427,6 +1614,10 @@
                         <div class="status-right">
                             <span class="status-label" data-i18n="currentUser">当前用户：</span>
                             <span class="status-value" id="currentUser">-</span>
+                        </div>
+                        <div class="status-right">
+                            <span class="status-label" data-i18n="cardKeyStatus">卡密状态：</span>
+                            <span class="status-value" id="cardKeyStatus" data-i18n="cardKeyInactive">未激活</span>
                         </div>
                     </div>
                 </div>
@@ -1637,6 +1828,15 @@
                 password: '密码',
                 usernamePlaceholder: '请输入账号',
                 passwordPlaceholder: '请输入密码',
+                cardKey: '卡密激活',
+                cardKeyPlaceholder: '请输入卡密',
+                activate: '激活',
+                rememberCardKey: '记住卡密',
+                hideCardKey: '隐藏卡密',
+                cardKeyStatus: '卡密状态：',
+                cardKeyInactive: '未激活',
+                cardKeyActive: '已激活',
+                cardKeyTip: '卡密仅保存在当前浏览器本地。',
                 register: '注册',
                 login: '登录',
                 logout: '退出',
@@ -1748,6 +1948,15 @@
                 password: 'Password',
                 usernamePlaceholder: 'Enter username',
                 passwordPlaceholder: 'Enter password',
+                cardKey: 'Access Code',
+                cardKeyPlaceholder: 'Enter access code',
+                activate: 'Activate',
+                rememberCardKey: 'Remember code',
+                hideCardKey: 'Hide code',
+                cardKeyStatus: 'Code status:',
+                cardKeyInactive: 'Inactive',
+                cardKeyActive: 'Activated',
+                cardKeyTip: 'Stored locally in this browser only.',
                 register: 'Register',
                 login: 'Login',
                 logout: 'Logout',
@@ -1825,6 +2034,10 @@
 
         const STORAGE_KEY = 'ens_query_results';
         const STORAGE_TIME_KEY = 'ens_query_time';
+        const SESSION_STORAGE_KEY = 'ens_query_session';
+        const CARD_KEY_STORAGE_KEY = 'ens-card-key';
+        const CARD_KEY_REMEMBER_KEY = 'ens-card-key-remember';
+        const CARD_KEY_HIDE_KEY = 'ens-card-key-hide';
 
         const ENS_REGISTRY = "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e";
         const BASE_REGISTRAR = "0x57f1887a8BF19b14fC0dF6Fd9B2acc9Af147eA85";
@@ -1962,7 +2175,7 @@
             });
 
             updateDomainsCount();
-            updateTable();
+            updateTable({ preserveScroll: false });
             updateStatistics();
             updateUserStatus();
 
@@ -2002,6 +2215,65 @@
             }
         }
 
+        let sessionSaveTimer = null;
+        let isRestoringSession = false;
+
+        function getCurrentFiltersSnapshot() {
+            return {
+                status: document.getElementById('filterStatus')?.value || 'all',
+                premium: document.getElementById('filterPremium')?.value || 'all',
+                expiry: document.getElementById('filterExpiry')?.value || 'all',
+                grace: document.getElementById('filterGrace')?.value || 'all',
+                sort: document.getElementById('filterSort')?.value || 'default',
+                search: document.getElementById('filterSearch')?.value || '',
+                pageSize: document.getElementById('pageSize')?.value || String(pageSize || 50)
+            };
+        }
+
+        function applyFiltersSnapshot(filters = {}) {
+            const pairs = {
+                filterStatus: filters.status || 'all',
+                filterPremium: filters.premium || 'all',
+                filterExpiry: filters.expiry || 'all',
+                filterGrace: filters.grace || 'all',
+                filterSort: filters.sort || 'default',
+                filterSearch: filters.search || '',
+                pageSize: filters.pageSize || String(pageSize || 50)
+            };
+            Object.entries(pairs).forEach(([id, value]) => {
+                const el = document.getElementById(id);
+                if (el) el.value = value;
+            });
+        }
+
+        function buildSessionPayload() {
+            return {
+                version: 1,
+                timestamp: Date.now(),
+                queryResults,
+                pendingDomains,
+                currentIndex,
+                processedDomains,
+                totalDomains,
+                startTime,
+                isPaused,
+                isQueryRunning,
+                currentPage,
+                domainsText: document.getElementById('domainsText')?.value || '',
+                filters: getCurrentFiltersSnapshot(),
+                progress: {
+                    queryProgress: document.getElementById('queryProgress')?.textContent || '',
+                    progressPercent: document.getElementById('progressPercent')?.textContent || '',
+                    progressText: document.getElementById('progressText')?.textContent || '',
+                    querySpeedDisplay: document.getElementById('querySpeedDisplay')?.textContent || ''
+                },
+                scroll: {
+                    pageY: window.scrollY || 0,
+                    tableTop: document.querySelector('.table-wrapper')?.scrollTop || 0
+                }
+            };
+        }
+
         function saveResultsToStorage() {
             if (queryResults && queryResults.length > 0) {
                 const data = {
@@ -2011,6 +2283,31 @@
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
                 localStorage.setItem(STORAGE_TIME_KEY, new Date().toLocaleString());
             }
+        }
+
+        function scheduleSessionSave(immediate = false) {
+            if (isRestoringSession) return;
+            const persist = () => {
+                sessionSaveTimer = null;
+                const hasState = (queryResults && queryResults.length > 0) || pendingDomains.length || (document.getElementById('domainsText')?.value || '').trim();
+                if (!hasState) {
+                    localStorage.removeItem(SESSION_STORAGE_KEY);
+                    return;
+                }
+                localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(buildSessionPayload()));
+            };
+
+            if (immediate) {
+                if (sessionSaveTimer) {
+                    clearTimeout(sessionSaveTimer);
+                    sessionSaveTimer = null;
+                }
+                persist();
+                return;
+            }
+
+            if (sessionSaveTimer) clearTimeout(sessionSaveTimer);
+            sessionSaveTimer = setTimeout(persist, 180);
         }
 
         function loadResultsFromStorage() {
@@ -2025,6 +2322,7 @@
                     updateStatistics();
 
                     document.getElementById('exportBtn').disabled = false;
+                    scheduleSessionSave(true);
 
                     const savedTime = localStorage.getItem(STORAGE_TIME_KEY);
                     if (savedTime) {
@@ -2038,6 +2336,76 @@
                 }
             }
             return false;
+        }
+
+        function restoreSessionFromStorage() {
+            const saved = localStorage.getItem(SESSION_STORAGE_KEY);
+            if (!saved) return false;
+
+            try {
+                const data = JSON.parse(saved);
+                if (!data || typeof data !== 'object') return false;
+
+                isRestoringSession = true;
+                queryResults = Array.isArray(data.queryResults) ? data.queryResults : (Array.isArray(data.results) ? data.results : []);
+                filteredResults = queryResults.filter(Boolean);
+                pendingDomains = Array.isArray(data.pendingDomains) ? data.pendingDomains : [];
+                currentIndex = Number.isFinite(data.currentIndex) ? data.currentIndex : queryResults.filter(Boolean).length;
+                processedDomains = Number.isFinite(data.processedDomains) ? data.processedDomains : queryResults.filter(Boolean).length;
+                totalDomains = Number.isFinite(data.totalDomains) ? data.totalDomains : Math.max(processedDomains, pendingDomains.length, queryResults.length);
+                startTime = data.startTime || null;
+                isQueryRunning = false;
+                isPaused = !!(data.isPaused || data.isQueryRunning);
+                currentPage = Number.isFinite(data.currentPage) && data.currentPage > 0 ? data.currentPage : 1;
+
+                const domainsText = typeof data.domainsText === 'string' ? data.domainsText : pendingDomains.join('\n');
+                const domainsEl = document.getElementById('domainsText');
+                if (domainsEl) domainsEl.value = domainsText;
+                updateDomainsCount();
+                applyFiltersSnapshot(data.filters || {});
+                if (document.getElementById('queryProgress') && data.progress?.queryProgress) {
+                    document.getElementById('queryProgress').textContent = data.progress.queryProgress;
+                }
+                if (document.getElementById('progressPercent') && data.progress?.progressPercent) {
+                    document.getElementById('progressPercent').textContent = data.progress.progressPercent;
+                }
+                if (document.getElementById('progressText') && data.progress?.progressText) {
+                    document.getElementById('progressText').textContent = data.progress.progressText;
+                }
+                if (document.getElementById('querySpeedDisplay') && data.progress?.querySpeedDisplay) {
+                    document.getElementById('querySpeedDisplay').textContent = data.progress.querySpeedDisplay;
+                }
+
+                applyFilters();
+                currentPage = Number.isFinite(data.currentPage) && data.currentPage > 0 ? data.currentPage : 1;
+                updateTable();
+                updateStatistics();
+                document.getElementById('exportBtn').disabled = !queryResults.filter(Boolean).length;
+                document.getElementById('startQueryBtn').disabled = false;
+                document.getElementById('resumeQueryBtn').disabled = !(isPaused && currentIndex < pendingDomains.length);
+                document.getElementById('stopQueryBtn').disabled = true;
+                updateRetryAllButton();
+
+                requestAnimationFrame(() => {
+                    const tableWrapper = document.querySelector('.table-wrapper');
+                    if (tableWrapper && data.scroll && Number.isFinite(data.scroll.tableTop)) {
+                        tableWrapper.scrollTop = data.scroll.tableTop;
+                    }
+                    if (data.scroll && Number.isFinite(data.scroll.pageY)) {
+                        window.scrollTo({ top: data.scroll.pageY, behavior: 'auto' });
+                    }
+                });
+
+                if (queryResults.filter(Boolean).length || pendingDomains.length) {
+                    addLog(currentLang === 'zh' ? '已恢复上次页面状态' : 'Previous page state restored', 'info');
+                }
+                return !!(queryResults.filter(Boolean).length || pendingDomains.length);
+            } catch (e) {
+                console.error('恢复会话状态失败:', e);
+                return false;
+            } finally {
+                isRestoringSession = false;
+            }
         }
 
         function initRpcStatus() {
@@ -2278,6 +2646,17 @@
             addLog(translations[currentLang].logFilterByAddress.replace('{address}', shortAddr), 'info');
         }
 
+        function isAnyFilterActive() {
+            return (
+                document.getElementById('filterStatus')?.value !== 'all' ||
+                document.getElementById('filterPremium')?.value !== 'all' ||
+                document.getElementById('filterExpiry')?.value !== 'all' ||
+                document.getElementById('filterGrace')?.value !== 'all' ||
+                document.getElementById('filterSort')?.value !== 'default' ||
+                !!document.getElementById('filterSearch')?.value.trim()
+            );
+        }
+
         function filterByStat(status) {
             document.getElementById('filterStatus').value = status;
             applyFilters();
@@ -2360,6 +2739,7 @@
 
             // 先清空文本框
             document.getElementById('domainsText').value = '';
+            updateDomainsCount();
 
             const selectedType = document.querySelector('input[name="domainType"]:checked')?.value;
             addLog(translations[currentLang].logLoadStart, 'info');
@@ -2390,9 +2770,11 @@
             } else if (['aabb', 'abab', 'abba', 'abbb'].includes(selectedType)) {
                 domains = generatePatternDomains(selectedType);
                 document.getElementById('domainsText').value = domains.join('\n');
+                updateDomainsCount();
             }
 
             isLoadingDomains = false;
+            updateDomainsCount();
             const finalCount = document.getElementById('domainsText').value.split('\n').filter(s=>s.trim()).length;
             addLog(translations[currentLang].logLoadComplete.replace('{count}', finalCount), 'success');
         }
@@ -3106,7 +3488,10 @@
             addLog(translations[currentLang].clearFilters || '筛选已清除', 'info');
         }
 
-        function updateTable() {
+        function updateTable(options = {}) {
+            const preserveScroll = options.preserveScroll !== false;
+            const tableContainer = document.querySelector('.table-wrapper');
+            const previousScrollTop = preserveScroll && tableContainer ? tableContainer.scrollTop : 0;
             if (!filteredResults || filteredResults.length === 0) {
                 const noDataText = currentLang === 'zh' ? '暂无数据' : 'No data';
                 document.getElementById('resultsBody').innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 20px;">${noDataText}</td></tr>`;
@@ -3217,9 +3602,8 @@
             document.getElementById('resultsCount').innerText = `(${validResults.length})`;
             updatePagination();
 
-            const tableContainer = document.querySelector('.table-wrapper');
             if (tableContainer) {
-                tableContainer.scrollTop = 0;
+                tableContainer.scrollTop = preserveScroll ? previousScrollTop : 0;
             }
         }
 
@@ -3234,13 +3618,13 @@
         function changePageSize() {
             pageSize = parseInt(document.getElementById('pageSize').value);
             currentPage = 1;
-            updateTable();
+            updateTable({ preserveScroll: false });
         }
 
         function changePage(p) {
             if(p >= 1 && p <= totalPages) {
                 currentPage = p;
-                updateTable();
+                updateTable({ preserveScroll: false });
             }
         }
 
@@ -3254,13 +3638,14 @@
         }
 
         function updateStatistics() {
-            const list = filteredResults.length ? filteredResults : (queryResults.filter(r=>r) || []);
+            const hasActiveFilter = isAnyFilterActive();
+            const list = hasActiveFilter ? filteredResults : (queryResults.filter(r=>r) || []);
             let reg = 0, unreg = 0, premium = 0, err = 0, exp = 0;
 
             list.forEach(r => {
                 if (r.注册状态 === 'registered') reg++;
                 else if (r.注册状态 === 'unregistered') unreg++;
-                else if (r.注册状态 === 'premium') premium++;
+                else if (r.注册状态 === 'premium' || r.溢价状态 === 'in_premium') premium++;
                 else if (r.注册状态 === 'error') err++;
                 if (r.过期状态 === 'expired') exp++;
             });
@@ -3295,6 +3680,7 @@
 
                 localStorage.removeItem(STORAGE_KEY);
                 localStorage.removeItem(STORAGE_TIME_KEY);
+                localStorage.removeItem(SESSION_STORAGE_KEY);
 
                 addLog(translations[currentLang].logClear, 'warning');
             }
@@ -3439,6 +3825,72 @@
         let currentUser = localStorage.getItem('ens-current-user');
         let isLoggedIn = localStorage.getItem('ens-is-logged-in') === 'true';
 
+        function syncCardKeyVisibility() {
+            const cardKeyEl = document.getElementById('cardKey');
+            const hideEl = document.getElementById('hideCardKey');
+            if (!cardKeyEl || !hideEl) return;
+            cardKeyEl.type = hideEl.checked ? 'password' : 'text';
+            localStorage.setItem(CARD_KEY_HIDE_KEY, hideEl.checked ? 'true' : 'false');
+        }
+
+        function updateCardKeyStatus() {
+            const cardKeyStatusEl = document.getElementById('cardKeyStatus');
+            if (!cardKeyStatusEl) return;
+            const currentCardKey = document.getElementById('cardKey')?.value.trim() || '';
+            const isActive = !!currentCardKey;
+            cardKeyStatusEl.textContent = isActive
+                ? (currentLang === 'zh' ? '已激活' : 'Activated')
+                : (currentLang === 'zh' ? '未激活' : 'Inactive');
+            cardKeyStatusEl.className = `status-value ${isActive ? 'card-active' : 'logged-out'}`;
+        }
+
+        function handleCardKeyOptionsChange() {
+            const rememberEl = document.getElementById('rememberCardKey');
+            const cardKeyEl = document.getElementById('cardKey');
+            if (rememberEl) {
+                localStorage.setItem(CARD_KEY_REMEMBER_KEY, rememberEl.checked ? 'true' : 'false');
+                if (!rememberEl.checked) {
+                    localStorage.removeItem(CARD_KEY_STORAGE_KEY);
+                } else if (cardKeyEl?.value.trim()) {
+                    localStorage.setItem(CARD_KEY_STORAGE_KEY, cardKeyEl.value.trim());
+                }
+            }
+            syncCardKeyVisibility();
+            updateCardKeyStatus();
+        }
+
+        function activateCardKey() {
+            const cardKeyEl = document.getElementById('cardKey');
+            const rememberEl = document.getElementById('rememberCardKey');
+            const cardKey = cardKeyEl?.value.trim() || '';
+            if (!cardKey) {
+                alert(currentLang === 'zh' ? '请输入卡密' : 'Please enter the access code');
+                return;
+            }
+            if (rememberEl?.checked) {
+                localStorage.setItem(CARD_KEY_STORAGE_KEY, cardKey);
+            }
+            updateCardKeyStatus();
+            addLog(currentLang === 'zh' ? '卡密已激活并保存到当前页面状态' : 'Access code activated for current session', 'success');
+        }
+
+        function initCardKeySettings() {
+            const rememberEl = document.getElementById('rememberCardKey');
+            const hideEl = document.getElementById('hideCardKey');
+            const cardKeyEl = document.getElementById('cardKey');
+            if (!rememberEl || !hideEl || !cardKeyEl) return;
+
+            const rememberSaved = localStorage.getItem(CARD_KEY_REMEMBER_KEY) === 'true';
+            const hideSaved = localStorage.getItem(CARD_KEY_HIDE_KEY);
+            const cardKeySaved = localStorage.getItem(CARD_KEY_STORAGE_KEY) || '';
+
+            rememberEl.checked = rememberSaved;
+            hideEl.checked = hideSaved !== 'false';
+            cardKeyEl.value = rememberSaved ? cardKeySaved : '';
+            syncCardKeyVisibility();
+            updateCardKeyStatus();
+        }
+
         function updateUserStatus() {
             const loginStatusEl = document.getElementById('loginStatus');
             const currentUserEl = document.getElementById('currentUser');
@@ -3456,6 +3908,7 @@
                 localStorage.removeItem('ens-current-user');
                 localStorage.setItem('ens-is-logged-in', 'false');
             }
+            updateCardKeyStatus();
         }
 
 
@@ -3532,14 +3985,23 @@
             document.getElementById('domainsText').addEventListener('input', updateDomainsCount);
             updateDomainsCount();
             updateUserStatus();
+            initCardKeySettings();
             updateRpcList();
             syncDomainModuleHeight();
 
-            const hasSavedData = loadResultsFromStorage();
+            const hasSessionData = restoreSessionFromStorage();
+            const hasSavedData = hasSessionData || loadResultsFromStorage();
             if (hasSavedData) {
                 document.getElementById('exportBtn').disabled = false;
                 updateRetryAllButton();
             }
+
+            document.getElementById('domainsText').addEventListener('input', () => scheduleSessionSave());
+            ['filterStatus', 'filterPremium', 'filterExpiry', 'filterGrace', 'filterSort', 'filterSearch', 'pageSize'].forEach(id => {
+                document.getElementById(id)?.addEventListener('input', () => scheduleSessionSave());
+                document.getElementById(id)?.addEventListener('change', () => scheduleSessionSave());
+            });
+            window.addEventListener('beforeunload', () => scheduleSessionSave(true));
 
             setTimeout(() => checkAllRpcNodes(), 1000);
             setInterval(() => checkAllRpcNodes(), 300000);
@@ -3592,6 +4054,8 @@
         window.registerUser = registerUser;
         window.loginUser = loginUser;
         window.logoutUser = logoutUser;
+        window.activateCardKey = activateCardKey;
+        window.handleCardKeyOptionsChange = handleCardKeyOptionsChange;
     </script>
 
 <script>
@@ -3858,6 +4322,10 @@
         updateStatistics();
         updateRpcList();
       }
+      if (processedDomains % 5 === 0 || processedDomains === totalDomains) {
+        saveResultsToStorage();
+        scheduleSessionSave();
+      }
 
       const delay = uiNum('requestDelay', 0);
       if (!isPaused && delay > 0) await new Promise(r => setTimeout(r, delay));
@@ -3899,6 +4367,7 @@
     document.getElementById('retryAllBtn').disabled = true;
     resetRpcRunQueryCount();
     addLog((translations[currentLang].logQueryStart || '开始查询 {count} 个域名').replace('{count}', totalDomains), 'info');
+    scheduleSessionSave(true);
     const maxWorkers = Math.max(1, Math.min(200, uiNum('maxWorkers', 80)));
     activeWorkers = maxWorkers;
     for (let i = 0; i < maxWorkers; i++) window.worker();
@@ -3916,6 +4385,7 @@
     document.getElementById('exportBtn').disabled = true;
     document.getElementById('retryAllBtn').disabled = true;
     addLog((translations[currentLang].logQueryResumed || '继续查询，剩余 {remaining} 个域名').replace('{remaining}', pendingDomains.length - currentIndex), 'info');
+    scheduleSessionSave(true);
     const maxWorkers = Math.max(1, Math.min(200, uiNum('maxWorkers', 80)));
     activeWorkers = maxWorkers;
     for (let i = 0; i < maxWorkers; i++) window.worker();
@@ -4416,6 +4886,56 @@
     };
   };
 
+  function needsBackgroundRefresh(result) {
+    if (!result || result.重试中) return false;
+    if (result.注册状态 === 'error' || result.状态 === 'error') return true;
+    if ((result.注册状态 === 'registered' || result.状态 === 'registered' || result.注册状态 === 'expired' || result.状态 === 'expired') && !result.所有者地址) return true;
+    if ((result.注册状态 === 'registered' || result.状态 === 'registered') && !result.注册时间) return true;
+    if ((result.注册状态 === 'premium' || result.状态 === 'premium') && !result.所有者地址) return true;
+    return false;
+  }
+
+  function resultCompletenessScore(result) {
+    if (!result) return 0;
+    let score = 0;
+    if (result.注册状态 && result.注册状态 !== 'error') score += 2;
+    if (result.所有者地址) score += 3;
+    if (result.注册时间) score += 2;
+    if (result.过期时间) score += 1;
+    if (result.错误信息) score -= 2;
+    return score;
+  }
+
+  async function refreshIncompleteResults(reason = 'background') {
+    if (isQueryRunning || isRetrying || isRetryingAll) return;
+    const targets = queryResults
+      .map((result, index) => ({ result, index }))
+      .filter(({ result }) => needsBackgroundRefresh(result));
+    if (!targets.length) return;
+
+    addLog((currentLang === 'zh'
+      ? `自动补查 ${targets.length} 条${reason === 'restore' ? '已恢复的' : ''}未完整结果`
+      : `Auto-refreshing ${targets.length} incomplete results`), 'info');
+
+    const concurrency = Math.min(6, Math.max(2, num('maxWorkers', 6)));
+    for (let i = 0; i < targets.length; i += concurrency) {
+      const batch = targets.slice(i, i + concurrency);
+      await Promise.all(batch.map(async ({ result, index }) => {
+        try {
+          const fresh = await window.queryDomain(result.域名, index);
+          if (resultCompletenessScore(fresh) >= resultCompletenessScore(result)) {
+            queryResults[index] = { ...fresh, 重试中: false };
+          }
+        } catch (_) {}
+      }));
+      filteredResults = queryResults.filter(Boolean);
+      applyFilters();
+      updateStatistics();
+      saveResultsToStorage();
+      scheduleSessionSave();
+    }
+  }
+
   window.retrySingleDomain = async function(domain, index, event) {
     if (event) {
       event.stopPropagation();
@@ -4443,6 +4963,7 @@
       applyFilters();
       updateStatistics();
       saveResultsToStorage();
+      scheduleSessionSave();
       updateRetryAllButton();
       addLog((result.注册状态 !== 'error' && result.状态 !== 'error') ? ((currentLang === 'zh' ? '重试成功: ' : 'Retry succeeded: ') + domain) : ((currentLang === 'zh' ? '重试失败: ' : 'Retry failed: ') + domain), result.注册状态 !== 'error' && result.状态 !== 'error' ? 'success' : 'warning');
     } catch (e) {
@@ -4502,13 +5023,19 @@
       const concurrency = Math.max(20, Math.min(120, num('maxWorkers', 80)));
       for (let i = 0; i < failedDomains.length; i += concurrency) {
         const batch = failedDomains.slice(i, i + concurrency);
+        batch.forEach(item => {
+          const previous = queryResults[item.index] || { 序号: item.index + 1, 域名: item.domain, 状态: 'error', 注册状态: 'error' };
+          queryResults[item.index] = { ...previous, 重试中: true, 错误信息: currentLang === 'zh' ? '重试中...' : 'Retrying...' };
+          addLog((currentLang === 'zh' ? '已发起重试: ' : 'Retry queued: ') + item.domain, 'info');
+        });
+        filteredResults = queryResults.filter(Boolean);
+        applyFilters();
+        updateStatistics();
+        updateRetryProgress();
+        await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 0)));
+
         await Promise.all(batch.map(async item => {
           try {
-            const previous = queryResults[item.index] || { 序号: item.index + 1, 域名: item.domain, 状态: 'error', 注册状态: 'error' };
-            queryResults[item.index] = { ...previous, 重试中: true, 错误信息: currentLang === 'zh' ? '重试中...' : 'Retrying...' };
-            filteredResults = queryResults.filter(Boolean);
-            applyFilters();
-
             const result = await window.queryDomain(item.domain, item.index);
             queryResults[item.index] = { ...result, 重试中: false };
             if (result && result.注册状态 !== 'error' && result.状态 !== 'error') {
@@ -4534,6 +5061,7 @@
         }));
       }
       saveResultsToStorage();
+      scheduleSessionSave();
       addLog((translations[currentLang].logRetryAllComplete || '批量重试完成: 成功 {success} 个, 失败 {failed} 个').replace('{success}', successCount).replace('{failed}', failCount), successCount ? 'success' : 'warning');
     } catch (e) {
       addLog(currentLang === 'zh' ? '批量刷新过程中出现异常' : 'Batch refresh interrupted', 'error');
@@ -4608,9 +5136,24 @@
     if (dynamicOption) dynamicOption.textContent = lang === 'zh' ? '🌐 智能动态RPC' : '🌐 Smart Dynamic RPC';
   };
 
+  const originalCompleteQuery = window.completeQuery;
+  window.completeQuery = function() {
+    originalCompleteQuery();
+    scheduleSessionSave(true);
+    setTimeout(() => refreshIncompleteResults('complete'), 120);
+  };
+
+  const originalStopQuery = window.stopQuery;
+  window.stopQuery = function() {
+    originalStopQuery();
+    saveResultsToStorage();
+    scheduleSessionSave(true);
+  };
+
   document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => refreshRpcPoolFromWeb(true), 600);
     setInterval(() => refreshRpcPoolFromWeb(true), 60 * 60 * 1000);
+    setTimeout(() => refreshIncompleteResults('restore'), 900);
   });
 })();
 </script>
