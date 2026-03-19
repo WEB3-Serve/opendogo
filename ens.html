@@ -1119,6 +1119,36 @@
             cursor: pointer;
         }
 
+        .owner-tooltip {
+            position: fixed;
+            left: 0;
+            top: 0;
+            z-index: 3000;
+            pointer-events: none;
+            opacity: 0;
+            transform: translate3d(-9999px, -9999px, 0);
+            transition: opacity 0.14s ease;
+            padding: 8px 12px;
+            border-radius: 10px;
+            background: color-mix(in srgb, var(--card) 92%, #000 8%);
+            border: 1px solid color-mix(in srgb, var(--primary) 24%, var(--border) 76%);
+            color: var(--text);
+            box-shadow: 0 10px 28px rgba(0,0,0,0.18);
+            font-size: 0.76rem;
+            line-height: 1.45;
+            white-space: nowrap;
+            max-width: min(520px, calc(100vw - 24px));
+            word-break: break-word;
+        }
+
+        .owner-tooltip.is-visible {
+            opacity: 1;
+        }
+
+        .owner-tooltip.is-multiline {
+            white-space: normal;
+        }
+
         .pagination {
             display: flex;
             align-items: center;
@@ -1189,6 +1219,8 @@
             border-top: 1px solid var(--border);
             color: var(--text-muted);
             font-size: 0.75rem;
+            line-height: 1.6;
+            white-space: pre-line;
             flex-shrink: 0;
         }
 
@@ -1863,7 +1895,8 @@
 
         <!-- 底部 -->
         <div class="footer">
-            opentools · <span data-i18n="footer">ENS域名批量查询 · 智能节点 · 极速并发</span>
+            <span data-i18n="footer">© 2026-现在 opentools 版权所有 | ENS域名批量查询工具 | 高性能并发 | 动态RPC自动切换 | web3工具箱
+ENS域名批量查询 · 以太坊域名工具 · 动态RPC节点 · 批量域名查询 · web3工具箱 · ENS批量工具 · 区块链域名查询</span>
         </div>
     </div>
 
@@ -1998,7 +2031,7 @@
                 searchPlaceholder: '域名/地址',
                 clearFilters: '清除筛选',
                 clearResults: '清空结果',
-                footer: 'ENS域名批量查询 · 智能节点 · 极速并发',
+                footer: '© 2026-现在 opentools 版权所有 | ENS域名批量查询工具 | 高性能并发 | 动态RPC自动切换 | web3工具箱\nENS域名批量查询 · 以太坊域名工具 · 动态RPC节点 · 批量域名查询 · web3工具箱 · ENS批量工具 · 区块链域名查询',
                 rpcDetails: '节点详细状态',
                 node: '节点',
                 responseTime: '响应时间',
@@ -2028,6 +2061,8 @@
                 logDataLoaded: '已加载上次查询数据 ({time})',
                 logRetryAllStart: '开始批量重试 {count} 个失败的域名',
                 logRetryAllComplete: '批量重试完成: 成功 {success} 个, 失败 {failed} 个',
+                logAutoRetryRound: '自动补查错误结果，第 {round}/{total} 轮，剩余 {count} 个',
+                logAutoRetryDone: '自动补查完成: 修复 {success} 个，仍失败 {failed} 个',
                 logFilterByAddress: '筛选地址: {address} 的所有域名',
                 addressCount: '共{count}个域名',
                 clearAddressSearch: '清除地址搜索',
@@ -2120,7 +2155,7 @@
                 searchPlaceholder: 'domain/address',
                 clearFilters: 'Clear Filters',
                 clearResults: 'Clear Results',
-                footer: 'ENS Domain Batch · Smart Node · High Speed',
+                footer: '© 2026-现在 opentools 版权所有 | ENS域名批量查询工具 | 高性能并发 | 动态RPC自动切换 | web3工具箱\nENS域名批量查询 · 以太坊域名工具 · 动态RPC节点 · 批量域名查询 · web3工具箱 · ENS批量工具 · 区块链域名查询',
                 rpcDetails: 'RPC Node Details',
                 node: 'Node',
                 responseTime: 'Response',
@@ -2150,6 +2185,8 @@
                 logDataLoaded: 'Loaded previous query data ({time})',
                 logRetryAllStart: 'Retrying {count} failed domains',
                 logRetryAllComplete: 'Retry completed: {success} succeeded, {failed} failed',
+                logAutoRetryRound: 'Auto-retrying errored results round {round}/{total}, remaining {count}',
+                logAutoRetryDone: 'Auto-retry finished: {success} recovered, {failed} still failed',
                 logFilterByAddress: 'Filter by address: {address}',
                 addressCount: '{count} domains',
                 clearAddressSearch: 'Clear address search',
@@ -3755,14 +3792,15 @@
 
                     const isAddressInSearch = currentSearch && r.所有者地址 &&
                                              r.所有者地址.toLowerCase().includes(currentSearch);
+                    const tooltipText = titleText.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
                     const countBadgeHtml = count > 1
-                        ? `<span class="owner-count" onclick="filterByAddress('${r.所有者地址}')" title="${titleText}">${count}</span>`
+                        ? `<span class="owner-count owner-tooltip-trigger" onclick="filterByAddress('${r.所有者地址}')" data-owner-tooltip="${tooltipText}">${count}</span>`
                         : '<span class="owner-count is-placeholder" aria-hidden="true"></span>';
 
                     addressHtml = `
                         <div class="owner-cell">
                             ${countBadgeHtml}
-                            <span class="owner-address ${isAddressInSearch ? 'active' : ''}" onclick="filterByAddress('${r.所有者地址}')" title="${titleText}">${shortAddr}</span>
+                            <span class="owner-address owner-tooltip-trigger ${isAddressInSearch ? 'active' : ''}" onclick="filterByAddress('${r.所有者地址}')" data-owner-tooltip="${tooltipText}">${shortAddr}</span>
                             <i class="fas fa-times-circle owner-clear"
                                onclick="clearAddressSearch(event, '${r.所有者地址}')"
                                title="${translations[currentLang].clearAddressSearch}"
@@ -4583,6 +4621,64 @@
     finishWatcher();
   };
 
+  let ownerTooltipEl = null;
+  let ownerTooltipTarget = null;
+
+  function ensureOwnerTooltip() {
+    if (ownerTooltipEl) return ownerTooltipEl;
+    ownerTooltipEl = document.createElement('div');
+    ownerTooltipEl.className = 'owner-tooltip';
+    document.body.appendChild(ownerTooltipEl);
+    return ownerTooltipEl;
+  }
+
+  function hideOwnerTooltip() {
+    if (!ownerTooltipEl) return;
+    ownerTooltipEl.classList.remove('is-visible', 'is-multiline');
+    ownerTooltipEl.style.transform = 'translate3d(-9999px, -9999px, 0)';
+    ownerTooltipTarget = null;
+  }
+
+  function positionOwnerTooltip(target) {
+    if (!target || !ownerTooltipEl) return;
+    const rect = target.getBoundingClientRect();
+    const spacing = 10;
+    const viewportPadding = 12;
+    ownerTooltipEl.classList.remove('is-multiline');
+    ownerTooltipEl.style.left = '0px';
+    ownerTooltipEl.style.top = '0px';
+    ownerTooltipEl.style.transform = 'translate3d(-9999px, -9999px, 0)';
+
+    let width = ownerTooltipEl.offsetWidth;
+    const maxWidth = Math.max(220, window.innerWidth - viewportPadding * 2);
+    if (width > maxWidth) {
+      ownerTooltipEl.classList.add('is-multiline');
+      ownerTooltipEl.style.maxWidth = `${maxWidth}px`;
+      width = ownerTooltipEl.offsetWidth;
+    } else {
+      ownerTooltipEl.style.maxWidth = `min(520px, calc(100vw - ${viewportPadding * 2}px))`;
+    }
+
+    const height = ownerTooltipEl.offsetHeight;
+    const centeredLeft = rect.left + rect.width / 2 - width / 2;
+    const left = Math.min(Math.max(centeredLeft, viewportPadding), window.innerWidth - width - viewportPadding);
+    let top = rect.top - height - spacing;
+    if (top < viewportPadding) {
+      top = rect.bottom + spacing;
+    }
+    ownerTooltipEl.style.transform = `translate3d(${Math.round(left)}px, ${Math.round(top)}px, 0)`;
+  }
+
+  function showOwnerTooltip(target) {
+    const text = target?.dataset?.ownerTooltip;
+    if (!text) return;
+    ownerTooltipTarget = target;
+    const tooltip = ensureOwnerTooltip();
+    tooltip.textContent = text;
+    tooltip.classList.add('is-visible');
+    positionOwnerTooltip(target);
+  }
+
   window.retryAllFailed = async function() {
     if (isQueryRunning) {
       addLog(currentLang === 'zh' ? '请先暂停查询再重试失败域名' : 'Pause query before retrying failed domains', 'warning');
@@ -4659,8 +4755,10 @@
     'https://chainid.network/chains.json',
     'https://raw.githubusercontent.com/ethereum-lists/chains/master/_data/chains/eip155-1.json'
   ];
+  const AUTO_ERROR_RETRY_ROUNDS = 3;
   const finalRpcCtxCache = new Map();
   let finalRpcCursor = 0;
+  let autoRefreshTaskId = 0;
 
   Object.assign(translations.zh, {
     error: '错误',
@@ -5134,9 +5232,12 @@
     };
   };
 
+  function isErroredResult(result) {
+    return Boolean(result && !result.重试中 && (result.注册状态 === 'error' || result.状态 === 'error'));
+  }
+
   function needsBackgroundRefresh(result) {
-    if (!result || result.重试中) return false;
-    if (result.注册状态 === 'error' || result.状态 === 'error') return true;
+    if (!result || result.重试中 || isErroredResult(result)) return false;
     if ((result.注册状态 === 'registered' || result.状态 === 'registered' || result.注册状态 === 'expired' || result.状态 === 'expired') && !result.所有者地址) return true;
     if ((result.注册状态 === 'registered' || result.状态 === 'registered') && !result.注册时间) return true;
     if ((result.注册状态 === 'premium' || result.状态 === 'premium') && !result.所有者地址) return true;
@@ -5154,8 +5255,93 @@
     return score;
   }
 
+  function buildAutoRetryRpcList() {
+    const selected = document.getElementById('rpcSelect')?.value;
+    const now = Date.now();
+    const ranked = RPC_LIST
+      .slice()
+      .sort((a, b) => scoreRpcFinal(b) - scoreRpcFinal(a));
+    const ordered = [selected !== 'dynamic' ? selected : '', window.getCurrentRpc(), ...ranked]
+      .map(normalizeRpcUrl)
+      .filter(Boolean);
+    const healthy = [];
+    const fallback = [];
+    const seen = new Set();
+    ordered.forEach(rpc => {
+      if (seen.has(rpc)) return;
+      seen.add(rpc);
+      const status = rpcStatus[rpc] || {};
+      const ready = status.available !== false || (status.disabledUntil || 0) < now;
+      (ready ? healthy : fallback).push(rpc);
+    });
+    return [...healthy, ...fallback];
+  }
+
+  async function autoRetryErroredResults(reason = 'background', taskId = autoRefreshTaskId) {
+    let recoveredCount = 0;
+    const rpcCandidates = buildAutoRetryRpcList();
+    if (!rpcCandidates.length) return { recoveredCount, remainingCount: 0 };
+
+    const concurrency = Math.min(6, Math.max(2, num('maxWorkers', 6)));
+    for (let round = 0; round < AUTO_ERROR_RETRY_ROUNDS; round++) {
+      if (taskId !== autoRefreshTaskId || isQueryRunning || isRetrying || isRetryingAll) break;
+      const targets = queryResults
+        .map((result, index) => ({ result, index }))
+        .filter(({ result }) => isErroredResult(result));
+      if (!targets.length) {
+        return { recoveredCount, remainingCount: 0 };
+      }
+
+      const logTemplate = translations[currentLang].logAutoRetryRound || (currentLang === 'zh'
+        ? '自动补查错误结果，第 {round}/{total} 轮，剩余 {count} 个'
+        : 'Auto-retrying errored results round {round}/{total}, remaining {count}');
+      addLog(logTemplate
+        .replace('{round}', round + 1)
+        .replace('{total}', AUTO_ERROR_RETRY_ROUNDS)
+        .replace('{count}', targets.length), 'info');
+
+      for (let i = 0; i < targets.length; i += concurrency) {
+        if (taskId !== autoRefreshTaskId || isQueryRunning || isRetrying || isRetryingAll) break;
+        const batch = targets.slice(i, i + concurrency);
+        await Promise.all(batch.map(async ({ result, index }, batchOffset) => {
+          try {
+            const rpc = rpcCandidates[(round + index + batchOffset) % rpcCandidates.length];
+            const fresh = await window.queryDomain(result.域名, index, rpc);
+            if (fresh && !isErroredResult(fresh)) {
+              recoveredCount++;
+            }
+            if (resultCompletenessScore(fresh) >= resultCompletenessScore(result) || !isErroredResult(fresh)) {
+              queryResults[index] = { ...fresh, 重试中: false };
+            }
+          } catch (_) {}
+        }));
+        filteredResults = queryResults.filter(Boolean);
+        applyFilters();
+        updateStatistics();
+        updateRetryAllButton();
+        saveResultsToStorage();
+        scheduleSessionSave();
+      }
+    }
+
+    const remainingCount = queryResults.filter(result => isErroredResult(result)).length;
+    const doneTemplate = translations[currentLang].logAutoRetryDone || (currentLang === 'zh'
+      ? '自动补查完成: 修复 {success} 个，仍失败 {failed} 个'
+      : 'Auto-retry finished: {success} recovered, {failed} still failed');
+    if (recoveredCount || remainingCount) {
+      addLog(doneTemplate
+        .replace('{success}', recoveredCount)
+        .replace('{failed}', remainingCount), remainingCount ? 'warning' : 'success');
+    }
+    return { recoveredCount, remainingCount };
+  }
+
   async function refreshIncompleteResults(reason = 'background') {
     if (isQueryRunning || isRetrying || isRetryingAll) return;
+    const taskId = ++autoRefreshTaskId;
+    await autoRetryErroredResults(reason, taskId);
+    if (taskId !== autoRefreshTaskId || isQueryRunning || isRetrying || isRetryingAll) return;
+
     const targets = queryResults
       .map((result, index) => ({ result, index }))
       .filter(({ result }) => needsBackgroundRefresh(result));
@@ -5167,6 +5353,7 @@
 
     const concurrency = Math.min(6, Math.max(2, num('maxWorkers', 6)));
     for (let i = 0; i < targets.length; i += concurrency) {
+      if (taskId !== autoRefreshTaskId || isQueryRunning || isRetrying || isRetryingAll) return;
       const batch = targets.slice(i, i + concurrency);
       await Promise.all(batch.map(async ({ result, index }) => {
         try {
@@ -5179,6 +5366,7 @@
       filteredResults = queryResults.filter(Boolean);
       applyFilters();
       updateStatistics();
+      updateRetryAllButton();
       saveResultsToStorage();
       scheduleSessionSave();
     }
@@ -5386,6 +5574,34 @@
     const idx = parseInt(row.children[0]?.textContent || '0', 10) - 1;
     const domain = row.children[1]?.textContent?.trim();
     if (domain) window.retrySingleDomain(domain, idx, e);
+  });
+
+  document.addEventListener('mouseover', function(e) {
+    const trigger = e.target.closest('.owner-tooltip-trigger');
+    if (!trigger) return;
+    if (ownerTooltipTarget === trigger) return;
+    showOwnerTooltip(trigger);
+  });
+
+  document.addEventListener('mouseout', function(e) {
+    if (!ownerTooltipTarget) return;
+    const leaving = e.target.closest('.owner-tooltip-trigger');
+    if (!leaving || leaving !== ownerTooltipTarget) return;
+    const related = e.relatedTarget;
+    if (related && ownerTooltipTarget.contains(related)) return;
+    hideOwnerTooltip();
+  });
+
+  document.addEventListener('scroll', function() {
+    if (ownerTooltipTarget) positionOwnerTooltip(ownerTooltipTarget);
+  }, true);
+
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.owner-tooltip-trigger')) hideOwnerTooltip();
+  });
+
+  window.addEventListener('resize', function() {
+    if (ownerTooltipTarget) positionOwnerTooltip(ownerTooltipTarget);
   });
 
   document.addEventListener('click', function(e) {
