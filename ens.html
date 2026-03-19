@@ -1560,9 +1560,13 @@
                             <i class="fab fa-twitter"></i>
                             <span>@dagou567</span>
                         </div>
-                        <div class="contact-item" onclick="window.open('https://eth.domains', '_blank')">
+                        <div class="contact-item" onclick="window.open('https://t.me/dagou567', '_blank')">
+                            <i class="fab fa-telegram-plane"></i>
+                            <span>@dagou567</span>
+                        </div>
+                        <div class="contact-item" onclick="window.open(getOpenSeaCollectionUrl(), '_blank')">
                             <i class="fas fa-store"></i>
-                            <span>eth.domains</span>
+                            <span>OpenSea</span>
                         </div>
                         <div class="contact-item" onclick="window.open('https://app.ens.domains', '_blank')">
                             <i class="fas fa-globe"></i>
@@ -2275,6 +2279,12 @@
             return parsed ? formatDate(parsed) : (value || '');
         }
 
+
+        function getOpenSeaCollectionUrl() {
+            return currentLang === 'zh'
+                ? 'https://opensea.io/zh-CN/collection/ens'
+                : 'https://opensea.io/collection/ens';
+        }
 
         function switchLanguage(lang) {
             currentLang = lang;
@@ -3766,7 +3776,7 @@
                         <summary title="${currentLang === 'zh' ? '操作' : 'Actions'}">⋯</summary>
                         <div class="action-menu-list">
                             <a href="https://app.ens.domains/${r.域名}" target="_blank" rel="noopener noreferrer">${currentLang === 'zh' ? '查看' : 'View'}</a>
-                            <a href="https://opensea.io/zh-CN/collection/ens" target="_blank" rel="noopener noreferrer">${currentLang === 'zh' ? '市场' : 'Market'}</a>
+                            <a href="${getOpenSeaCollectionUrl()}" target="_blank" rel="noopener noreferrer">${currentLang === 'zh' ? '市场' : 'Market'}</a>
                         </div>
                     </details>`;
 
