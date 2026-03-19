@@ -1159,6 +1159,9 @@
             font-size: 0.76rem;
             line-height: 1.45;
             white-space: nowrap;
+            text-align: center;
+            width: max-content;
+            min-width: max-content;
             max-width: min(520px, calc(100vw - 24px));
             word-break: break-word;
         }
@@ -1361,15 +1364,15 @@
             .right-panel {
                 display: contents;
             }
-            .rpc-module { order: 3; }
-            .stats-module { order: 4; }
-            .log-module { order: 5; }
+            .filter-module { order: 3; }
+            .rpc-module { order: 4; }
+            .stats-module { order: 5; }
+            .log-module { order: 6; }
             .contact-module { order: 9; }
             .domain-input-module { order: 1; }
             .results-table-container { order: 2; }
             .user-module { order: 8; }
-            .control-module { order: 6; }
-            .filter-module { order: 7; }
+            .control-module { order: 7; }
             .table-wrapper {
                 overflow-x: auto;
             }
@@ -1424,10 +1427,14 @@
                 align-items: flex-start;
             }
             .stat-grid,
-            .param-grid-2col,
             .filter-grid-2col {
                 display: grid !important;
                 grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                gap: 8px;
+            }
+            .param-grid-2col {
+                display: grid !important;
+                grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
                 gap: 8px;
             }
             .filter-row-2col {
@@ -1436,11 +1443,19 @@
                 gap: 8px;
             }
             .rpc-row {
-                grid-column: span 2;
+                grid-column: span 3;
             }
             .param-row,
             .filter-group {
                 min-width: 0;
+            }
+            .param-label {
+                font-size: 0.72rem;
+            }
+            .param-input,
+            .rpc-select {
+                padding: 6px;
+                font-size: var(--font-size-sm);
             }
             .table-header {
                 align-items: stretch;
@@ -1472,9 +1487,9 @@
                 justify-content: center;
                 gap: 8px;
             }
-            .pagination > div {
+            .pagination-controls {
                 display: grid;
-                grid-template-columns: repeat(3, minmax(0, 1fr));
+                grid-template-columns: repeat(4, minmax(0, 1fr));
                 gap: 6px;
                 width: 100%;
             }
@@ -1484,6 +1499,15 @@
             .pagination select {
                 width: 100%;
                 min-width: 0;
+            }
+            .pagination .page-input {
+                text-align: center;
+            }
+            .pagination .btn,
+            .pagination .page-btn,
+            .pagination select,
+            .pagination .page-input {
+                padding-inline: 6px;
             }
             .table-wrapper {
                 overflow-x: auto;
@@ -1521,10 +1545,11 @@
             .stat-value {
                 font-size: 0.95rem;
             }
-            .domain-options-row,
-            .program-buttons,
-            .pagination > div {
+            .program-buttons {
                 grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            }
+            .pagination-controls {
+                grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
             }
         }
 
@@ -1729,7 +1754,7 @@
                     </div>
                     <div class="pagination">
                         <span id="pageInfo" style="font-size:var(--font-size-sm); color:var(--text-muted);">第 1 页 / 共 1 页</span>
-                        <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                        <div class="pagination-controls" style="display: flex; gap: 4px; flex-wrap: wrap;">
                             <button class="page-btn" onclick="changePage(1)">«</button>
                             <button class="page-btn" onclick="prevPage()">‹</button>
                             <input type="number" id="pageInput" class="page-input" value="1" min="1">
@@ -2068,6 +2093,7 @@ ENS域名批量查询 · 以太坊域名工具 · 动态RPC节点 · eth批量�
                 time: '时间',
                 default: '默认',
                 addressCountDetail: '{address} 共有 {count} 个域名',
+                addressCountSummary: '该地址共有 {count} 个域名',
                 earliest: '最早到期',
                 latest: '最晚到期',
                 search: '搜索',
@@ -2193,6 +2219,7 @@ ENS域名批量查询 · 以太坊域名工具 · 动态RPC节点 · eth批量�
                 time: 'Sort',
                 default: 'Default',
                 addressCountDetail: '{address} owns {count} domains',
+                addressCountSummary: 'This address owns {count} domains',
                 earliest: 'Earliest',
                 latest: 'Latest',
                 search: 'Search',
@@ -3874,10 +3901,13 @@ ENS域名批量查询 · 以太坊域名工具 · 动态RPC节点 · eth批量�
                     const titleText = (translations[currentLang].addressCountDetail || '{address} owns {count} domains')
                         .replace('{address}', r.所有者地址)
                         .replace('{count}', count);
+                    const summaryText = (translations[currentLang].addressCountSummary || 'This address owns {count} domains')
+                        .replace('{count}', count);
 
                     const isAddressInSearch = currentSearch && r.所有者地址 &&
                                              r.所有者地址.toLowerCase().includes(currentSearch);
                     const tooltipText = titleText.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+                    const summaryTooltipText = summaryText.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
                     const countBadgeHtml = count > 1
                         ? `<span class="owner-count owner-tooltip-trigger" onclick="filterByAddress('${r.所有者地址}')" data-owner-tooltip="${tooltipText}">${count}</span>`
                         : '<span class="owner-count is-placeholder" aria-hidden="true"></span>';
@@ -3885,7 +3915,7 @@ ENS域名批量查询 · 以太坊域名工具 · 动态RPC节点 · eth批量�
                     addressHtml = `
                         <div class="owner-cell">
                             ${countBadgeHtml}
-                            <span class="owner-address owner-tooltip-trigger ${isAddressInSearch ? 'active' : ''}" onclick="filterByAddress('${r.所有者地址}')" data-owner-tooltip="${tooltipText}">${shortAddr}</span>
+                            <span class="owner-address owner-tooltip-trigger ${isAddressInSearch ? 'active' : ''}" onclick="filterByAddress('${r.所有者地址}')" data-owner-tooltip="${summaryTooltipText}">${shortAddr}</span>
                             <i class="fas fa-times-circle owner-clear"
                                onclick="clearAddressSearch(event, '${r.所有者地址}')"
                                title="${translations[currentLang].clearAddressSearch}"
@@ -4740,6 +4770,8 @@ ENS域名批量查询 · 以太坊域名工具 · 动态RPC节点 · eth批量�
     ownerTooltipEl.classList.remove('is-multiline');
     ownerTooltipEl.style.left = '0px';
     ownerTooltipEl.style.top = '0px';
+    ownerTooltipEl.style.width = 'max-content';
+    ownerTooltipEl.style.minWidth = 'max-content';
     ownerTooltipEl.style.transform = 'translate3d(-9999px, -9999px, 0)';
 
     let width = ownerTooltipEl.offsetWidth;
@@ -4747,9 +4779,14 @@ ENS域名批量查询 · 以太坊域名工具 · 动态RPC节点 · eth批量�
     if (width > maxWidth) {
       ownerTooltipEl.classList.add('is-multiline');
       ownerTooltipEl.style.maxWidth = `${maxWidth}px`;
+      ownerTooltipEl.style.width = `${maxWidth}px`;
+      ownerTooltipEl.style.minWidth = '0';
       width = ownerTooltipEl.offsetWidth;
     } else {
+      ownerTooltipEl.style.width = 'max-content';
+      ownerTooltipEl.style.minWidth = 'max-content';
       ownerTooltipEl.style.maxWidth = `min(520px, calc(100vw - ${viewportPadding * 2}px))`;
+      width = ownerTooltipEl.offsetWidth;
     }
 
     const height = ownerTooltipEl.offsetHeight;
