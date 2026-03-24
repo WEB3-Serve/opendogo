@@ -26,21 +26,36 @@
     const { Title } = Typography;
 
     const PROD_API_BASE = 'https://opendogo.vercel.app';
-    const API_BASE = ['localhost', '127.0.0.1'].includes(window.location.hostname)
-      ? 'http://localhost:3001'
-      : PROD_API_BASE;
+    const API_BASE_CANDIDATES = ['localhost', '127.0.0.1'].includes(window.location.hostname)
+      ? ['http://localhost:3001']
+      : [window.location.origin, PROD_API_BASE];
+
+    const unique = (arr) => Array.from(new Set(arr.filter(Boolean)));
 
     const api = async (path, { method = 'GET', body, token, auth = true } = {}) => {
       const headers = { 'Content-Type': 'application/json' };
       if (auth && token) headers.Authorization = `Bearer ${token}`;
-      const res = await fetch(`${API_BASE}${path}`, {
-        method,
-        headers,
-        body: body ? JSON.stringify(body) : undefined
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || String(res.status));
-      return data;
+
+      let lastError = null;
+      for (const base of unique(API_BASE_CANDIDATES)) {
+        try {
+          const res = await fetch(`${base}${path}`, {
+            method,
+            headers,
+            body: body ? JSON.stringify(body) : undefined
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || String(res.status));
+          return data;
+        } catch (err) {
+          lastError = err;
+        }
+      }
+
+      if (lastError?.message === 'The string did not match the expected pattern.') {
+        throw new Error('请求地址异常，请刷新页面重试，或改用系统浏览器打开');
+      }
+      throw lastError || new Error('请求失败');
     };
 
     const pageMap = {
