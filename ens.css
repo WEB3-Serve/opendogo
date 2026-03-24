@@ -882,6 +882,18 @@
             z-index: 20;
         }
 
+        .domain-options-row label:last-child .domain-option-tooltip {
+            left: auto;
+            right: 0;
+            transform: translateY(4px);
+        }
+
+        .domain-options-row label:last-child .domain-option-tooltip::after {
+            left: auto;
+            right: 16px;
+            transform: translate(0, -50%) rotate(45deg);
+        }
+
         .domain-option-tooltip::after {
             content: '';
             position: absolute;
@@ -900,6 +912,10 @@
             opacity: 1;
             visibility: visible;
             transform: translateX(-50%) translateY(0);
+        }
+        .domain-options-row label:last-child:hover .domain-option-tooltip,
+        .domain-options-row label:last-child:focus-within .domain-option-tooltip {
+            transform: translateY(0);
         }
 
         /* 文本域 - 高度与RPC监控对齐 */
@@ -1471,11 +1487,11 @@
             }
             .user-input-row {
                 display: grid;
-                grid-template-columns: repeat(2, minmax(0, 1fr));
+                grid-template-columns: minmax(0, 1fr);
             }
             .user-actions-row {
                 display: grid;
-                grid-template-columns: repeat(3, minmax(0, 1fr));
+                grid-template-columns: repeat(2, minmax(0, 1fr));
             }
             .card-key-row {
                 display: grid;
@@ -1489,6 +1505,9 @@
                 width: 100%;
                 min-width: 0;
                 padding-inline: 4px;
+            }
+            .user-actions-row .user-action-btn.logout {
+                grid-column: span 2;
             }
             .user-submodule {
                 padding: 10px;
@@ -1510,6 +1529,22 @@
                 width: 100%;
                 text-align: center;
                 padding: 8px 6px;
+            }
+            .domain-options-row label:last-child .domain-option-tooltip {
+                position: fixed;
+                left: 50%;
+                right: auto;
+                bottom: auto;
+                top: 64px;
+                max-width: min(92vw, 420px);
+                transform: translate(-50%, -6px);
+            }
+            .domain-options-row label:last-child .domain-option-tooltip::after {
+                display: none;
+            }
+            .domain-option.has-tooltip:hover .domain-option-tooltip,
+            .domain-option.has-tooltip:focus-within .domain-option-tooltip {
+                transform: translate(-50%, 0);
             }
             .program-buttons {
                 display: grid !important;
@@ -1655,11 +1690,11 @@
                 grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
             }
             .user-input-row {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
+                grid-template-columns: minmax(0, 1fr);
                 gap: 6px;
             }
             .user-actions-row {
-                grid-template-columns: repeat(3, minmax(0, 1fr));
+                grid-template-columns: repeat(2, minmax(0, 1fr));
                 gap: 6px;
             }
             .card-key-row {

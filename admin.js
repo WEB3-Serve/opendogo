@@ -1,4 +1,11 @@
-const API_BASE = window.localStorage.getItem('admin_api_base') || 'http://localhost:3001';
+const PROD_API_BASE = 'https://opendogo.vercel.app';
+const getDefaultApiBase = () => {
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    return 'http://localhost:3001';
+  }
+  return PROD_API_BASE;
+};
+const API_BASE = window.localStorage.getItem('admin_api_base') || getDefaultApiBase();
 const state = { accessToken: '' };
 
 const el = (id) => document.getElementById(id);
