@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -20,47 +20,123 @@ enum AuditType {
   ADMIN_ACTION
 }
 
+enum LicenseStatus {
+  UNUSED
+  USED
+  DISABLED
+  EXPIRED
+}
+
+enum LicenseType {
+  DAY
+  WEEK
+  MONTH
+  QUARTER
+  YEAR
+  LIFETIME
+}
+
 model User {
-  id            String      @id @default(cuid())
-  account       String      @unique
+  id            String            @id @default(cuid())
+  account       String            @unique
   passwordHash  String
-  status        UserStatus  @default(ACTIVE)
-  role          String      @default("admin")
-  is2faEnabled  Boolean     @default(false)
+  status        UserStatus        @default(ACTIVE)
+  role          String            @default("admin")
+  groupId       String?
+  is2faEnabled  Boolean           @default(false)
   twoFaSecret   String?
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  group         UserGroup?        @relation(fields: [groupId], references: [id])
   licenses      LicenseRedeemLog[]
+  usedLicenses  LicenseCode[]     @relation("LicenseUsedBy")
   auditLogs     AuditLog[]
+
+  @@index([groupId])
+}
+
+model UserGroup {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  users       User[]
+}
+
+model LicenseGroup {
+  id          String        @id @default(cuid())
+  name        String        @unique
+  description String?
+  createdAt   DateTime      @default(now())
+  batches     LicenseBatch[]
 }
 
 model LicenseBatch {
-  id          String   @id @default(cuid())
-  name        String
-  description String?
-  createdAt   DateTime @default(now())
-  codes       LicenseCode[]
+  id             String        @id @default(cuid())
+  groupId        String?
+  name           String
+  description    String?
+  createdBy      String?
+  createdAt      DateTime      @default(now())
+  group          LicenseGroup? @relation(fields: [groupId], references: [id])
+  codes          LicenseCode[]
+
+  @@index([groupId])
 }
 
 model LicenseCode {
-  id          String   @id @default(cuid())
-  batchId     String
-  codeHash    String   @unique
-  status      String   @default("UNUSED")
-  expiresAt   DateTime?
-  createdAt   DateTime @default(now())
-  redeemedAt  DateTime?
-  batch       LicenseBatch @relation(fields: [batchId], references: [id])
-  redeemLogs  LicenseRedeemLog[]
+  id            String            @id @default(cuid())
+  batchId       String
+  codeHash      String            @unique
+  codeType      LicenseType       @default(MONTH)
+  status        LicenseStatus     @default(UNUSED)
+  usedByUserId  String?
+  expiresAt     DateTime?
+  createdAt     DateTime          @default(now())
+  redeemedAt    DateTime?
+  batch         LicenseBatch      @relation(fields: [batchId], references: [id])
+  usedBy        User?             @relation("LicenseUsedBy", fields: [usedByUserId], references: [id])
+  redeemLogs    LicenseRedeemLog[]
+
+  @@index([status])
+  @@index([createdAt])
+  @@index([usedByUserId])
 }
 
 model LicenseRedeemLog {
+  id            String      @id @default(cuid())
+  userId        String
+  licenseId     String
+  actorAdminId  String?
+  createdAt     DateTime    @default(now())
+  user          User        @relation(fields: [userId], references: [id])
+  license       LicenseCode @relation(fields: [licenseId], references: [id])
+
+  @@index([userId, createdAt])
+  @@index([licenseId, createdAt])
+}
+
+model SystemConfig {
   id          String   @id @default(cuid())
-  userId      String
-  licenseId   String
+  category    String
+  configKey   String
+  configValue Json
+  version     Int      @default(1)
+  isActive    Boolean  @default(true)
+  createdBy   String?
   createdAt   DateTime @default(now())
-  user        User     @relation(fields: [userId], references: [id])
-  license     LicenseCode @relation(fields: [licenseId], references: [id])
+
+  @@index([category, configKey, isActive])
+}
+
+model Notice {
+  id          String   @id @default(cuid())
+  title       String
+  content     String
+  status      String   @default("PUBLISHED")
+  createdBy   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model DomainRule {
@@ -85,4 +161,7 @@ model AuditLog {
   metadata    Json?
   createdAt   DateTime  @default(now())
   user        User?     @relation(fields: [userId], references: [id])
+
+  @@index([type, createdAt])
+  @@index([userId, createdAt])
 }

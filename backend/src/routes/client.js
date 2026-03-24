@@ -123,23 +123,31 @@ clientRouter.post('/redeem', requireUserAuth, async (req, res) => {
     return res.status(400).json({ ok: false, error: 'LICENSE_EXPIRED' });
   }
 
-  await prisma.$transaction(async (tx) => {
-    await tx.licenseCode.update({
-      where: { id: license.id },
-      data: { status: 'USED', redeemedAt: new Date() }
+  try {
+    await prisma.$transaction(async (tx) => {
+      const updated = await tx.licenseCode.updateMany({
+        where: { id: license.id, status: 'UNUSED' },
+        data: { status: 'USED', redeemedAt: new Date(), usedByUserId: req.user.userId }
+      });
+      if (updated.count === 0) throw new Error('LICENSE_USED');
+      await tx.licenseRedeemLog.create({
+        data: { userId: req.user.userId, licenseId: license.id }
+      });
+      await tx.auditLog.create({
+        data: {
+          userId: req.user.userId,
+          type: 'LICENSE_REDEEM',
+          action: 'LICENSE_REDEEM_BY_USER',
+          metadata: { licenseId: license.id }
+        }
+      });
     });
-    await tx.licenseRedeemLog.create({
-      data: { userId: req.user.userId, licenseId: license.id }
-    });
-    await tx.auditLog.create({
-      data: {
-        userId: req.user.userId,
-        type: 'LICENSE_REDEEM',
-        action: 'LICENSE_REDEEM_BY_USER',
-        metadata: { licenseId: license.id }
-      }
-    });
-  });
+  } catch (error) {
+    if (error instanceof Error && error.message === 'LICENSE_USED') {
+      return res.status(409).json({ ok: false, error: 'LICENSE_USED' });
+    }
+    throw error;
+  }
 
   return res.json({ ok: true, status: 'ACTIVATED' });
 });
