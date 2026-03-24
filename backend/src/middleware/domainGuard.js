@@ -8,6 +8,16 @@ const getRequestHost = (req) => {
   return '';
 };
 
+const getOriginHost = (req) => {
+  const origin = req.headers.origin || req.headers.referer;
+  if (!origin) return '';
+  try {
+    return new URL(String(origin)).hostname.toLowerCase();
+  } catch {
+    return '';
+  }
+};
+
 const parseDomains = (value) => {
   try {
     const parsed = JSON.parse(value);
@@ -34,6 +44,7 @@ export const domainGuard = async (req, res, next) => {
   if (!config.domainRestrictionEnabled) return next();
 
   const host = getRequestHost(req);
+  const originHost = getOriginHost(req);
   const moduleKey = getModuleKey(req.path);
 
   const rule = await prisma.domainRule.findUnique({ where: { moduleKey } });
@@ -45,13 +56,16 @@ export const domainGuard = async (req, res, next) => {
 
   const fallbackUrl = rule?.fallbackUrl || config.domainFallbackUrl;
 
-  if (allowedDomains.includes(host)) return next();
+  const hostAllowed = allowedDomains.includes(host);
+  const originAllowed = !originHost || config.allowedOrigins.includes(originHost);
+  if (hostAllowed && originAllowed) return next();
 
   if (isApiRequest(req)) {
     return res.status(403).json({
       ok: false,
       error: 'DOMAIN_NOT_ALLOWED',
       host,
+      originHost,
       module: moduleKey
     });
   }
