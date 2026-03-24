@@ -3,101 +3,286 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>OpenDogo 后台管理</title>
+  <title>ENS 后台管理（React + Ant Design）</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/antd/5.27.1/reset.min.css" />
   <link rel="stylesheet" href="./admin.css" />
 </head>
 <body>
-  <main class="wrap">
-    <h1>OpenDogo 后台管理</h1>
-    <p class="hint">后端地址：<span id="apiBase"></span></p>
+  <div id="root"></div>
 
-    <section class="card">
-      <h2>1) 登录（账号密码）</h2>
-      <div class="row">
-        <input id="account" placeholder="账号" value="admin" />
-        <input id="password" type="password" placeholder="密码" />
-        <button id="loginPwdBtn">获取登录票据</button>
-      </div>
-      <div class="row">
-        <input id="ticket" placeholder="login_ticket" />
-        <input id="totp" placeholder="6位2FA验证码" />
-        <button id="login2faBtn">完成登录</button>
-      </div>
-    </section>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/dayjs@1/dayjs.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/antd/5.27.1/antd.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-    <section class="card">
-      <h2>2) 数据看板</h2>
-      <div class="row">
-        <button id="loadDashboardBtn">加载统计</button>
-      </div>
-      <pre id="dashboardResult"></pre>
-    </section>
+  <script type="text/babel" data-presets="react">
+    const { useState, useEffect } = React;
+    const {
+      Layout, Menu, Card, Statistic, Row, Col, Button, Form, Input, InputNumber, Select,
+      Table, Modal, message, Typography, Space, Divider, Tag
+    } = antd;
+    const { Header, Sider, Content } = Layout;
+    const { Title, Text } = Typography;
 
-    <section class="card">
-      <h2>3) 用户管理</h2>
-      <div class="row">
-        <button id="loadUsersBtn">加载用户列表</button>
-      </div>
-      <div class="row">
-        <input id="targetUserId" placeholder="用户ID" />
-        <select id="targetStatus">
-          <option value="ACTIVE">ACTIVE</option>
-          <option value="DISABLED">DISABLED</option>
-          <option value="BANNED">BANNED</option>
-        </select>
-        <button id="updateUserStatusBtn">更新状态</button>
-      </div>
-      <pre id="usersResult"></pre>
-    </section>
+    const PROD_API_BASE = 'https://opendogo.vercel.app';
+    const API_BASE = ['localhost', '127.0.0.1'].includes(window.location.hostname)
+      ? 'http://localhost:3001'
+      : PROD_API_BASE;
 
-    <section class="card">
-      <h2>4) 域名规则</h2>
-      <div class="row">
-        <button id="loadRulesBtn">加载规则</button>
-      </div>
-      <div class="row">
-        <input id="moduleKey" placeholder="module_key (admin/api/web/redeem)" value="admin" />
-        <input id="allowedDomains" placeholder="允许域名(逗号分隔)" value="admin.opendogo.com,localhost" />
-      </div>
-      <div class="row">
-        <input id="fallbackUrl" placeholder="fallback URL" value="https://opendogo.vercel.app" />
-        <select id="ruleEnabled">
-          <option value="true">启用</option>
-          <option value="false">禁用</option>
-        </select>
-        <button id="upsertRuleBtn">保存规则</button>
-      </div>
-      <pre id="rulesResult"></pre>
-    </section>
+    const api = async (path, { method = 'GET', body, token, auth = true } = {}) => {
+      const headers = { 'Content-Type': 'application/json' };
+      if (auth && token) headers.Authorization = `Bearer ${token}`;
+      const res = await fetch(`${API_BASE}${path}`, {
+        method,
+        headers,
+        body: body ? JSON.stringify(body) : undefined
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || String(res.status));
+      return data;
+    };
 
-    <section class="card">
-      <h2>5) 卡密管理</h2>
-      <div class="row">
-        <input id="batchName" placeholder="批次名" value="首发批次" />
-        <input id="batchQty" type="number" min="1" value="3" />
-        <button id="createBatchBtn">生成卡密</button>
-      </div>
-      <div class="row">
-        <button id="loadBatchesBtn">加载批次</button>
-      </div>
-      <pre id="batchResult"></pre>
-    </section>
+    const pageMap = {
+      dashboard: '仪表盘',
+      users_list: '用户列表',
+      users_groups: '用户分组',
+      users_activations: '用户激活记录',
+      licenses_list: '卡密列表',
+      licenses_rules: '卡密规则',
+      licenses_groups: '卡密分组',
+      site_basic: '网站配置',
+      site_ens: 'ENS查询配置',
+      site_notice: '公告管理',
+      system_basic: '基础设置',
+      system_security: '安全设置',
+      system_api: '接口设置'
+    };
 
-    <section class="card">
-      <h2>6) 用户记录查询</h2>
-      <div class="row">
-        <input id="recordAccount" placeholder="用户账号" value="admin" />
-        <button id="queryRecordBtn">查询记录</button>
-      </div>
-      <pre id="recordResult"></pre>
-    </section>
+    function LoginView({ onLogin }) {
+      const [form] = Form.useForm();
+      const [ticket, setTicket] = useState('');
+      const [loading, setLoading] = useState(false);
 
-    <section class="card">
-      <h2>日志输出</h2>
-      <pre id="log"></pre>
-    </section>
-  </main>
+      const getTicket = async () => {
+        const values = await form.validateFields(['account', 'password']);
+        setLoading(true);
+        try {
+          const result = await api('/api/admin/auth/login-password', {
+            method: 'POST',
+            auth: false,
+            body: { account: values.account, password: values.password }
+          });
+          setTicket(result.login_ticket);
+          message.success('已获取登录票据');
+        } catch (e) {
+          message.error(e.message);
+        } finally {
+          setLoading(false);
+        }
+      };
 
-  <script type="module" src="./admin.js"></script>
+      const submitLogin = async () => {
+        const values = await form.validateFields(['totp']);
+        setLoading(true);
+        try {
+          const result = await api('/api/admin/auth/login-2fa', {
+            method: 'POST',
+            auth: false,
+            body: { login_ticket: ticket, totp_code: values.totp }
+          });
+          onLogin(result.access_token);
+          message.success('登录成功');
+        } catch (e) {
+          message.error(e.message);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      return (
+        <div className="login-wrap">
+          <Card className="login-card" title="ENS 后台管理登录">
+            <Text type="secondary">API: {API_BASE}</Text>
+            <Divider />
+            <Form form={form} layout="vertical" initialValues={{ account: 'admin' }}>
+              <Form.Item label="账号" name="account" rules={[{ required: true }]}>
+                <Input />
+              </Form.Item>
+              <Form.Item label="密码" name="password" rules={[{ required: true }]}>
+                <Input.Password />
+              </Form.Item>
+              <Button type="primary" loading={loading} onClick={getTicket} block>1) 获取登录票据</Button>
+              <Form.Item label="login_ticket">
+                <Input value={ticket} readOnly />
+              </Form.Item>
+              <Form.Item label="2FA 验证码" name="totp" rules={[{ required: true }]}>
+                <Input />
+              </Form.Item>
+              <Button type="primary" loading={loading} onClick={submitLogin} block>2) 登录后台</Button>
+            </Form>
+          </Card>
+        </div>
+      );
+    }
+
+    function DashboardPage({ stats }) {
+      const items = [
+        ['用户总数', stats.usersTotal], ['卡密总数', stats.licenseTotal], ['已使用卡密', stats.licenseUsed],
+        ['未使用卡密', stats.licenseUnused], ['公告数量', stats.notices], ['配置项', stats.configs]
+      ];
+      return <Row gutter={[12, 12]}>{items.map(([t,v]) => <Col xs={12} md={8} key={t}><Card><Statistic title={t} value={v || 0} /></Card></Col>)}</Row>;
+    }
+
+    function App() {
+      const [token, setToken] = useState('');
+      const [selectedKey, setSelectedKey] = useState('dashboard');
+      const [stats, setStats] = useState({});
+      const [users, setUsers] = useState([]);
+      const [userDetail, setUserDetail] = useState(null);
+      const [userDetailOpen, setUserDetailOpen] = useState(false);
+      const [userGroups, setUserGroups] = useState([]);
+      const [activations, setActivations] = useState([]);
+      const [licenses, setLicenses] = useState([]);
+      const [licenseGroups, setLicenseGroups] = useState([]);
+      const [generatedCodes, setGeneratedCodes] = useState([]);
+      const [codesOpen, setCodesOpen] = useState(false);
+      const [notices, setNotices] = useState([]);
+      const [noticeOpen, setNoticeOpen] = useState(false);
+      const [loading, setLoading] = useState(false);
+      const [searchUser, setSearchUser] = useState('');
+      const [activationAccount, setActivationAccount] = useState('');
+      const [licenseStatus, setLicenseStatus] = useState('ALL');
+      const [forms] = useState({
+        userGroup: Form.useForm()[0],
+        licenseGroup: Form.useForm()[0],
+        licenseRule: Form.useForm()[0],
+        siteBasic: Form.useForm()[0],
+        siteEns: Form.useForm()[0],
+        systemBasic: Form.useForm()[0],
+        systemSecurity: Form.useForm()[0],
+        systemApi: Form.useForm()[0],
+        notice: Form.useForm()[0]
+      });
+
+      const loadDashboard = async () => setStats((await api('/api/admin/dashboard', { token })).stats || {});
+      const loadUsers = async () => setUsers((await api(`/api/admin/users${searchUser ? `?q=${encodeURIComponent(searchUser)}` : ''}`, { token })).users || []);
+      const loadUserGroups = async () => setUserGroups((await api('/api/admin/user-groups', { token })).groups || []);
+      const loadActivations = async () => setActivations((await api(`/api/admin/user-activations${activationAccount ? `?account=${encodeURIComponent(activationAccount)}` : ''}`, { token })).logs || []);
+      const loadLicenseGroups = async () => setLicenseGroups((await api('/api/admin/license-groups', { token })).groups || []);
+      const loadLicenses = async () => setLicenses((await api(`/api/admin/licenses?status=${licenseStatus}`, { token })).licenses || []);
+      const loadNotices = async () => setNotices((await api('/api/admin/notices', { token })).notices || []);
+
+      const saveConfig = async (category, values) => {
+        await api(`/api/admin/configs/${category}`, { method: 'POST', token, body: values });
+        message.success('保存成功');
+      };
+
+      useEffect(() => {
+        if (!token) return;
+        setLoading(true);
+        Promise.all([loadDashboard(), loadUsers(), loadUserGroups(), loadActivations(), loadLicenseGroups(), loadLicenses(), loadNotices()])
+          .catch((e) => message.error(e.message))
+          .finally(() => setLoading(false));
+      }, [token]);
+
+      if (!token) return <LoginView onLogin={setToken} />;
+
+      const menuItems = [
+        { key: 'dashboard', label: '仪表盘' },
+        { key: 'users', label: '用户管理', children: [{ key: 'users_list', label: '用户列表' }, { key: 'users_groups', label: '用户分组' }, { key: 'users_activations', label: '用户激活记录' }] },
+        { key: 'licenses', label: '卡密管理', children: [{ key: 'licenses_list', label: '卡密列表' }, { key: 'licenses_rules', label: '卡密规则' }, { key: 'licenses_groups', label: '卡密分组' }] },
+        { key: 'site', label: '网站管理', children: [{ key: 'site_basic', label: '网站配置' }, { key: 'site_ens', label: 'ENS查询配置' }, { key: 'site_notice', label: '公告管理' }] },
+        { key: 'system', label: '系统设置', children: [{ key: 'system_basic', label: '基础设置' }, { key: 'system_security', label: '安全设置' }, { key: 'system_api', label: '接口设置' }] }
+      ];
+
+      const userColumns = [
+        { title: '账号', dataIndex: 'account' },
+        { title: '状态', dataIndex: 'status', render: (v) => <Tag>{v}</Tag> },
+        { title: '分组', render: (_, r) => r.group?.name || '-' },
+        { title: '激活次数', render: (_, r) => r._count?.licenses || 0 },
+        { title: '操作', render: (_, r) => <Button size="small" onClick={async () => { const d = await api(`/api/admin/users/${r.id}`, { token }); setUserDetail(d); setUserDetailOpen(true); }}>详情</Button> }
+      ];
+
+      const activationColumns = [
+        { title: '用户', render: (_, r) => r.user?.account || '-' },
+        { title: '卡密类型', render: (_, r) => r.license?.codeType || '-' },
+        { title: '状态', render: (_, r) => r.license?.status || '-' },
+        { title: '激活时间', dataIndex: 'createdAt' }
+      ];
+
+      const licenseColumns = [
+        { title: '类型', dataIndex: 'codeType' },
+        { title: '状态', dataIndex: 'status', render: (v) => <Tag color={v === 'USED' ? 'orange' : 'green'}>{v}</Tag> },
+        { title: '使用人', render: (_, r) => r.usedBy?.account || '-' },
+        { title: '分组', render: (_, r) => r.batch?.group?.name || '-' },
+        { title: '创建时间', dataIndex: 'createdAt' }
+      ];
+
+      const noticeColumns = [
+        { title: '标题', dataIndex: 'title' },
+        { title: '状态', dataIndex: 'status' },
+        { title: '创建时间', dataIndex: 'createdAt' },
+        { title: '操作', render: (_, r) => <Button danger size="small" onClick={async () => { await api(`/api/admin/notices/${r.id}`, { method: 'DELETE', token }); await loadNotices(); }}>删除</Button> }
+      ];
+
+      return (
+        <Layout style={{ minHeight: '100vh' }}>
+          <Sider width={260} theme="dark">
+            <div className="logo">ENS 管理后台</div>
+            <Menu theme="dark" mode="inline" items={menuItems} selectedKeys={[selectedKey]} defaultOpenKeys={['users','licenses','site','system']} onClick={(e) => setSelectedKey(e.key)} />
+            <div className="sider-footer"><Button danger block onClick={() => setToken('')}>退出登录</Button></div>
+          </Sider>
+          <Layout>
+            <Header className="header"><Title level={4} style={{ margin: 0 }}>{pageMap[selectedKey]}</Title></Header>
+            <Content className="content">
+              {selectedKey === 'dashboard' && <DashboardPage stats={stats} />}
+
+              {selectedKey === 'users_list' && <Card title="用户列表" extra={<Space><Input value={searchUser} onChange={(e)=>setSearchUser(e.target.value)} placeholder="账号或ID" /><Button onClick={loadUsers}>查询</Button></Space>}><Table loading={loading} rowKey="id" dataSource={users} columns={userColumns} pagination={false} /></Card>}
+
+              {selectedKey === 'users_groups' && <Card title="用户分组"><Form form={forms.userGroup} layout="inline" onFinish={async (v)=>{ await api('/api/admin/user-groups',{method:'POST',token,body:v}); forms.userGroup.resetFields(); await loadUserGroups(); }}><Form.Item name="name" rules={[{required:true}]}><Input placeholder="分组名" /></Form.Item><Form.Item name="description"><Input placeholder="描述" /></Form.Item><Button type="primary" htmlType="submit">新建分组</Button></Form><Divider /><Table rowKey="id" dataSource={userGroups} columns={[{title:'名称',dataIndex:'name'},{title:'描述',dataIndex:'description'},{title:'用户数',render:(_,r)=>r._count?.users||0},{title:'创建时间',dataIndex:'createdAt'}]} pagination={false} /></Card>}
+
+              {selectedKey === 'users_activations' && <Card title="用户激活记录" extra={<Space><Input value={activationAccount} onChange={(e)=>setActivationAccount(e.target.value)} placeholder="账号筛选" /><Button onClick={loadActivations}>查询</Button></Space>}><Table rowKey="id" dataSource={activations} columns={activationColumns} pagination={false} /></Card>}
+
+              {selectedKey === 'licenses_list' && <Card title="卡密列表" extra={<Space><Select value={licenseStatus} onChange={setLicenseStatus} options={[{value:'ALL',label:'全部'},{value:'UNUSED',label:'未使用'},{value:'USED',label:'已使用'}]} style={{width:120}} /><Button onClick={loadLicenses}>刷新</Button></Space>}><Table rowKey="id" dataSource={licenses} columns={licenseColumns} pagination={false} /></Card>}
+
+              {selectedKey === 'licenses_rules' && <Card title="卡密规则 / 生成"><Form form={forms.licenseRule} layout="vertical" initialValues={{ name:'首发批次', quantity:5, type:'MONTH' }} onFinish={async (v)=>{ const ret = await api('/api/admin/licenses/generate',{method:'POST',token,body:v}); setGeneratedCodes(ret.codes||[]); setCodesOpen(true); await Promise.all([loadLicenses(),loadDashboard()]); }}><Row gutter={12}><Col span={6}><Form.Item name="name" label="批次名" rules={[{required:true}]}><Input /></Form.Item></Col><Col span={4}><Form.Item name="quantity" label="数量"><InputNumber min={1} max={500} style={{width:'100%'}} /></Form.Item></Col><Col span={6}><Form.Item name="type" label="卡类型"><Select options={[{value:'DAY',label:'天卡'},{value:'WEEK',label:'周卡'},{value:'MONTH',label:'月卡'},{value:'QUARTER',label:'季度卡'},{value:'YEAR',label:'年卡'},{value:'LIFETIME',label:'无限卡'}]} /></Form.Item></Col><Col span={6}><Form.Item name="groupId" label="卡密分组"><Select allowClear options={licenseGroups.map(g=>({value:g.id,label:g.name}))} /></Form.Item></Col></Row><Button type="primary" htmlType="submit">生成卡密</Button></Form></Card>}
+
+              {selectedKey === 'licenses_groups' && <Card title="卡密分组"><Form form={forms.licenseGroup} layout="inline" onFinish={async (v)=>{ await api('/api/admin/license-groups',{method:'POST',token,body:v}); forms.licenseGroup.resetFields(); await loadLicenseGroups(); }}><Form.Item name="name" rules={[{required:true}]}><Input placeholder="分组名" /></Form.Item><Form.Item name="description"><Input placeholder="描述" /></Form.Item><Button type="primary" htmlType="submit">新建分组</Button></Form><Divider /><Table rowKey="id" dataSource={licenseGroups} columns={[{title:'名称',dataIndex:'name'},{title:'描述',dataIndex:'description'},{title:'批次数',render:(_,r)=>r._count?.batches||0},{title:'创建时间',dataIndex:'createdAt'}]} pagination={false} /></Card>}
+
+              {selectedKey === 'site_basic' && <Card title="网站配置"><Form form={forms.siteBasic} layout="vertical" onFinish={(v)=>saveConfig('website',v)}><Form.Item name="name" label="网站名称"><Input /></Form.Item><Form.Item name="logo" label="Logo"><Input /></Form.Item><Form.Item name="description" label="描述"><Input.TextArea rows={3} /></Form.Item><Button type="primary" htmlType="submit">保存</Button></Form></Card>}
+
+              {selectedKey === 'site_ens' && <Card title="ENS查询配置"><Form form={forms.siteEns} layout="vertical" onFinish={(v)=>saveConfig('ens',{...v,rpcNodes:String(v.rpcNodes||'').split(',').map(s=>s.trim()).filter(Boolean)})}><Form.Item name="rpcNodes" label="RPC节点（逗号分隔)"><Input /></Form.Item><Form.Item name="rateLimit" label="限流 QPS"><InputNumber min={1} style={{width:'100%'}} /></Form.Item><Form.Item name="enabled" label="开关"><Select options={[{value:true,label:'开启'},{value:false,label:'关闭'}]} /></Form.Item><Button type="primary" htmlType="submit">保存</Button></Form></Card>}
+
+              {selectedKey === 'site_notice' && <Card title="公告管理" extra={<Button type="primary" onClick={()=>setNoticeOpen(true)}>发布公告</Button>}><Table rowKey="id" dataSource={notices} columns={noticeColumns} pagination={false} /></Card>}
+
+              {selectedKey === 'system_basic' && <Card title="基础设置"><Form form={forms.systemBasic} layout="vertical" onFinish={(v)=>saveConfig('system-basic',v)}><Form.Item name="defaultUserGroup" label="默认用户组"><Input /></Form.Item><Button type="primary" htmlType="submit">保存</Button></Form></Card>}
+
+              {selectedKey === 'system_security' && <Card title="安全设置"><Form form={forms.systemSecurity} layout="vertical" onFinish={(v)=>saveConfig('system-security',v)}><Form.Item name="jwtExpire" label="JWT过期"><Input placeholder="15m" /></Form.Item><Form.Item name="loginMaxFail" label="登录失败限制"><InputNumber min={1} style={{width:'100%'}} /></Form.Item><Button type="primary" htmlType="submit">保存</Button></Form></Card>}
+
+              {selectedKey === 'system_api' && <Card title="接口设置"><Form form={forms.systemApi} layout="vertical" onFinish={(v)=>saveConfig('system-api',v)}><Form.Item name="rateLimit" label="接口限流"><InputNumber min={1} style={{width:'100%'}} /></Form.Item><Form.Item name="enabled" label="API开关"><Select options={[{value:true,label:'开启'},{value:false,label:'关闭'}]} /></Form.Item><Button type="primary" htmlType="submit">保存</Button></Form></Card>}
+            </Content>
+          </Layout>
+
+          <Modal open={userDetailOpen} onCancel={() => setUserDetailOpen(false)} footer={null} title="用户详情与激活记录" width={880}>
+            <pre className="json-pre">{JSON.stringify(userDetail, null, 2)}</pre>
+          </Modal>
+
+          <Modal open={codesOpen} onCancel={() => setCodesOpen(false)} footer={null} title="生成的卡密" width={760}>
+            <pre className="json-pre">{generatedCodes.join('\n')}</pre>
+          </Modal>
+
+          <Modal open={noticeOpen} onCancel={() => setNoticeOpen(false)} onOk={() => forms.notice.submit()} title="发布公告">
+            <Form form={forms.notice} layout="vertical" onFinish={async (v)=>{ await api('/api/admin/notices',{method:'POST',token,body:v}); setNoticeOpen(false); forms.notice.resetFields(); await Promise.all([loadNotices(),loadDashboard()]); }}>
+              <Form.Item name="title" label="标题" rules={[{required:true}]}><Input /></Form.Item>
+              <Form.Item name="content" label="内容" rules={[{required:true}]}><Input.TextArea rows={4} /></Form.Item>
+            </Form>
+          </Modal>
+        </Layout>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
 </body>
 </html>
