@@ -143,7 +143,7 @@
                         <label><input type="radio" name="domainType" value="abab"> ABAB</label>
                         <label><input type="radio" name="domainType" value="abba"> ABBA</label>
                         <label><input type="radio" name="domainType" value="abbb"> ABBB</label>
-                        <label class="domain-option has-tooltip" id="numSame3to9Option"><input type="radio" name="domainType" value="numSame3to9"> <span>3A-9A（数字）</span><span class="domain-option-tooltip" id="domainTypeHint" role="tooltip" aria-hidden="true"></span></label>
+                        <label class="domain-option has-tooltip" id="numSame3to9Option"><input type="radio" name="domainType" value="numSame3to9"> <span>3A-9A</span><span class="domain-option-tooltip" id="domainTypeHint" role="tooltip" aria-hidden="true"></span></label>
                     </div>
 
                     <textarea id="domainsText" placeholder='每行一个域名，例如：vitalik.eth&#10;example.eth&#10;test.eth&#10;demo.eth&#10;hello.eth&#10;world.eth&#10;web3.eth'></textarea>
@@ -579,7 +579,7 @@
                 speedUnit: '/s',
                 currentRPC: '当前RPC',
                 logReady: 'opendogo工具箱已就绪',
-                domainTypeHintNumeric: '3A-9A（数字）：只生成 3-9 位纯数字且每一位都相同的域名，例如 000.eth、1111.eth、999999999.eth，按顺序生成。',
+                domainTypeHintNumeric: '3A-9A：仅生成 3-9 位每一位都相同的数字域名（如 000.eth、1111.eth）。',
                 logLoadStart: '开始生成域名列表...',
                 logLoadComplete: '已完成加载 {count} 个域名',
                 logQueryStart: '开始查询 {count} 个域名',
@@ -707,7 +707,7 @@
                 speedUnit: '/s',
                 currentRPC: 'Current RPC',
                 logReady: 'opendogo ready',
-                domainTypeHintNumeric: '3A-9A (numeric): generates only 3-9 digit domains where every digit is the same, such as 000.eth, 1111.eth, and 999999999.eth, in sequential order.',
+                domainTypeHintNumeric: '3A-9A: only generates 3-9 digit domains where all digits are identical (e.g. 000.eth, 1111.eth).',
                 logLoadStart: 'Generating domain list...',
                 logLoadComplete: 'Loaded {count} domains',
                 logQueryStart: 'Starting query for {count} domains',
@@ -740,7 +740,14 @@
         let totalDomains = 0, processedDomains = 0, startTime = null;
         let currentPage = 1, pageSize = 50, totalPages = 1;
         let rpcStatus = {}, isLoadingDomains = false;
-        const API_BASE = window.localStorage.getItem('ens_api_base') || 'http://localhost:3001';
+        const PROD_API_BASE = 'https://opendogo.vercel.app';
+        const getDefaultApiBase = () => {
+            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                return 'http://localhost:3001';
+            }
+            return PROD_API_BASE;
+        };
+        const API_BASE = window.localStorage.getItem('ens_api_base') || getDefaultApiBase();
         const USER_TOKEN_KEY = 'ens-user-access-token';
         let currentRole = 'guest';
         let roleQueryLimit = 200;
@@ -2629,11 +2636,16 @@
                 if (token) headers.Authorization = `Bearer ${token}`;
             }
 
-            const res = await fetch(`${API_BASE}${path}`, {
-                method,
-                headers,
-                body: body ? JSON.stringify(body) : undefined
-            });
+            let res;
+            try {
+                res = await fetch(`${API_BASE}${path}`, {
+                    method,
+                    headers,
+                    body: body ? JSON.stringify(body) : undefined
+                });
+            } catch (_err) {
+                throw new Error(currentLang === 'zh' ? '无法连接后端服务，请检查 API 地址与网络' : 'Cannot reach backend API, please check API base and network');
+            }
 
             const data = await res.json().catch(() => ({}));
             if (!res.ok) {

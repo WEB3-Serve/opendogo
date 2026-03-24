@@ -56,6 +56,10 @@ app.get('/admin/login', (_req, res) => {
   res.sendFile(path.join(rootDir, 'admin.html'));
 });
 
+app.get('/admin', (_req, res) => {
+  res.redirect('/admin/login');
+});
+
 app.get('/admin.css', (_req, res) => {
   res.sendFile(path.join(rootDir, 'admin.css'));
 });
