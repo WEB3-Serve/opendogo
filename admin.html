@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OpenDogo 后台管理</title>
+  <link rel="stylesheet" href="./admin.css" />
+</head>
+<body>
+  <main class="wrap">
+    <h1>OpenDogo 后台管理</h1>
+    <p class="hint">后端地址：<span id="apiBase"></span></p>
+
+    <section class="card">
+      <h2>1) 登录（账号密码）</h2>
+      <div class="row">
+        <input id="account" placeholder="账号" value="admin" />
+        <input id="password" type="password" placeholder="密码" />
+        <button id="loginPwdBtn">获取登录票据</button>
+      </div>
+      <div class="row">
+        <input id="ticket" placeholder="login_ticket" />
+        <input id="totp" placeholder="6位2FA验证码" />
+        <button id="login2faBtn">完成登录</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>2) 数据看板</h2>
+      <div class="row">
+        <button id="loadDashboardBtn">加载统计</button>
+      </div>
+      <pre id="dashboardResult"></pre>
+    </section>
+
+    <section class="card">
+      <h2>3) 用户管理</h2>
+      <div class="row">
+        <button id="loadUsersBtn">加载用户列表</button>
+      </div>
+      <div class="row">
+        <input id="targetUserId" placeholder="用户ID" />
+        <select id="targetStatus">
+          <option value="ACTIVE">ACTIVE</option>
+          <option value="DISABLED">DISABLED</option>
+          <option value="BANNED">BANNED</option>
+        </select>
+        <button id="updateUserStatusBtn">更新状态</button>
+      </div>
+      <pre id="usersResult"></pre>
+    </section>
+
+    <section class="card">
+      <h2>4) 域名规则</h2>
+      <div class="row">
+        <button id="loadRulesBtn">加载规则</button>
+      </div>
+      <div class="row">
+        <input id="moduleKey" placeholder="module_key (admin/api/web/redeem)" value="admin" />
+        <input id="allowedDomains" placeholder="允许域名(逗号分隔)" value="admin.opendogo.com,localhost" />
+      </div>
+      <div class="row">
+        <input id="fallbackUrl" placeholder="fallback URL" value="https://opendogo.vercel.app" />
+        <select id="ruleEnabled">
+          <option value="true">启用</option>
+          <option value="false">禁用</option>
+        </select>
+        <button id="upsertRuleBtn">保存规则</button>
+      </div>
+      <pre id="rulesResult"></pre>
+    </section>
+
+    <section class="card">
+      <h2>5) 卡密管理</h2>
+      <div class="row">
+        <input id="batchName" placeholder="批次名" value="首发批次" />
+        <input id="batchQty" type="number" min="1" value="3" />
+        <button id="createBatchBtn">生成卡密</button>
+      </div>
+      <div class="row">
+        <button id="loadBatchesBtn">加载批次</button>
+      </div>
+      <pre id="batchResult"></pre>
+    </section>
+
+    <section class="card">
+      <h2>6) 用户记录查询</h2>
+      <div class="row">
+        <input id="recordAccount" placeholder="用户账号" value="admin" />
+        <button id="queryRecordBtn">查询记录</button>
+      </div>
+      <pre id="recordResult"></pre>
+    </section>
+
+    <section class="card">
+      <h2>日志输出</h2>
+      <pre id="log"></pre>
+    </section>
+  </main>
+
+  <script type="module" src="./admin.js"></script>
+</body>
+</html>

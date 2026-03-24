@@ -1,0 +1,88 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserStatus {
+  ACTIVE
+  DISABLED
+  BANNED
+}
+
+enum AuditType {
+  LOGIN
+  LOGIN_2FA
+  LICENSE_REDEEM
+  ADMIN_ACTION
+}
+
+model User {
+  id            String      @id @default(cuid())
+  account       String      @unique
+  passwordHash  String
+  status        UserStatus  @default(ACTIVE)
+  role          String      @default("admin")
+  is2faEnabled  Boolean     @default(false)
+  twoFaSecret   String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  licenses      LicenseRedeemLog[]
+  auditLogs     AuditLog[]
+}
+
+model LicenseBatch {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  codes       LicenseCode[]
+}
+
+model LicenseCode {
+  id          String   @id @default(cuid())
+  batchId     String
+  codeHash    String   @unique
+  status      String   @default("UNUSED")
+  expiresAt   DateTime?
+  createdAt   DateTime @default(now())
+  redeemedAt  DateTime?
+  batch       LicenseBatch @relation(fields: [batchId], references: [id])
+  redeemLogs  LicenseRedeemLog[]
+}
+
+model LicenseRedeemLog {
+  id          String   @id @default(cuid())
+  userId      String
+  licenseId   String
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id])
+  license     LicenseCode @relation(fields: [licenseId], references: [id])
+}
+
+model DomainRule {
+  id             String   @id @default(cuid())
+  moduleKey      String
+  enabled        Boolean  @default(true)
+  allowedDomains String
+  fallbackUrl    String?
+  updatedBy      String?
+  updatedAt      DateTime @updatedAt
+
+  @@unique([moduleKey])
+}
+
+model AuditLog {
+  id          String    @id @default(cuid())
+  userId      String?
+  type        AuditType
+  action      String
+  ip          String?
+  userAgent   String?
+  metadata    Json?
+  createdAt   DateTime  @default(now())
+  user        User?     @relation(fields: [userId], references: [id])
+}
