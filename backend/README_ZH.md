@@ -68,6 +68,21 @@ npm run start
 - 2FA Secret：`ADMIN_TOTP_SECRET`（未配置会自动生成并打印）
 - 2FA Secret 会加密后再入库。
 
+### 5.1 如何绑定谷歌验证器（Google Authenticator）
+1. 准备好管理员的 `ADMIN_TOTP_SECRET`（Base32 字符串，示例：`JBSWY3DPEHPK3PXP`）。
+   - 如果你没有手动配置，首次启动后端时会在日志中打印生成值。
+2. 打开 Google Authenticator（或 Microsoft Authenticator / 1Password 等 TOTP App）。
+3. 选择“手动输入密钥（Enter a setup key）”：
+   - 账号名：例如 `opendogo-admin`
+   - 密钥：填 `ADMIN_TOTP_SECRET`
+   - 类型：`基于时间（Time based）`
+4. 保存后，App 会每 30 秒生成一个 6 位验证码。
+5. 在后台登录页中：
+   - 第一步先输入账号密码并点击“获取登录票据”
+   - 第二步输入 App 里的 6 位验证码，再点击“登录后台”。
+
+> 常见问题：如果提示 `TOTP_INVALID`，请先检查手机系统时间是否开启“自动同步”。
+
 ## 6. 前端后台管理页接口对接
 已提供演示页（根目录）：
 - `admin.html` + `admin.js` + `admin.css`

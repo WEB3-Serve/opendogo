@@ -20,10 +20,10 @@
     const { useState, useEffect } = React;
     const {
       Layout, Menu, Card, Statistic, Row, Col, Button, Form, Input, InputNumber, Select,
-      Table, Modal, message, Typography, Space, Divider, Tag
+      Table, Modal, message, Typography, Space, Divider, Tag, Alert
     } = antd;
     const { Header, Sider, Content } = Layout;
-    const { Title, Text } = Typography;
+    const { Title } = Typography;
 
     const PROD_API_BASE = 'https://opendogo.vercel.app';
     const API_BASE = ['localhost', '127.0.0.1'].includes(window.location.hostname)
@@ -59,6 +59,18 @@
       system_api: '接口设置'
     };
 
+    const errMsgMap = {
+      ACCOUNT_OR_PASSWORD_INVALID: '账号或密码错误',
+      ACCOUNT_DISABLED: '账号已禁用',
+      ACCOUNT_LOCKED: '账号已锁定，请稍后重试',
+      LOGIN_TICKET_INVALID: '登录票据无效或已过期，请先重新获取登录票据',
+      TWO_FA_NOT_CONFIGURED: '当前管理员未绑定 2FA，请先在服务器配置 ADMIN_TOTP_SECRET',
+      TWO_FA_SECRET_DECRYPT_FAIL: '2FA 密钥解密失败，请检查 TOTP_ENCRYPTION_KEY / ADMIN_SECRET_ENC_KEY',
+      TOTP_INVALID: '2FA 验证码错误，请确认谷歌验证器时间同步后重试'
+    };
+
+    const formatError = (err) => errMsgMap[err?.message] || err?.message || '请求失败';
+
     function LoginView({ onLogin }) {
       const [form] = Form.useForm();
       const [ticket, setTicket] = useState('');
@@ -76,7 +88,7 @@
           setTicket(result.login_ticket);
           message.success('已获取登录票据');
         } catch (e) {
-          message.error(e.message);
+          message.error(formatError(e));
         } finally {
           setLoading(false);
         }
@@ -94,7 +106,7 @@
           onLogin(result.access_token);
           message.success('登录成功');
         } catch (e) {
-          message.error(e.message);
+          message.error(formatError(e));
         } finally {
           setLoading(false);
         }
@@ -103,23 +115,45 @@
       return (
         <div className="login-wrap">
           <Card className="login-card" title="ENS 后台管理登录">
-            <Text type="secondary">API: {API_BASE}</Text>
-            <Divider />
+            <Alert
+              type="info"
+              showIcon
+              style={{ marginBottom: 12 }}
+              message="登录步骤"
+              description="1) 输入后台账号和密码；2) 点击“获取登录票据”；3) 输入谷歌验证器 6 位动态码；4) 点击“登录后台”。"
+            />
+            <Alert
+              type="warning"
+              showIcon
+              style={{ marginBottom: 12 }}
+              message="账号密码不知道？"
+              description="默认值通常是：admin / changeme（仅在部署者未修改环境变量时生效）。如果登录失败，请联系部署者确认 ADMIN_ACCOUNT / ADMIN_PASSWORD。"
+            />
             <Form form={form} layout="vertical" initialValues={{ account: 'admin' }}>
-              <Form.Item label="账号" name="account" rules={[{ required: true }]}>
-                <Input />
+              <Form.Item label="后台账号" name="account" rules={[{ required: true, message: '请输入后台账号' }]}>
+                <Input placeholder="例如：admin" />
               </Form.Item>
-              <Form.Item label="密码" name="password" rules={[{ required: true }]}>
-                <Input.Password />
+              <Form.Item label="后台密码" name="password" rules={[{ required: true, message: '请输入后台密码' }]}>
+                <Input.Password placeholder="请输入后台密码" />
               </Form.Item>
               <Button type="primary" loading={loading} onClick={getTicket} block>1) 获取登录票据</Button>
-              <Form.Item label="login_ticket">
+              <Form.Item
+                label="登录票据（自动生成）"
+                extra="票据有效期约 2 分钟，过期请重新点击上方按钮获取。"
+              >
                 <Input value={ticket} readOnly />
               </Form.Item>
-              <Form.Item label="2FA 验证码" name="totp" rules={[{ required: true }]}>
-                <Input />
+              <Form.Item
+                label="2FA 验证码"
+                name="totp"
+                rules={[
+                  { required: true, message: '请输入 2FA 验证码' },
+                  { pattern: /^\d{6}$/, message: '2FA 验证码必须是 6 位数字' }
+                ]}
+              >
+                <Input maxLength={6} placeholder="请输入谷歌验证器中的 6 位数字" />
               </Form.Item>
-              <Button type="primary" loading={loading} onClick={submitLogin} block>2) 登录后台</Button>
+              <Button type="primary" loading={loading} onClick={submitLogin} disabled={!ticket} block>2) 登录后台</Button>
             </Form>
           </Card>
         </div>
