@@ -52,7 +52,14 @@ npm run start
 
 ### 其他
 - `GET /health`
-- `GET /admin/login`
+- `GET /admin/login`（返回后台管理页面 `admin.html`）
+
+### 前端用户（ENS 页面）
+- `POST /api/client/register`（注册）
+- `POST /api/client/login`（登录）
+- `GET /api/client/profile`（读取当前用户信息，需 Bearer token）
+- `POST /api/client/redeem`（卡密激活，需 Bearer token）
+- `GET /api/client/query-limit`（读取当前角色可查询数量）
 
 ## 5. 首次管理员账号
 启动时会自动创建管理员（若不存在）：
@@ -75,6 +82,15 @@ npm run start
 
 ## 7. 环境变量
 详见 `.env.example`。
+
+重点字段：
+- `ALLOWED_DOMAINS`：限制请求的 Host（后端服务自身域名白名单）。
+- `ALLOWED_ORIGINS`：限制浏览器发起请求的 Origin/Referer（前端来源白名单）。
+- `GUEST_QUERY_LIMIT`：游客可查询上限（默认 200）。
+- `REGISTERED_QUERY_LIMIT`：注册用户可查询上限（默认 500）。
+- `VIP_QUERY_LIMIT`：VIP 可查询上限（`unlimited` 表示无限）。
+
+> 如果别人下载你的前端后依然可以调用后端，通常是因为只校验了 Host，未校验 Origin，或 CORS 放开了 `*`。当前版本已同时加入 CORS 白名单和 Origin 校验。
 
 ## 8. 怎么加密保护后台登录账号密码（实操）
 

@@ -302,6 +302,16 @@
                             <span class="status-value" id="cardKeyStatus" data-i18n="cardKeyInactive">未激活</span>
                         </div>
                     </div>
+                    <div class="user-input-row stack-mobile card-key-row" style="margin-top:10px;">
+                        <div class="user-input-group compact-label">
+                            <label>查询额度（游客/注册/VIP）</label>
+                            <input type="text" class="user-input" id="queryLimitInfo" value="200 / 500 / ∞" readonly>
+                        </div>
+                        <div class="user-input-group compact-label">
+                            <label>自定义查询上限</label>
+                            <input type="number" class="user-input" id="customQueryLimit" min="1" placeholder="留空=按账户额度">
+                        </div>
+                    </div>
                 </div>
 
                 <!-- 查询控制模块 -->
@@ -730,6 +740,10 @@
         let totalDomains = 0, processedDomains = 0, startTime = null;
         let currentPage = 1, pageSize = 50, totalPages = 1;
         let rpcStatus = {}, isLoadingDomains = false;
+        const API_BASE = window.localStorage.getItem('ens_api_base') || 'http://localhost:3001';
+        const USER_TOKEN_KEY = 'ens-user-access-token';
+        let currentRole = 'guest';
+        let roleQueryLimit = 200;
 
         const STORAGE_KEY = 'ens_query_results';
         const STORAGE_TIME_KEY = 'ens_query_time';
@@ -2608,24 +2622,56 @@
             addLog(translations[currentLang].logValidate || '验证域名格式', 'info');
         }
 
-        // 用户相关函数
-        function registerUser() {
-            const username = document.getElementById('username').value.trim();
-            const password = document.getElementById('password').value.trim();
-
-            if (!username || !password) {
-                alert(currentLang === 'zh' ? '请输入账号和密码' : 'Please enter username and password');
-                return;
+        async function apiRequest(path, { method = 'GET', body, auth = false } = {}) {
+            const headers = { 'Content-Type': 'application/json' };
+            if (auth) {
+                const token = localStorage.getItem(USER_TOKEN_KEY);
+                if (token) headers.Authorization = `Bearer ${token}`;
             }
 
-            // 模拟注册成功
-            currentUser = username;
-            isLoggedIn = true;
-            updateUserStatus();
-            addLog(currentLang === 'zh' ? `用户 ${username} 注册成功` : `User ${username} registered successfully`, 'success');
+            const res = await fetch(`${API_BASE}${path}`, {
+                method,
+                headers,
+                body: body ? JSON.stringify(body) : undefined
+            });
+
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                throw new Error(data.error || `HTTP_${res.status}`);
+            }
+            return data;
         }
 
-        function loginUser() {
+        async function refreshQueryLimitInfo() {
+            try {
+                const token = localStorage.getItem(USER_TOKEN_KEY);
+                const headers = token ? { Authorization: `Bearer ${token}` } : {};
+                const res = await fetch(`${API_BASE}/api/client/query-limit`, { headers });
+                const data = await res.json();
+                if (data?.ok) {
+                    currentRole = data.role || 'guest';
+                    roleQueryLimit = data.limit === null ? Number.POSITIVE_INFINITY : Number(data.limit || 200);
+                    const infoEl = document.getElementById('queryLimitInfo');
+                    if (infoEl) {
+                        const myLimit = Number.isFinite(roleQueryLimit) ? roleQueryLimit : '∞';
+                        infoEl.value = `${data.limits.guest} / ${data.limits.registered} / ∞（当前:${currentRole}:${myLimit}）`;
+                    }
+                }
+            } catch (e) {
+                addLog(currentLang === 'zh' ? `读取查询额度失败: ${e.message}` : `Failed to load query limit: ${e.message}`, 'warning');
+            }
+        }
+
+        function getEffectiveQueryLimit() {
+            const customRaw = Number(document.getElementById('customQueryLimit')?.value || 0);
+            const hasCustom = Number.isFinite(customRaw) && customRaw > 0;
+            if (!Number.isFinite(roleQueryLimit)) return hasCustom ? customRaw : Number.POSITIVE_INFINITY;
+            if (!hasCustom) return roleQueryLimit;
+            return Math.min(roleQueryLimit, customRaw);
+        }
+
+        // 用户相关函数
+        async function registerUser() {
             const username = document.getElementById('username').value.trim();
             const password = document.getElementById('password').value.trim();
 
@@ -2634,11 +2680,47 @@
                 return;
             }
 
-            // 模拟登录成功
-            currentUser = username;
-            isLoggedIn = true;
-            updateUserStatus();
-            addLog(currentLang === 'zh' ? `用户 ${username} 登录成功` : `User ${username} logged in successfully`, 'success');
+            try {
+                const result = await apiRequest('/api/client/register', {
+                    method: 'POST',
+                    body: { account: username, password }
+                });
+                localStorage.setItem(USER_TOKEN_KEY, result.access_token);
+                currentUser = username;
+                isLoggedIn = true;
+                updateUserStatus();
+                refreshQueryLimitInfo();
+                addLog(currentLang === 'zh' ? `用户 ${username} 注册成功` : `User ${username} registered successfully`, 'success');
+            } catch (e) {
+                addLog(currentLang === 'zh' ? `注册失败: ${e.message}` : `Register failed: ${e.message}`, 'error');
+                alert(currentLang === 'zh' ? `注册失败：${e.message}` : `Register failed: ${e.message}`);
+            }
+        }
+
+        async function loginUser() {
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
+
+            if (!username || !password) {
+                alert(currentLang === 'zh' ? '请输入账号和密码' : 'Please enter username and password');
+                return;
+            }
+
+            try {
+                const result = await apiRequest('/api/client/login', {
+                    method: 'POST',
+                    body: { account: username, password }
+                });
+                localStorage.setItem(USER_TOKEN_KEY, result.access_token);
+                currentUser = username;
+                isLoggedIn = true;
+                updateUserStatus();
+                refreshQueryLimitInfo();
+                addLog(currentLang === 'zh' ? `用户 ${username} 登录成功` : `User ${username} logged in successfully`, 'success');
+            } catch (e) {
+                addLog(currentLang === 'zh' ? `登录失败: ${e.message}` : `Login failed: ${e.message}`, 'error');
+                alert(currentLang === 'zh' ? `登录失败：${e.message}` : `Login failed: ${e.message}`);
+            }
         }
 
         function logoutUser() {
@@ -2650,12 +2732,17 @@
             const username = currentUser;
             currentUser = null;
             isLoggedIn = false;
+            localStorage.removeItem(USER_TOKEN_KEY);
             updateUserStatus();
+            refreshQueryLimitInfo();
             addLog(currentLang === 'zh' ? `用户 ${username} 已退出` : `User ${username} logged out`, 'info');
         }
 
         let currentUser = localStorage.getItem('ens-current-user');
         let isLoggedIn = localStorage.getItem('ens-is-logged-in') === 'true';
+        if (!localStorage.getItem(USER_TOKEN_KEY)) {
+            isLoggedIn = false;
+        }
 
         function syncCardKeyVisibility() {
             const cardKeyEl = document.getElementById('cardKey');
@@ -2691,7 +2778,7 @@
             updateCardKeyStatus();
         }
 
-        function activateCardKey() {
+        async function activateCardKey() {
             const cardKeyEl = document.getElementById('cardKey');
             const rememberEl = document.getElementById('rememberCardKey');
             const cardKey = cardKeyEl?.value.trim() || '';
@@ -2699,11 +2786,26 @@
                 alert(currentLang === 'zh' ? '请输入卡密' : 'Please enter the access code');
                 return;
             }
+            if (!isLoggedIn || !localStorage.getItem(USER_TOKEN_KEY)) {
+                alert(currentLang === 'zh' ? '请先登录再激活卡密' : 'Please login before redeeming code');
+                return;
+            }
+            try {
+                await apiRequest('/api/client/redeem', {
+                    method: 'POST',
+                    auth: true,
+                    body: { code: cardKey }
+                });
+            } catch (e) {
+                addLog(currentLang === 'zh' ? `卡密激活失败: ${e.message}` : `Redeem failed: ${e.message}`, 'error');
+                alert(currentLang === 'zh' ? `卡密激活失败：${e.message}` : `Redeem failed: ${e.message}`);
+                return;
+            }
             if (rememberEl?.checked) {
                 localStorage.setItem(CARD_KEY_STORAGE_KEY, cardKey);
             }
             updateCardKeyStatus();
-            addLog(currentLang === 'zh' ? '卡密已激活并保存到当前页面状态' : 'Access code activated for current session', 'success');
+            addLog(currentLang === 'zh' ? '卡密激活成功' : 'Access code activated', 'success');
         }
 
         function initCardKeySettings() {
@@ -2816,6 +2918,7 @@
             updateDomainsCount();
             updateUserStatus();
             initCardKeySettings();
+            refreshQueryLimitInfo();
             updateRpcList();
             syncDomainModuleHeight();
 
@@ -3188,13 +3291,22 @@
     ensureFastDefaults();
     const domains = document.getElementById('domainsText').value.split('\n').map(d => normalizeDomain(d)).filter(Boolean);
     if (!domains.length) return;
+    const limit = getEffectiveQueryLimit();
+    const limitedDomains = Number.isFinite(limit) ? domains.slice(0, Math.max(0, Math.floor(limit))) : domains;
+    if (Number.isFinite(limit) && domains.length > limitedDomains.length) {
+      const msg = currentLang === 'zh'
+        ? `当前账号最大可查询 ${limitedDomains.length} 个，已自动截取前 ${limitedDomains.length} 个域名`
+        : `Your account can query up to ${limitedDomains.length} items. Only the first ${limitedDomains.length} domains will be queried.`;
+      alert(msg);
+      addLog(msg, 'warning');
+    }
     isQueryRunning = true;
     isPaused = false;
-    pendingDomains = domains;
+    pendingDomains = limitedDomains;
     currentIndex = 0;
-    queryResults = new Array(domains.length);
+    queryResults = new Array(limitedDomains.length);
     filteredResults = [];
-    totalDomains = domains.length;
+    totalDomains = limitedDomains.length;
     processedDomains = 0;
     startTime = Date.now();
     currentPage = 1;
