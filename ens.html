@@ -292,27 +292,27 @@
                     </div>
 
                     <div class="user-status-row">
-                        <div class="status-left">
+                        <div class="status-item status-main">
                             <span class="status-label" data-i18n="loginStatus">登录状态：</span>
                             <span class="status-value logged-out" id="loginStatus" data-i18n="notLoggedIn">未登录</span>
                         </div>
-                        <div class="status-right">
+                        <div class="status-item">
                             <span class="status-label" data-i18n="currentUser">当前用户：</span>
                             <span class="status-value" id="currentUser">-</span>
                         </div>
-                        <div class="status-right">
+                        <div class="status-item">
                             <span class="status-label" data-i18n="cardKeyStatus">卡密状态：</span>
                             <span class="status-value" id="cardKeyStatus" data-i18n="cardKeyInactive">未激活</span>
                         </div>
                     </div>
-                    <div class="user-input-row stack-mobile card-key-row" style="margin-top:10px;">
-                        <div class="user-input-group compact-label">
-                            <label>查询额度（游客/注册/VIP）</label>
-                            <input type="text" class="user-input" id="queryLimitInfo" value="200 / 500 / ∞" readonly>
+                    <div class="user-input-row stack-mobile quota-row" style="margin-top:10px;">
+                        <div class="user-input-group">
+                            <label class="quota-label">查询额度（游客/注册/VIP）</label>
+                            <input type="text" class="user-input quota-input" id="queryLimitInfo" value="200 / 500 / ∞" readonly>
                         </div>
-                        <div class="user-input-group compact-label">
-                            <label>自定义查询上限</label>
-                            <input type="number" class="user-input" id="customQueryLimit" min="1" placeholder="留空=按账户额度">
+                        <div class="user-input-group">
+                            <label class="quota-label">自定义查询上限</label>
+                            <input type="number" class="user-input quota-input" id="customQueryLimit" min="1" placeholder="留空=按账户额度">
                         </div>
                     </div>
                 </div>
@@ -743,14 +743,19 @@
         let totalDomains = 0, processedDomains = 0, startTime = null;
         let currentPage = 1, pageSize = 50, totalPages = 1;
         let rpcStatus = {}, isLoadingDomains = false;
-        const PROD_API_BASE = 'https://opendogo.vercel.app';
+        const normalizeApiBase = (value) => String(value || '').trim().replace(/\/$/, '');
         const getDefaultApiBase = () => {
             if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
                 return 'http://localhost:3001';
             }
-            return PROD_API_BASE;
+            return window.location.origin;
         };
-        const API_BASE = window.localStorage.getItem('ens_api_base') || getDefaultApiBase();
+        const API_BASE = normalizeApiBase(window.localStorage.getItem('ens_api_base'));
+        const API_BASE_CANDIDATES = Array.from(new Set([
+            API_BASE,
+            normalizeApiBase(window.location.origin),
+            'http://localhost:3001'
+        ].filter(Boolean)));
         const USER_TOKEN_KEY = 'ens-user-access-token';
         let currentRole = 'guest';
         let roleQueryLimit = 200;
@@ -2639,30 +2644,40 @@
                 if (token) headers.Authorization = `Bearer ${token}`;
             }
 
-            let res;
-            try {
-                res = await fetch(`${API_BASE}${path}`, {
-                    method,
-                    headers,
-                    body: body ? JSON.stringify(body) : undefined
-                });
-            } catch (_err) {
-                throw new Error(currentLang === 'zh' ? '无法连接后端服务，请检查 API 地址与网络' : 'Cannot reach backend API, please check API base and network');
+            let lastError = null;
+            for (const base of API_BASE_CANDIDATES) {
+                try {
+                    const res = await fetch(`${base}${path}`, {
+                        method,
+                        headers,
+                        body: body ? JSON.stringify(body) : undefined
+                    });
+                    const data = await res.json().catch(() => ({}));
+                    if (!res.ok) {
+                        const err = new Error(data.error || `HTTP_${res.status}`);
+                        err.httpStatus = res.status;
+                        throw err;
+                    }
+                    if (base !== API_BASE_CANDIDATES[0]) {
+                        window.localStorage.setItem('ens_api_base', base);
+                    }
+                    return data;
+                } catch (err) {
+                    lastError = err;
+                }
             }
 
-            const data = await res.json().catch(() => ({}));
-            if (!res.ok) {
-                throw new Error(data.error || `HTTP_${res.status}`);
+            if (lastError?.message === 'HTTP_404') {
+                throw new Error(currentLang === 'zh'
+                    ? '后端接口不存在（HTTP_404），请确认后端已部署并开放 /api/client 路径'
+                    : 'Backend API not found (HTTP_404). Please deploy backend with /api/client routes');
             }
-            return data;
+            throw lastError || new Error(currentLang === 'zh' ? '无法连接后端服务，请检查 API 地址与网络' : 'Cannot reach backend API, please check API base and network');
         }
 
         async function refreshQueryLimitInfo() {
             try {
-                const token = localStorage.getItem(USER_TOKEN_KEY);
-                const headers = token ? { Authorization: `Bearer ${token}` } : {};
-                const res = await fetch(`${API_BASE}/api/client/query-limit`, { headers });
-                const data = await res.json();
+                const data = await apiRequest('/api/client/query-limit', { auth: true });
                 if (data?.ok) {
                     currentRole = data.role || 'guest';
                     roleQueryLimit = data.limit === null ? Number.POSITIVE_INFINITY : Number(data.limit || 200);

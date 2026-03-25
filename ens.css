@@ -558,31 +558,21 @@
             font-weight: 600;
         }
 
-        .status-left {
+        .status-item {
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 10px;
             min-width: 0;
-            padding: 6px 8px;
-            border-radius: 6px;
-            background: color-mix(in srgb, var(--card) 45%, transparent 55%);
+            padding: 8px 10px;
+            border-radius: 8px;
+            border: 1px solid color-mix(in srgb, var(--border) 76%, transparent 24%);
+            background: linear-gradient(135deg, color-mix(in srgb, var(--card) 70%, var(--bg) 30%), var(--bg));
         }
 
-        .status-right {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-            font-weight: 500;
-            min-width: 0;
-            padding: 6px 8px;
-            border-radius: 6px;
-            background: color-mix(in srgb, var(--card) 45%, transparent 55%);
-        }
-
-        .user-status-row > :nth-child(3) {
-            grid-column: auto;
+        .status-main {
+            border-color: color-mix(in srgb, var(--primary) 30%, var(--border) 70%);
+            background: linear-gradient(135deg, color-mix(in srgb, var(--primary) 10%, var(--bg) 90%), var(--bg));
         }
 
         .status-label {
@@ -607,6 +597,27 @@
         .status-value.logged-out {
             color: var(--danger);
             font-weight: 600;
+        }
+
+        .quota-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            align-items: end;
+        }
+
+        .quota-label {
+            display: block;
+            margin-bottom: 4px;
+            font-size: var(--font-size-sm);
+            color: var(--text-muted);
+        }
+
+        .quota-input {
+            font-weight: 600;
+            border-radius: 8px;
+            border-color: color-mix(in srgb, var(--primary) 25%, var(--border) 75%);
+            background: color-mix(in srgb, var(--card) 58%, var(--bg) 42%);
         }
 
         /* 查询控制模块 */
@@ -1721,3 +1732,7 @@
         }
 
     
+
+@media (max-width: 768px) {
+    .quota-row { grid-template-columns: 1fr; }
+}
