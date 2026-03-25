@@ -3,11 +3,19 @@ import { authenticator } from 'otplib';
 import { prisma } from '../db/prisma.js';
 import { encryptText } from '../security/crypto.js';
 
+const readEnv = (...keys) => {
+  for (const key of keys) {
+    const value = process.env[key];
+    if (typeof value === 'string' && value.trim()) return value.trim();
+  }
+  return '';
+};
+
 export const ensureAdminUser = async () => {
-  const account = process.env.ADMIN_ACCOUNT || 'admin';
-  const password = process.env.ADMIN_PASSWORD || 'changeme';
-  const passwordHashFromEnv = process.env.ADMIN_PASSWORD_HASH || '';
-  const twoFaSecretPlain = process.env.ADMIN_TOTP_SECRET || authenticator.generateSecret();
+  const account = readEnv('ADMIN_ACCOUNT', 'admin_account') || 'admin';
+  const password = readEnv('ADMIN_PASSWORD', 'admin_password') || 'changeme';
+  const passwordHashFromEnv = readEnv('ADMIN_PASSWORD_HASH', 'admin_password_hash');
+  const twoFaSecretPlain = readEnv('ADMIN_2FA', 'ADMIN_TOTP_SECRET', 'TWO_FA_SECRET') || authenticator.generateSecret();
 
   const existing = await prisma.user.findUnique({ where: { account } });
   if (existing) return;
@@ -27,7 +35,7 @@ export const ensureAdminUser = async () => {
 
   console.log(`[bootstrap] admin account created: ${account}`);
   if (!passwordHashFromEnv) {
-    console.log('[bootstrap] admin password created from ADMIN_PASSWORD env (change immediately).');
+    console.log('[bootstrap] admin password created from environment variable (change immediately).');
   }
   console.log(`[bootstrap] admin TOTP secret (save once): ${twoFaSecretPlain}`);
 };

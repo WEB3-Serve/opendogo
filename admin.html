@@ -25,10 +25,9 @@
     const { Header, Sider, Content } = Layout;
     const { Title } = Typography;
 
-    const PROD_API_BASE = 'https://opendogo.vercel.app';
     const API_BASE_CANDIDATES = ['localhost', '127.0.0.1'].includes(window.location.hostname)
-      ? ['http://localhost:3001']
-      : [window.location.origin, PROD_API_BASE];
+      ? ['http://localhost:3001', window.location.origin]
+      : [window.location.origin];
 
     const unique = (arr) => Array.from(new Set(arr.filter(Boolean)));
 
@@ -79,8 +78,8 @@
       ACCOUNT_DISABLED: '账号已禁用',
       ACCOUNT_LOCKED: '账号已锁定，请稍后重试',
       LOGIN_TICKET_INVALID: '登录票据无效或已过期，请先重新获取登录票据',
-      TWO_FA_NOT_CONFIGURED: '当前管理员未绑定 2FA，请先在服务器配置 ADMIN_TOTP_SECRET',
-      TWO_FA_SECRET_DECRYPT_FAIL: '2FA 密钥解密失败，请检查 TOTP_ENCRYPTION_KEY / ADMIN_SECRET_ENC_KEY',
+      TWO_FA_NOT_CONFIGURED: '当前管理员未绑定 2FA，请联系系统管理员处理',
+      TWO_FA_SECRET_DECRYPT_FAIL: '2FA 密钥异常，请联系系统管理员处理',
       TOTP_INVALID: '2FA 验证码错误，请确认谷歌验证器时间同步后重试'
     };
 
@@ -91,36 +90,32 @@
       const [ticket, setTicket] = useState('');
       const [loading, setLoading] = useState(false);
 
-      const getTicket = async () => {
-        const values = await form.validateFields(['account', 'password']);
-        setLoading(true);
-        try {
-          const result = await api('/api/admin/auth/login-password', {
-            method: 'POST',
-            auth: false,
-            body: { account: values.account, password: values.password }
-          });
-          setTicket(result.login_ticket);
-          message.success('已获取登录票据');
-        } catch (e) {
-          message.error(formatError(e));
-        } finally {
-          setLoading(false);
-        }
+      const fetchTicket = async (account, password) => {
+        const result = await api('/api/admin/auth/login-password', {
+          method: 'POST',
+          auth: false,
+          body: { account, password }
+        });
+        setTicket(result.login_ticket || '');
+        return result.login_ticket;
       };
 
       const submitLogin = async () => {
-        const values = await form.validateFields(['totp']);
+        const values = await form.validateFields(['account', 'password', 'totp']);
         setLoading(true);
         try {
+          const loginTicket = ticket || await fetchTicket(values.account, values.password);
           const result = await api('/api/admin/auth/login-2fa', {
             method: 'POST',
             auth: false,
-            body: { login_ticket: ticket, totp_code: values.totp }
+            body: { login_ticket: loginTicket, totp_code: values.totp }
           });
           onLogin(result.access_token);
           message.success('登录成功');
         } catch (e) {
+          if (e?.message === 'LOGIN_TICKET_INVALID') {
+            setTicket('');
+          }
           message.error(formatError(e));
         } finally {
           setLoading(false);
@@ -129,48 +124,50 @@
 
       return (
         <div className="login-wrap">
-          <Card className="login-card" title="ENS 后台管理登录">
-            <Alert
-              type="info"
-              showIcon
-              style={{ marginBottom: 12 }}
-              message="登录步骤"
-              description="1) 输入后台账号和密码；2) 点击“获取登录票据”；3) 输入谷歌验证器 6 位动态码；4) 点击“登录后台”。"
-            />
-            <Alert
-              type="warning"
-              showIcon
-              style={{ marginBottom: 12 }}
-              message="账号密码不知道？"
-              description="默认值通常是：admin / changeme（仅在部署者未修改环境变量时生效）。如果登录失败，请联系部署者确认 ADMIN_ACCOUNT / ADMIN_PASSWORD。"
-            />
-            <Form form={form} layout="vertical" initialValues={{ account: 'admin' }}>
-              <Form.Item label="后台账号" name="account" rules={[{ required: true, message: '请输入后台账号' }]}>
-                <Input placeholder="例如：admin" />
-              </Form.Item>
-              <Form.Item label="后台密码" name="password" rules={[{ required: true, message: '请输入后台密码' }]}>
-                <Input.Password placeholder="请输入后台密码" />
-              </Form.Item>
-              <Button type="primary" loading={loading} onClick={getTicket} block>1) 获取登录票据</Button>
-              <Form.Item
-                label="登录票据（自动生成）"
-                extra="票据有效期约 2 分钟，过期请重新点击上方按钮获取。"
-              >
-                <Input value={ticket} readOnly />
-              </Form.Item>
-              <Form.Item
-                label="2FA 验证码"
-                name="totp"
-                rules={[
-                  { required: true, message: '请输入 2FA 验证码' },
-                  { pattern: /^\d{6}$/, message: '2FA 验证码必须是 6 位数字' }
-                ]}
-              >
-                <Input maxLength={6} placeholder="请输入谷歌验证器中的 6 位数字" />
-              </Form.Item>
-              <Button type="primary" loading={loading} onClick={submitLogin} disabled={!ticket} block>2) 登录后台</Button>
-            </Form>
-          </Card>
+          <div className="login-shell">
+            <div className="login-side">
+              <div className="side-badge">SECURE ADMIN</div>
+              <Title level={3} style={{ color: '#fff', marginTop: 8, marginBottom: 12 }}>ENS 后台管理</Title>
+              <p>更安全、更简洁的登录流程：</p>
+              <ul>
+                <li>账号密码校验</li>
+                <li>自动申请短时登录票据</li>
+                <li>2FA 动态码二次验证</li>
+              </ul>
+            </div>
+            <Card className="login-card" bordered={false}>
+              <div className="login-title">
+                <Title level={4} style={{ margin: 0 }}>登录后台</Title>
+                <span>请输入管理员账号、密码与 2FA 验证码</span>
+              </div>
+              <Alert
+                type="info"
+                showIcon
+                style={{ marginBottom: 12 }}
+                message="登录说明"
+                description="点击“登录后台”后会自动申请登录票据；如超时会自动重新申请。"
+              />
+              <Form form={form} layout="vertical">
+                <Form.Item label="后台账号" name="account" rules={[{ required: true, message: '请输入后台账号' }]}>
+                  <Input placeholder="请输入后台账号" size="large" />
+                </Form.Item>
+                <Form.Item label="后台密码" name="password" rules={[{ required: true, message: '请输入后台密码' }]}>
+                  <Input.Password placeholder="请输入后台密码" size="large" />
+                </Form.Item>
+                <Form.Item
+                  label="2FA 验证码"
+                  name="totp"
+                  rules={[
+                    { required: true, message: '请输入 2FA 验证码' },
+                    { pattern: /^\d{6}$/, message: '2FA 验证码必须是 6 位数字' }
+                  ]}
+                >
+                  <Input maxLength={6} placeholder="请输入 6 位动态码" size="large" />
+                </Form.Item>
+                <Button type="primary" loading={loading} onClick={submitLogin} block size="large">登录后台</Button>
+              </Form>
+            </Card>
+          </div>
         </div>
       );
     }
