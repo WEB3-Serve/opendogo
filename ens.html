@@ -304,8 +304,8 @@
                     </div>
                     <div class="user-input-row quota-row" style="margin-top:10px;">
                         <div class="user-input-group">
-                            <label class="quota-label">查询额度（游客/注册/VIP）</label>
-                            <input type="text" class="user-input quota-input" id="queryLimitInfo" value="200 / 500 / ∞" readonly>
+                            <label class="quota-label">查询额度：取当前用户额度</label>
+                            <input type="text" class="user-input quota-input" id="queryLimitInfo" value="读取中..." readonly>
                         </div>
                     </div>
                 </div>
@@ -2693,12 +2693,42 @@
                     const infoEl = document.getElementById('queryLimitInfo');
                     if (infoEl) {
                         const myLimit = Number.isFinite(roleQueryLimit) ? roleQueryLimit : '∞';
-                        infoEl.value = `${data.limits.guest} / ${data.limits.registered} / ∞（当前:${currentRole}:${myLimit}）`;
+                        const roleText = currentRole === 'vip'
+                            ? (currentLang === 'zh' ? 'VIP用户' : 'VIP')
+                            : (currentRole === 'guest'
+                                ? (currentLang === 'zh' ? '游客' : 'Guest')
+                                : (currentLang === 'zh' ? '注册用户' : 'Registered'));
+                        infoEl.value = `${roleText}：${myLimit}`;
                     }
                 }
             } catch (e) {
                 addLog(currentLang === 'zh' ? `读取查询额度失败: ${e.message}` : `Failed to load query limit: ${e.message}`, 'warning');
             }
+        }
+
+        async function restoreLoginFromToken() {
+            const token = localStorage.getItem(USER_TOKEN_KEY);
+            if (!token) {
+                currentUser = null;
+                isLoggedIn = false;
+                updateUserStatus();
+                return;
+            }
+            try {
+                const data = await apiRequest('/api/client/profile', { auth: true });
+                if (data?.ok && data?.user?.account) {
+                    currentUser = data.user.account;
+                    isLoggedIn = true;
+                } else {
+                    throw new Error('INVALID_PROFILE');
+                }
+            } catch (e) {
+                currentUser = null;
+                isLoggedIn = false;
+                localStorage.removeItem(USER_TOKEN_KEY);
+                addLog(currentLang === 'zh' ? '登录状态已失效，请重新登录' : 'Session expired. Please login again.', 'warning');
+            }
+            updateUserStatus();
         }
 
         function getEffectiveQueryLimit() {
@@ -2939,7 +2969,7 @@
             else if (media.addListener) media.addListener(handleChange);
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             initRpcStatus();
             initThemeSwitcher();
 
@@ -2951,9 +2981,9 @@
             });
             updateDomainTypeHint();
             updateDomainsCount();
-            updateUserStatus();
+            await restoreLoginFromToken();
             initCardKeySettings();
-            refreshQueryLimitInfo();
+            await refreshQueryLimitInfo();
             updateRpcList();
             syncDomainModuleHeight();
 
