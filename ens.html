@@ -731,21 +731,40 @@
         let currentPage = 1, pageSize = 50, totalPages = 1;
         let rpcStatus = {}, isLoadingDomains = false;
         const normalizeApiBase = (value) => String(value || '').trim().replace(/\/$/, '');
+        const isHttpsPage = window.location.protocol === 'https:';
+        const isLocalHost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+        const getApiBaseFromQuery = () => {
+            try {
+                const value = new URLSearchParams(window.location.search).get('api_base');
+                return normalizeApiBase(value);
+            } catch (e) {
+                return '';
+            }
+        };
+        const queryApiBase = getApiBaseFromQuery();
+        if (queryApiBase) {
+            window.localStorage.setItem('ens_api_base', queryApiBase);
+        }
         const getDefaultApiBase = () => {
-            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            if (isLocalHost) {
                 return 'http://localhost:3001';
             }
             return window.location.origin;
         };
         const API_BASE = normalizeApiBase(window.localStorage.getItem('ens_api_base'));
+        const ORIGIN_API_PROXY = normalizeApiBase(`${window.location.origin}/api`);
         const HOST_PORT_3001 = window.location.hostname
             ? normalizeApiBase(`${window.location.protocol}//${window.location.hostname}:3001`)
             : '';
+        const LOCALHOST_API = 'http://localhost:3001';
+        const shouldTryLocalHttp = !isHttpsPage || isLocalHost;
         const API_BASE_CANDIDATES = Array.from(new Set([
+            queryApiBase,
             API_BASE,
+            ORIGIN_API_PROXY,
             normalizeApiBase(window.location.origin),
             HOST_PORT_3001,
-            'http://localhost:3001'
+            shouldTryLocalHttp ? LOCALHOST_API : ''
         ].filter(Boolean)));
         const USER_TOKEN_KEY = 'ens-user-access-token';
         let currentRole = 'guest';
@@ -2628,6 +2647,21 @@
             addLog(translations[currentLang].logValidate || '验证域名格式', 'info');
         }
 
+        async function fetchWithTimeout(url, options = {}, timeoutMs = 8000) {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), timeoutMs);
+            try {
+                return await fetch(url, { ...options, signal: controller.signal });
+            } catch (err) {
+                if (err?.name === 'AbortError') {
+                    throw new Error('REQUEST_TIMEOUT');
+                }
+                throw err;
+            } finally {
+                clearTimeout(timer);
+            }
+        }
+
         async function apiRequest(path, { method = 'GET', body, auth = false } = {}) {
             const headers = { 'Content-Type': 'application/json' };
             if (auth) {
@@ -2640,7 +2674,7 @@
             for (const base of API_BASE_CANDIDATES) {
                 triedBases.push(base);
                 try {
-                    const res = await fetch(`${base}${path}`, {
+                    const res = await fetchWithTimeout(`${base}${path}`, {
                         method,
                         headers,
                         body: body ? JSON.stringify(body) : undefined
@@ -2669,11 +2703,14 @@
                     : 'Backend API not found (HTTP_404). Please deploy backend with /api/client routes');
             }
 
-            if (lastError?.message === 'Failed to fetch') {
+            if (lastError?.message === 'Failed to fetch' || lastError?.message === 'REQUEST_TIMEOUT') {
                 const tried = [...new Set(triedBases)].join(' , ');
+                const queryHint = isHttpsPage
+                    ? '请改用 ?api_base=https://你的后端域名，或配置同域 /api 反向代理。'
+                    : '或在地址后追加 ?api_base=http://127.0.0.1:3001 指定后端。';
                 throw new Error(currentLang === 'zh'
-                    ? `无法连接后端服务，请检查后端是否已启动、跨域配置是否放行，或在地址后追加 ?api_base=http://127.0.0.1:3001 指定后端。已尝试：${tried}`
-                    : `Cannot reach backend API. Check backend status/CORS, or set ?api_base=http://127.0.0.1:3001. Tried: ${tried}`);
+                    ? `无法连接后端服务，请检查后端是否已启动、跨域配置是否放行。${queryHint} 已尝试：${tried}`
+                    : `Cannot reach backend API. Check backend status/CORS. ${isHttpsPage ? 'Use ?api_base=https://your-backend-domain or same-origin /api proxy.' : 'Or set ?api_base=http://127.0.0.1:3001.'} Tried: ${tried}`);
             }
 
             throw lastError || new Error(currentLang === 'zh' ? '无法连接后端服务，请检查 API 地址与网络' : 'Cannot reach backend API, please check API base and network');

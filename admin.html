@@ -32,6 +32,8 @@
 
     const unique = (arr) => Array.from(new Set(arr.filter(Boolean)));
     const normalizeApiBase = (value) => String(value || '').trim().replace(/\/$/, '');
+    const isHttpsPage = window.location.protocol === 'https:';
+    const isLocalHost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
     const getApiBaseFromQuery = () => {
       try {
         const value = new URLSearchParams(window.location.search).get('api_base');
@@ -43,12 +45,37 @@
     const queryApiBase = getApiBaseFromQuery();
     if (queryApiBase) window.localStorage.setItem('admin_api_base', queryApiBase);
     const cachedApiBase = normalizeApiBase(window.localStorage.getItem('admin_api_base'));
+    const originApiProxy = normalizeApiBase(`${window.location.origin}/api`);
     const hostPort3001 = window.location.hostname
       ? normalizeApiBase(`${window.location.protocol}//${window.location.hostname}:3001`)
       : '';
-    const API_BASE_CANDIDATES = ['localhost', '127.0.0.1'].includes(window.location.hostname)
-      ? unique([queryApiBase, cachedApiBase, 'http://localhost:3001', window.location.origin])
-      : unique([queryApiBase, cachedApiBase, window.location.origin, hostPort3001, 'http://localhost:3001']);
+    const localhostApi = 'http://localhost:3001';
+    const shouldTryLocalHttp = !isHttpsPage || isLocalHost;
+    const API_BASE_CANDIDATES = isLocalHost
+      ? unique([queryApiBase, cachedApiBase, localhostApi, window.location.origin, originApiProxy])
+      : unique([
+          queryApiBase,
+          cachedApiBase,
+          originApiProxy,
+          window.location.origin,
+          hostPort3001,
+          shouldTryLocalHttp ? localhostApi : ''
+        ]);
+
+    const fetchWithTimeout = async (url, options = {}, timeoutMs = 8000) => {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        return await fetch(url, { ...options, signal: controller.signal });
+      } catch (err) {
+        if (err?.name === 'AbortError') {
+          throw new Error('REQUEST_TIMEOUT');
+        }
+        throw err;
+      } finally {
+        clearTimeout(timer);
+      }
+    };
 
     const api = async (path, { method = 'GET', body, token, auth = true } = {}) => {
       const headers = { 'Content-Type': 'application/json' };
@@ -57,7 +84,7 @@
       let lastError = null;
       for (const base of unique(API_BASE_CANDIDATES)) {
         try {
-          const res = await fetch(`${base}${path}`, {
+          const res = await fetchWithTimeout(`${base}${path}`, {
             method,
             headers,
             body: body ? JSON.stringify(body) : undefined
@@ -89,12 +116,15 @@
       if (lastError?.message === 'The string did not match the expected pattern.') {
         throw new Error('请求地址异常，请刷新页面重试，或改用系统浏览器打开');
       }
-      if (lastError?.message === 'Failed to fetch') {
+      if (lastError?.message === 'Failed to fetch' || lastError?.message === 'REQUEST_TIMEOUT') {
         const tried = unique(API_BASE_CANDIDATES).join(' , ');
         const mixedContentHint = window.location.protocol === 'https:'
-          ? '当前页面是 HTTPS，后端也需要提供 HTTPS（或通过同域反向代理到 /api）。'
+          ? '当前页面是 HTTPS，后端也需要提供 HTTPS，或配置同域反向代理到 /api。'
           : '请确认后端监听地址可访问，且已允许当前来源的跨域请求。';
-        throw new Error(`无法连接后端服务。已尝试：${tried}。${mixedContentHint} 你也可以在地址后追加 ?api_base=http://127.0.0.1:3001 指定后端。`);
+        const queryHint = isHttpsPage
+          ? '你也可以在地址后追加 ?api_base=https://你的后端域名 指定后端。'
+          : '你也可以在地址后追加 ?api_base=http://127.0.0.1:3001 指定后端。';
+        throw new Error(`无法连接后端服务。已尝试：${tried}。${mixedContentHint} ${queryHint}`);
       }
       if (lastError?.code === 'NON_JSON_RESPONSE' && lastError?.httpStatus === 404) {
         throw new Error(`后端接口不存在，请检查 API 地址。当前候选：${API_BASE_CANDIDATES.join(' , ')}`);
