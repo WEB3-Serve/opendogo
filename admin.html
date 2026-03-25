@@ -20,7 +20,7 @@
     const { useState, useEffect } = React;
     const {
       Layout, Menu, Card, Statistic, Row, Col, Button, Form, Input, InputNumber, Select,
-      Table, Modal, message, Typography, Space, Divider, Tag, Alert
+      Table, Modal, message, Typography, Space, Divider, Tag
     } = antd;
     const { Header, Sider, Content } = Layout;
     const { Title } = Typography;
@@ -30,6 +30,18 @@
       : [window.location.origin];
 
     const unique = (arr) => Array.from(new Set(arr.filter(Boolean)));
+
+    const parseResponse = async (res) => {
+      const contentType = res.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        return await res.json();
+      }
+
+      const text = await res.text();
+      const compact = String(text || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+      const preview = compact.slice(0, 120) || `HTTP ${res.status}`;
+      throw new Error(`接口返回了非 JSON 内容：${preview}`);
+    };
 
     const api = async (path, { method = 'GET', body, token, auth = true } = {}) => {
       const headers = { 'Content-Type': 'application/json' };
@@ -43,7 +55,7 @@
             headers,
             body: body ? JSON.stringify(body) : undefined
           });
-          const data = await res.json();
+          const data = await parseResponse(res);
           if (!res.ok) throw new Error(data.error || String(res.status));
           return data;
         } catch (err) {
@@ -83,7 +95,12 @@
       TOTP_INVALID: '2FA 验证码错误，请确认谷歌验证器时间同步后重试'
     };
 
-    const formatError = (err) => errMsgMap[err?.message] || err?.message || '请求失败';
+    const formatError = (err) => {
+      if (err?.message === 'Failed to fetch') {
+        return '无法连接后端服务，请确认后端已启动并检查网络/跨域配置';
+      }
+      return errMsgMap[err?.message] || err?.message || '请求失败';
+    };
 
     function LoginView({ onLogin }) {
       const [form] = Form.useForm();
@@ -124,50 +141,30 @@
 
       return (
         <div className="login-wrap">
-          <div className="login-shell">
-            <div className="login-side">
-              <div className="side-badge">SECURE ADMIN</div>
-              <Title level={3} style={{ color: '#fff', marginTop: 8, marginBottom: 12 }}>ENS 后台管理</Title>
-              <p>更安全、更简洁的登录流程：</p>
-              <ul>
-                <li>账号密码校验</li>
-                <li>自动申请短时登录票据</li>
-                <li>2FA 动态码二次验证</li>
-              </ul>
+          <Card className="login-card" bordered={false}>
+            <div className="login-title">
+              <Title level={4} style={{ margin: 0 }}>管理员登录</Title>
             </div>
-            <Card className="login-card" bordered={false}>
-              <div className="login-title">
-                <Title level={4} style={{ margin: 0 }}>登录后台</Title>
-                <span>请输入管理员账号、密码与 2FA 验证码</span>
-              </div>
-              <Alert
-                type="info"
-                showIcon
-                style={{ marginBottom: 12 }}
-                message="登录说明"
-                description="点击“登录后台”后会自动申请登录票据；如超时会自动重新申请。"
-              />
-              <Form form={form} layout="vertical">
-                <Form.Item label="后台账号" name="account" rules={[{ required: true, message: '请输入后台账号' }]}>
-                  <Input placeholder="请输入后台账号" size="large" />
-                </Form.Item>
-                <Form.Item label="后台密码" name="password" rules={[{ required: true, message: '请输入后台密码' }]}>
-                  <Input.Password placeholder="请输入后台密码" size="large" />
-                </Form.Item>
-                <Form.Item
-                  label="2FA 验证码"
-                  name="totp"
-                  rules={[
-                    { required: true, message: '请输入 2FA 验证码' },
-                    { pattern: /^\d{6}$/, message: '2FA 验证码必须是 6 位数字' }
-                  ]}
-                >
-                  <Input maxLength={6} placeholder="请输入 6 位动态码" size="large" />
-                </Form.Item>
-                <Button type="primary" loading={loading} onClick={submitLogin} block size="large">登录后台</Button>
-              </Form>
-            </Card>
-          </div>
+            <Form form={form} layout="vertical">
+              <Form.Item label="账号" name="account" rules={[{ required: true, message: '请输入后台账号' }]}>
+                <Input placeholder="账号" size="large" />
+              </Form.Item>
+              <Form.Item label="密码" name="password" rules={[{ required: true, message: '请输入后台密码' }]}>
+                <Input.Password placeholder="密码" size="large" />
+              </Form.Item>
+              <Form.Item
+                label="2FA"
+                name="totp"
+                rules={[
+                  { required: true, message: '请输入 2FA 验证码' },
+                  { pattern: /^\d{6}$/, message: '2FA 验证码必须是 6 位数字' }
+                ]}
+              >
+                <Input maxLength={6} placeholder="6位验证码" size="large" />
+              </Form.Item>
+              <Button type="primary" loading={loading} onClick={submitLogin} block size="large">登录</Button>
+            </Form>
+          </Card>
         </div>
       );
     }

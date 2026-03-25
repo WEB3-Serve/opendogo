@@ -11,56 +11,16 @@ body {
   padding: 24px;
 }
 
-.login-shell {
-  width: min(920px, 100%);
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  border-radius: 20px;
-  overflow: hidden;
-  box-shadow: 0 24px 60px rgba(2, 6, 23, 0.42);
-  background: #ffffff;
-}
-
-.login-side {
-  padding: 40px 32px;
-  color: #cbd5e1;
-  background: radial-gradient(circle at top left, #2563eb, #1d4ed8 35%, #1e293b 100%);
-}
-
-.login-side p { margin: 0 0 10px; }
-.login-side ul { margin: 0; padding-left: 20px; line-height: 1.9; }
-
-.side-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 10px;
-  border: 1px solid rgba(255,255,255,0.35);
-  border-radius: 999px;
-  font-size: 11px;
-  letter-spacing: 0.12em;
-}
-
 .login-card {
-  border-radius: 0;
-  padding: 22px 8px;
+  width: min(420px, calc(100vw - 32px));
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 20px 45px rgba(2, 6, 23, 0.35);
 }
 
 .login-title {
-  margin-bottom: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.login-title span {
-  color: #64748b;
-  font-size: 13px;
-}
-
-@media (max-width: 860px) {
-  .login-shell { grid-template-columns: 1fr; }
-  .login-side { display: none; }
-  .login-card { border-radius: 20px; }
+  margin-bottom: 14px;
+  text-align: center;
 }
 
 .logo { color: #fff; font-size: 18px; font-weight: 700; margin: 16px; }

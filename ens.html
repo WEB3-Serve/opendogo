@@ -238,14 +238,11 @@
                         <i class="fas fa-user-circle"></i> <span data-i18n="userCenter">用户中心</span>
                     </div>
 
-                    <div class="user-input-row">
+                    <div class="user-input-row account-pass-row">
                         <div class="user-input-group">
                             <label data-i18n="username">账号</label>
                             <input type="text" class="user-input" id="username" data-i18n-placeholder="usernamePlaceholder" placeholder="请输入账号">
                         </div>
-                    </div>
-
-                    <div class="user-input-row">
                         <div class="user-input-group">
                             <label data-i18n="password">密码</label>
                             <input type="password" class="user-input" id="password" data-i18n-placeholder="passwordPlaceholder" placeholder="请输入密码">
@@ -305,14 +302,10 @@
                             <span class="status-value" id="cardKeyStatus" data-i18n="cardKeyInactive">未激活</span>
                         </div>
                     </div>
-                    <div class="user-input-row stack-mobile quota-row" style="margin-top:10px;">
+                    <div class="user-input-row quota-row" style="margin-top:10px;">
                         <div class="user-input-group">
                             <label class="quota-label">查询额度（游客/注册/VIP）</label>
                             <input type="text" class="user-input quota-input" id="queryLimitInfo" value="200 / 500 / ∞" readonly>
-                        </div>
-                        <div class="user-input-group">
-                            <label class="quota-label">自定义查询上限</label>
-                            <input type="number" class="user-input quota-input" id="customQueryLimit" min="1" placeholder="留空=按账户额度">
                         </div>
                     </div>
                 </div>
@@ -751,9 +744,13 @@
             return window.location.origin;
         };
         const API_BASE = normalizeApiBase(window.localStorage.getItem('ens_api_base'));
+        const HOST_PORT_3001 = window.location.hostname
+            ? normalizeApiBase(`${window.location.protocol}//${window.location.hostname}:3001`)
+            : '';
         const API_BASE_CANDIDATES = Array.from(new Set([
             API_BASE,
             normalizeApiBase(window.location.origin),
+            HOST_PORT_3001,
             'http://localhost:3001'
         ].filter(Boolean)));
         const USER_TOKEN_KEY = 'ens-user-access-token';
@@ -2645,14 +2642,19 @@
             }
 
             let lastError = null;
+            let lastTriedBase = API_BASE_CANDIDATES[0];
             for (const base of API_BASE_CANDIDATES) {
+                lastTriedBase = base;
                 try {
                     const res = await fetch(`${base}${path}`, {
                         method,
                         headers,
                         body: body ? JSON.stringify(body) : undefined
                     });
-                    const data = await res.json().catch(() => ({}));
+                    const contentType = res.headers.get('content-type') || '';
+                    const data = contentType.includes('application/json')
+                        ? await res.json()
+                        : {};
                     if (!res.ok) {
                         const err = new Error(data.error || `HTTP_${res.status}`);
                         err.httpStatus = res.status;
@@ -2672,6 +2674,13 @@
                     ? '后端接口不存在（HTTP_404），请确认后端已部署并开放 /api/client 路径'
                     : 'Backend API not found (HTTP_404). Please deploy backend with /api/client routes');
             }
+
+            if (lastError?.message === 'Failed to fetch') {
+                throw new Error(currentLang === 'zh'
+                    ? `无法连接后端服务，请确认后端已启动并可访问：${lastTriedBase}`
+                    : `Cannot reach backend API. Please make sure backend is running at: ${lastTriedBase}`);
+            }
+
             throw lastError || new Error(currentLang === 'zh' ? '无法连接后端服务，请检查 API 地址与网络' : 'Cannot reach backend API, please check API base and network');
         }
 
@@ -2693,11 +2702,7 @@
         }
 
         function getEffectiveQueryLimit() {
-            const customRaw = Number(document.getElementById('customQueryLimit')?.value || 0);
-            const hasCustom = Number.isFinite(customRaw) && customRaw > 0;
-            if (!Number.isFinite(roleQueryLimit)) return hasCustom ? customRaw : Number.POSITIVE_INFINITY;
-            if (!hasCustom) return roleQueryLimit;
-            return Math.min(roleQueryLimit, customRaw);
+            return Number.isFinite(roleQueryLimit) ? roleQueryLimit : Number.POSITIVE_INFINITY;
         }
 
         // 用户相关函数
