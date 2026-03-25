@@ -32,19 +32,20 @@
 
     const unique = (arr) => Array.from(new Set(arr.filter(Boolean)));
     const normalizeApiBase = (value) => String(value || '').trim().replace(/\/$/, '');
+    const normalizeApiBaseRoot = (value) => normalizeApiBase(value).replace(/\/api$/, '');
     const isHttpsPage = window.location.protocol === 'https:';
     const isLocalHost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
     const getApiBaseFromQuery = () => {
       try {
         const value = new URLSearchParams(window.location.search).get('api_base');
-        return normalizeApiBase(value);
+        return normalizeApiBaseRoot(value);
       } catch {
         return '';
       }
     };
     const queryApiBase = getApiBaseFromQuery();
     if (queryApiBase) window.localStorage.setItem('admin_api_base', queryApiBase);
-    const cachedApiBase = normalizeApiBase(window.localStorage.getItem('admin_api_base'));
+    const cachedApiBase = normalizeApiBaseRoot(window.localStorage.getItem('admin_api_base'));
     const originApiProxy = normalizeApiBase(`${window.location.origin}/api`);
     const hostPort3001 = window.location.hostname
       ? normalizeApiBase(`${window.location.protocol}//${window.location.hostname}:3001`)
