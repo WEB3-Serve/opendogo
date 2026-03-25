@@ -5,7 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ENS 后台管理（React + Ant Design）</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/antd/5.27.1/reset.min.css" />
-  <link rel="stylesheet" href="./admin.css" />
+  <link rel="stylesheet" href="/admin.css" />
+  <style>
+    /* Fallback when external stylesheet is not reachable */
+    .login-wrap { display: flex; justify-content: center; align-items: center; padding: 24px 16px; min-height: 100vh; }
+    .login-card { width: min(460px, calc(100vw - 32px)); }
+  </style>
 </head>
 <body>
   <div id="root"></div>
@@ -84,6 +89,13 @@
       if (lastError?.message === 'The string did not match the expected pattern.') {
         throw new Error('请求地址异常，请刷新页面重试，或改用系统浏览器打开');
       }
+      if (lastError?.message === 'Failed to fetch') {
+        const tried = unique(API_BASE_CANDIDATES).join(' , ');
+        const mixedContentHint = window.location.protocol === 'https:'
+          ? '当前页面是 HTTPS，后端也需要提供 HTTPS（或通过同域反向代理到 /api）。'
+          : '请确认后端监听地址可访问，且已允许当前来源的跨域请求。';
+        throw new Error(`无法连接后端服务。已尝试：${tried}。${mixedContentHint} 你也可以在地址后追加 ?api_base=http://127.0.0.1:3001 指定后端。`);
+      }
       if (lastError?.code === 'NON_JSON_RESPONSE' && lastError?.httpStatus === 404) {
         throw new Error(`后端接口不存在，请检查 API 地址。当前候选：${API_BASE_CANDIDATES.join(' , ')}`);
       }
@@ -117,9 +129,6 @@
     };
 
     const formatError = (err) => {
-      if (err?.message === 'Failed to fetch') {
-        return '无法连接后端服务，请确认后端已启动并检查网络/跨域配置';
-      }
       return errMsgMap[err?.message] || err?.message || '请求失败';
     };
 

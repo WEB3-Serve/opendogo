@@ -1,7 +1,7 @@
 # backend（生产版集成骨架）
 
 已集成你要求的核心能力：
-- PostgreSQL 持久化（用户/卡密/域名规则/审计日志）
+- MySQL 持久化（用户/卡密/域名规则/审计日志）
 - Redis（登录失败锁定、可扩展限流）
 - 后台登录：账号密码 + 真实 TOTP（Google Authenticator）
 - 域名白名单 + 跳转域名 + 开关
@@ -25,7 +25,7 @@ npm run start
 ```
 
 ## 3. 数据不丢失说明
-- 数据存 PostgreSQL（不是本地文件）
+- 数据存 MySQL（不是本地文件）
 - 部署只更新代码，数据库保留
 - 使用 Prisma migration 管理结构更新
 - 卡密核销使用事务，避免重复核销
@@ -97,6 +97,11 @@ npm run start
 
 ## 7. 环境变量
 详见 `.env.example`。
+
+### 数据库现状（当前仓库）
+- Prisma `datasource` 当前使用 `mysql`。
+- 默认示例连接：`DATABASE_URL=mysql://root:password@localhost:3306/opendogo`。
+- 若需切换 PostgreSQL，需要同时修改 `prisma/schema.prisma` 与 `DATABASE_URL`，并重新生成/迁移。
 
 重点字段：
 - `ALLOWED_DOMAINS`：限制请求的 Host（后端服务自身域名白名单）。

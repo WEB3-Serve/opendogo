@@ -302,12 +302,6 @@
                             <span class="status-value" id="cardKeyStatus" data-i18n="cardKeyInactive">未激活</span>
                         </div>
                     </div>
-                    <div class="user-input-row quota-row" style="margin-top:10px;">
-                        <div class="user-input-group">
-                            <label class="quota-label">查询额度：取当前用户额度</label>
-                            <input type="text" class="user-input quota-input" id="queryLimitInfo" value="读取中..." readonly>
-                        </div>
-                    </div>
                 </div>
 
                 <!-- 查询控制模块 -->
@@ -2642,9 +2636,9 @@
             }
 
             let lastError = null;
-            let lastTriedBase = API_BASE_CANDIDATES[0];
+            const triedBases = [];
             for (const base of API_BASE_CANDIDATES) {
-                lastTriedBase = base;
+                triedBases.push(base);
                 try {
                     const res = await fetch(`${base}${path}`, {
                         method,
@@ -2676,9 +2670,10 @@
             }
 
             if (lastError?.message === 'Failed to fetch') {
+                const tried = [...new Set(triedBases)].join(' , ');
                 throw new Error(currentLang === 'zh'
-                    ? `无法连接后端服务，请确认后端已启动并可访问：${lastTriedBase}`
-                    : `Cannot reach backend API. Please make sure backend is running at: ${lastTriedBase}`);
+                    ? `无法连接后端服务，请检查后端是否已启动、跨域配置是否放行，或在地址后追加 ?api_base=http://127.0.0.1:3001 指定后端。已尝试：${tried}`
+                    : `Cannot reach backend API. Check backend status/CORS, or set ?api_base=http://127.0.0.1:3001. Tried: ${tried}`);
             }
 
             throw lastError || new Error(currentLang === 'zh' ? '无法连接后端服务，请检查 API 地址与网络' : 'Cannot reach backend API, please check API base and network');
@@ -2690,19 +2685,10 @@
                 if (data?.ok) {
                     currentRole = data.role || 'guest';
                     roleQueryLimit = data.limit === null ? Number.POSITIVE_INFINITY : Number(data.limit || 200);
-                    const infoEl = document.getElementById('queryLimitInfo');
-                    if (infoEl) {
-                        const myLimit = Number.isFinite(roleQueryLimit) ? roleQueryLimit : '∞';
-                        const roleText = currentRole === 'vip'
-                            ? (currentLang === 'zh' ? 'VIP用户' : 'VIP')
-                            : (currentRole === 'guest'
-                                ? (currentLang === 'zh' ? '游客' : 'Guest')
-                                : (currentLang === 'zh' ? '注册用户' : 'Registered'));
-                        infoEl.value = `${roleText}：${myLimit}`;
-                    }
                 }
             } catch (e) {
-                addLog(currentLang === 'zh' ? `读取查询额度失败: ${e.message}` : `Failed to load query limit: ${e.message}`, 'warning');
+                // 查询额度仅用于本地上限控制，不打扰用户界面
+                console.warn('refreshQueryLimitInfo failed:', e?.message || e);
             }
         }
 
