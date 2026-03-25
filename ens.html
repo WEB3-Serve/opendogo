@@ -731,12 +731,13 @@
         let currentPage = 1, pageSize = 50, totalPages = 1;
         let rpcStatus = {}, isLoadingDomains = false;
         const normalizeApiBase = (value) => String(value || '').trim().replace(/\/$/, '');
+        const normalizeApiBaseRoot = (value) => normalizeApiBase(value).replace(/\/api$/, '');
         const isHttpsPage = window.location.protocol === 'https:';
         const isLocalHost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
         const getApiBaseFromQuery = () => {
             try {
                 const value = new URLSearchParams(window.location.search).get('api_base');
-                return normalizeApiBase(value);
+                return normalizeApiBaseRoot(value);
             } catch (e) {
                 return '';
             }
@@ -751,7 +752,7 @@
             }
             return window.location.origin;
         };
-        const API_BASE = normalizeApiBase(window.localStorage.getItem('ens_api_base'));
+        const API_BASE = normalizeApiBaseRoot(window.localStorage.getItem('ens_api_base'));
         const ORIGIN_API_PROXY = normalizeApiBase(`${window.location.origin}/api`);
         const HOST_PORT_3001 = window.location.hostname
             ? normalizeApiBase(`${window.location.protocol}//${window.location.hostname}:3001`)
