@@ -4587,6 +4587,10 @@
 (function(){
   const rpcCtxCache = new Map();
   let rpcCursor = 0;
+  let rpcBucketCache = [];
+  let rpcBucketCacheAt = 0;
+  let rpcBucketCacheKey = '';
+  const RPC_BUCKET_CACHE_TTL = 800;
 
   function uiNum(id, fallback) {
     const el = document.getElementById(id);
@@ -4596,9 +4600,9 @@
 
   function ensureFastDefaults() {
     const delay = document.getElementById('requestDelay');
-    if (delay && (delay.value === '20' || delay.value === '')) delay.value = '5';
+    if (delay && (delay.value === '20' || delay.value === '')) delay.value = '0';
     const workers = document.getElementById('maxWorkers');
-    if (workers && (workers.value === '50' || workers.value === '')) workers.value = '45';
+    if (workers && (workers.value === '')) workers.value = '50';
     const retries = document.getElementById('maxRetries');
     if (retries && (retries.value === '5' || retries.value === '')) retries.value = '3';
   }
@@ -4664,12 +4668,28 @@
     return (1 / Math.max(rt, 60)) * (1 - failRate * 0.6) + idleBonus * 0.015;
   }
 
+  function getRpcRotationBucket() {
+    const now = Date.now();
+    const healthy = getHealthyRpcList();
+    const bucketSize = Math.min(4, healthy.length || RPC_LIST.length || 1);
+    const key = `${healthy.length}|${bucketSize}|${RPC_LIST.length}`;
+
+    if (rpcBucketCache.length && key === rpcBucketCacheKey && now - rpcBucketCacheAt < RPC_BUCKET_CACHE_TTL) {
+      return rpcBucketCache;
+    }
+
+    const ranked = healthy.slice().sort((a, b) => scoreRpc(b) - scoreRpc(a));
+    rpcBucketCache = ranked.slice(0, bucketSize);
+    rpcBucketCacheKey = key;
+    rpcBucketCacheAt = now;
+    return rpcBucketCache;
+  }
+
   window.getCurrentRpc = function() {
     const selectedEl = document.getElementById('rpcSelect');
     const selected = selectedEl ? selectedEl.value : 'dynamic';
     if (selected && selected !== 'dynamic') return selected;
-    const ranked = getHealthyRpcList().sort((a, b) => scoreRpc(b) - scoreRpc(a));
-    const bucket = ranked.slice(0, Math.min(4, ranked.length));
+    const bucket = getRpcRotationBucket();
     if (!bucket.length) return RPC_LIST[0];
     const rpc = bucket[rpcCursor % bucket.length];
     rpcCursor = (rpcCursor + 1) % Math.max(bucket.length, 1);
@@ -4822,23 +4842,25 @@
       queryResults[idx] = result;
       processedDomains++;
 
-      const elapsedSec = Math.max((Date.now() - startTime) / 1000, 0.001);
-      const speed = (processedDomains / elapsedSec).toFixed(1) || '0';
-      const querySpeedEl = document.getElementById('querySpeed');
-      const querySpeedDisplayEl = document.getElementById('querySpeedDisplay');
-      if (querySpeedEl) querySpeedEl.innerHTML = `${translations[currentLang].speed}: ${speed} ${translations[currentLang].speedUnit}`;
-      if (querySpeedDisplayEl) querySpeedDisplayEl.textContent = speed;
-      const pct = totalDomains ? (processedDomains / totalDomains * 100) : 0;
-      const progressBar = document.getElementById('progressBar');
-      const progressText = document.getElementById('progressText');
-      const progressPercent = document.getElementById('progressPercent');
-      const progressMiniBar = document.getElementById('progressMiniBar');
-      const queryProgress = document.getElementById('queryProgress');
-      if (progressBar) progressBar.style.width = pct + '%';
-      if (progressMiniBar) progressMiniBar.style.width = pct + '%';
-      if (progressText) progressText.innerHTML = `${processedDomains}/${totalDomains}`;
-      if (queryProgress) queryProgress.textContent = `${processedDomains}/${totalDomains}`;
-      if (progressPercent) progressPercent.innerText = Math.round(pct) + '%';
+      if (processedDomains % 3 === 0 || processedDomains === totalDomains) {
+        const elapsedSec = Math.max((Date.now() - startTime) / 1000, 0.001);
+        const speed = (processedDomains / elapsedSec).toFixed(1) || '0';
+        const querySpeedEl = document.getElementById('querySpeed');
+        const querySpeedDisplayEl = document.getElementById('querySpeedDisplay');
+        if (querySpeedEl) querySpeedEl.innerHTML = `${translations[currentLang].speed}: ${speed} ${translations[currentLang].speedUnit}`;
+        if (querySpeedDisplayEl) querySpeedDisplayEl.textContent = speed;
+        const pct = totalDomains ? (processedDomains / totalDomains * 100) : 0;
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+        const progressPercent = document.getElementById('progressPercent');
+        const progressMiniBar = document.getElementById('progressMiniBar');
+        const queryProgress = document.getElementById('queryProgress');
+        if (progressBar) progressBar.style.width = pct + '%';
+        if (progressMiniBar) progressMiniBar.style.width = pct + '%';
+        if (progressText) progressText.innerHTML = `${processedDomains}/${totalDomains}`;
+        if (queryProgress) queryProgress.textContent = `${processedDomains}/${totalDomains}`;
+        if (progressPercent) progressPercent.innerText = Math.round(pct) + '%';
+      }
 
       updateRetryAllButton();
       if (processedDomains % 20 === 0 || processedDomains === totalDomains) {
