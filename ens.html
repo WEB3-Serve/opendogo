@@ -5066,8 +5066,11 @@
     'https://raw.githubusercontent.com/ethereum-lists/chains/master/_data/chains/eip155-1.json'
   ];
   const AUTO_ERROR_RETRY_ROUNDS = 3;
+  const BASE_RPC_LIST = Array.isArray(RPC_LIST) ? RPC_LIST.slice() : [];
+  const BASE_RPC_SET = new Set(BASE_RPC_LIST.map(normalizeRpcUrl).filter(Boolean));
   const finalRpcCtxCache = new Map();
   let finalRpcCursor = 0;
+  let rpcProbeCursor = 0;
   let autoRefreshTaskId = 0;
 
   Object.assign(translations.zh, {
@@ -5101,6 +5104,23 @@
     return trimmed.replace(/\/$/, '');
   }
 
+  function isReliableRpc(rpc) {
+    const key = normalizeRpcUrl(rpc);
+    if (!key) return false;
+    const status = rpcStatus[key] || {};
+    const success = status.successCount || 0;
+    const fail = status.failCount || 0;
+    if (BASE_RPC_SET.has(key)) return true;
+    return success > 0 && success >= fail;
+  }
+
+  function isRpcReady(rpc, now = Date.now()) {
+    const key = normalizeRpcUrl(rpc);
+    if (!key) return false;
+    const status = rpcStatus[key] || {};
+    return (status.disabledUntil || 0) < now;
+  }
+
 
   function ensNamehashFinal(name) {
     let node = '0x' + '00'.repeat(32);
@@ -5127,10 +5147,17 @@
 
   function getLookupContexts(preferredCtx) {
     const currentRpc = typeof window.getCurrentRpc === 'function' ? window.getCurrentRpc() : '';
-    const rankedRpcs = RPC_LIST
+    const rankedReliable = RPC_LIST
       .slice()
+      .filter(isReliableRpc)
       .sort((a, b) => scoreRpcFinal(b) - scoreRpcFinal(a))
-      .slice(0, 6);
+      .slice(0, 3);
+    const rankedRecovery = RPC_LIST
+      .slice()
+      .filter(rpc => !isReliableRpc(rpc) && isRpcReady(rpc))
+      .sort((a, b) => scoreRpcFinal(b) - scoreRpcFinal(a))
+      .slice(0, 2);
+    const rankedRpcs = [...rankedReliable, ...rankedRecovery];
     const rpcCandidates = [preferredCtx?.rpc, currentRpc, ...rankedRpcs].filter(Boolean);
     const unique = [];
     const seen = new Set();
@@ -5250,14 +5277,27 @@
     const selected = document.getElementById('rpcSelect')?.value || 'dynamic';
     if (selected !== 'dynamic') return selected;
     const now = Date.now();
-    const healthy = RPC_LIST.filter(r => {
+    const healthyReliable = RPC_LIST.filter(r => {
       const s = rpcStatus[r] || {};
-      return (s.available !== false) && (s.disabledUntil || 0) < now;
+      return isReliableRpc(r) && (s.available !== false) && (s.disabledUntil || 0) < now;
     });
-    const pool = (healthy.length ? healthy : RPC_LIST.slice()).sort((a, b) => scoreRpcFinal(b) - scoreRpcFinal(a));
-    const bucket = pool.slice(0, Math.max(1, Math.min(6, pool.length)));
-    const rpc = bucket[finalRpcCursor % bucket.length] || RPC_LIST[0];
-    finalRpcCursor = (finalRpcCursor + 1) % Math.max(1, bucket.length);
+    const fallbackReliable = RPC_LIST.filter(isReliableRpc);
+    const fallbackBase = BASE_RPC_LIST.slice();
+    const pool = (healthyReliable.length ? healthyReliable : (fallbackReliable.length ? fallbackReliable : fallbackBase))
+      .sort((a, b) => scoreRpcFinal(b) - scoreRpcFinal(a));
+    const bucket = pool.slice(0, Math.max(1, Math.min(8, pool.length)));
+
+    // 为防止少量头部节点被限流：周期性探测“已过冷却”的节点，恢复后自动回流到主池。
+    const probeCandidates = RPC_LIST.filter(r => !isReliableRpc(r) && isRpcReady(r, now));
+    const shouldProbe = probeCandidates.length > 0 && ((finalRpcCursor + 1) % 6 === 0);
+    let rpc;
+    if (shouldProbe) {
+      rpc = probeCandidates[rpcProbeCursor % probeCandidates.length];
+      rpcProbeCursor = (rpcProbeCursor + 1) % Math.max(1, probeCandidates.length);
+    } else {
+      rpc = bucket[finalRpcCursor % bucket.length] || RPC_LIST[0];
+    }
+    finalRpcCursor = (finalRpcCursor + 1) % Math.max(1, bucket.length || 1);
     return rpc;
   };
 
