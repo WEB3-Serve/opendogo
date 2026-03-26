@@ -5389,7 +5389,7 @@
 
   window.queryDomain = async function(domain, idx, preferredSource) {
     const label = domain.replace(/\.eth$/i, '');
-    const maxRetries = Math.max(2, num('maxRetries', 3));
+    const maxRetries = Math.max(1, num('maxRetries', 3));
     let tokenId;
     try {
       tokenId = Web3.utils.keccak256(label);
@@ -5483,9 +5483,19 @@
           };
         }
 
-        const registrationMeta = (expiry || premiumAmount > 0n || !available) ? await getRegistrationMetaFinal(label, tokenId, ctx) : { time: '', owner: '' };
-        let owner = '';
-        try { owner = await getFastOwnerFinal(tokenId, ctx, 2); } catch (_) {}
+        const needRegistrationMeta = (expiry || premiumAmount > 0n || !available);
+        const [registrationMeta, ownerFromFastCall] = await Promise.all([
+          needRegistrationMeta ? getRegistrationMetaFinal(label, tokenId, ctx) : Promise.resolve({ time: '', owner: '' }),
+          (async () => {
+            try {
+              return await getFastOwnerFinal(tokenId, ctx, 2);
+            } catch (_) {
+              return '';
+            }
+          })()
+        ]);
+
+        let owner = ownerFromFastCall || '';
         if (!owner) owner = await getRegistryOwnerFinal(domain, ctx);
         if (!owner) owner = registrationMeta.owner || await getLastOwnerFinal(tokenId, ctx);
 
