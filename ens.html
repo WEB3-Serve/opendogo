@@ -5151,14 +5151,8 @@
       .slice()
       .filter(isReliableRpc)
       .sort((a, b) => scoreRpcFinal(b) - scoreRpcFinal(a))
-      .slice(0, 3);
-    const rankedRecovery = RPC_LIST
-      .slice()
-      .filter(rpc => !isReliableRpc(rpc) && isRpcReady(rpc))
-      .sort((a, b) => scoreRpcFinal(b) - scoreRpcFinal(a))
-      .slice(0, 2);
-    const rankedRpcs = [...rankedReliable, ...rankedRecovery];
-    const rpcCandidates = [preferredCtx?.rpc, currentRpc, ...rankedRpcs].filter(Boolean);
+      .slice(0, 1);
+    const rpcCandidates = [preferredCtx?.rpc, currentRpc, ...rankedReliable].filter(Boolean);
     const unique = [];
     const seen = new Set();
     rpcCandidates.forEach(rpc => {
@@ -5523,21 +5517,22 @@
           };
         }
 
-        const needRegistrationMeta = (expiry || premiumAmount > 0n || !available);
-        const [registrationMeta, ownerFromFastCall] = await Promise.all([
-          needRegistrationMeta ? getRegistrationMetaFinal(label, tokenId, ctx) : Promise.resolve({ time: '', owner: '' }),
-          (async () => {
-            try {
-              return await getFastOwnerFinal(tokenId, ctx, 2);
-            } catch (_) {
-              return '';
-            }
-          })()
-        ]);
+        const cacheKey = String(tokenId).toLowerCase();
+        let registrationMeta = registrationMetaCache.get(cacheKey) || { time: '', owner: '' };
+        const ownerFromFastCall = await (async () => {
+          try {
+            return await getFastOwnerFinal(tokenId, ctx, 2);
+          } catch (_) {
+            return '';
+          }
+        })();
 
         let owner = ownerFromFastCall || '';
         if (!owner) owner = await getRegistryOwnerFinal(domain, ctx);
-        if (!owner) owner = registrationMeta.owner || await getLastOwnerFinal(tokenId, ctx);
+        if (!owner) {
+          registrationMeta = await getRegistrationMetaFinal(label, tokenId, ctx);
+          owner = registrationMeta.owner || await getLastOwnerFinal(tokenId, ctx);
+        }
 
         const expiryDate = expiry ? new Date(expiry * 1000) : null;
         const graceEndDate = graceEndTs ? new Date(graceEndTs * 1000) : null;
