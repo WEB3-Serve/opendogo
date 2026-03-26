@@ -4596,11 +4596,11 @@
 
   function ensureFastDefaults() {
     const delay = document.getElementById('requestDelay');
-    if (delay && (delay.value === '20' || delay.value === '')) delay.value = '5';
+    if (delay && (delay.value === '20' || delay.value === '5' || delay.value === '')) delay.value = '0';
     const workers = document.getElementById('maxWorkers');
-    if (workers && (workers.value === '50' || workers.value === '')) workers.value = '45';
+    if (workers && (workers.value === '50' || workers.value === '45' || workers.value === '60' || workers.value === '')) workers.value = '80';
     const retries = document.getElementById('maxRetries');
-    if (retries && (retries.value === '5' || retries.value === '')) retries.value = '3';
+    if (retries && (retries.value === '5' || retries.value === '3' || retries.value === '')) retries.value = '2';
   }
 
   function markRpcSuccess(rpc, elapsed) {
@@ -5382,7 +5382,7 @@
 
   window.queryDomain = async function(domain, idx, preferredSource) {
     const label = domain.replace(/\.eth$/i, '');
-    const maxRetries = Math.max(2, num('maxRetries', 3));
+    const maxRetries = Math.max(1, num('maxRetries', 2));
     let tokenId;
     try {
       tokenId = Web3.utils.keccak256(label);
@@ -5394,134 +5394,51 @@
     }
 
     let lastError = null;
-    const triedRpcs = new Set();
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       let rpc = typeof preferredSource === 'string' && preferredSource ? preferredSource : (preferredSource && preferredSource.rpc) || window.getCurrentRpc();
-      if ((!preferredSource || !preferredSource.web3) && (!preferredSource || typeof preferredSource !== 'string')) {
-        if (triedRpcs.has(rpc)) {
-          const now = Date.now();
-          const alt = RPC_LIST.find(r => !triedRpcs.has(r) && (rpcStatus[r]?.available !== false || (rpcStatus[r]?.disabledUntil || 0) < now));
-          if (alt) rpc = alt;
-        }
-      }
-      triedRpcs.add(rpc);
+      if (!rpc && typeof window.getCurrentRpc === 'function') rpc = window.getCurrentRpc();
+      if (!rpc) rpc = RPC_LIST[0];
       markRpcDomainQuery(rpc);
       const ctx = preferredSource && preferredSource.web3 ? preferredSource : getOrCreateCtx(rpc);
       const started = Date.now();
       try {
-        const { available, price, priceError } = await readAvailableAndPrice(ctx, label);
-        const expiryRaw = await ctx.registrar.methods.nameExpires(tokenId).call().catch(() => 0);
-        const expiry = Number(expiryRaw || 0);
-        const nowTs = Math.floor(Date.now() / 1000);
-        const graceEndTs = expiry ? expiry + 90 * 24 * 3600 : 0;
-        const premiumEndTs = graceEndTs ? graceEndTs + 21 * 24 * 3600 : 0;
-        const premiumAmount = getPremiumAmount(price);
-        const inferredPremiumByExpiry = Boolean(
-          available &&
-          expiry &&
-          nowTs > graceEndTs &&
-          nowTs <= premiumEndTs
-        );
-        const isPremiumAvailable = premiumAmount > 0n || inferredPremiumByExpiry;
+        const available = await ctx.controller.methods.available(label).call();
+        let expiry = 0;
+        try { expiry = Number(await ctx.registrar.methods.nameExpires(tokenId).call()) || 0; } catch (_) {}
+
         if (available) {
-          // ENS official flow: available=true means name can be registered now.
-          // premium > 0 indicates Dutch-auction premium period, not an active registration.
-          let previousOwner = '';
-          const isGracePeriod = Boolean(expiry && nowTs > expiry && nowTs <= graceEndTs);
-          if (isPremiumAvailable || isGracePeriod) {
-            previousOwner = await getLastOwnerFinal(tokenId, ctx);
-            if (!previousOwner) {
-              const registrationMeta = await getRegistrationMetaFinal(label, tokenId, ctx);
-              previousOwner = registrationMeta.owner || '';
-            }
-          }
+          let premium = 0n;
+          try {
+            const price = await ctx.controller.methods.rentPrice(label, 31536000).call();
+            premium = getPremiumAmount(price);
+          } catch (_) {}
           markRpcSuccessFinal(rpc, Date.now() - started);
-          if (isGracePeriod) {
-            return {
-              序号: idx + 1,
-              域名: domain,
-              状态: 'expired',
-              过期天数: Math.floor((expiry * 1000 - Date.now()) / 86400000),
-              过期时间: formatDate(new Date(expiry * 1000)),
-              宽限期结束: formatDate(new Date(graceEndTs * 1000)),
-              注册时间: '',
-              所有者地址: previousOwner,
-              错误信息: '',
-              注册状态: 'expired',
-              过期状态: 'expired',
-              宽限状态: 'in_grace',
-              溢价状态: 'no_premium',
-              时间戳: expiry || 0
-            };
-          }
           return {
-            序号: idx + 1,
-            域名: domain,
-            状态: isPremiumAvailable ? 'premium' : 'unregistered',
-            过期天数: '',
-            过期时间: '',
-            宽限期结束: '',
-            注册时间: '',
-            所有者地址: isPremiumAvailable ? previousOwner : '',
-            错误信息: (!price && priceError && !inferredPremiumByExpiry)
-              ? String(priceError.message || priceError.reason || priceError.code || '').slice(0, 80)
-              : '',
-            注册状态: isPremiumAvailable ? 'premium' : 'unregistered',
-            过期状态: isPremiumAvailable ? 'expired' : 'valid',
-            宽限状态: 'no_grace',
-            溢价状态: isPremiumAvailable ? 'in_premium' : 'no_premium',
-            时间戳: 0
+            序号: idx + 1, 域名: domain, 状态: premium > 0n ? 'premium' : 'unregistered',
+            过期天数: '', 过期时间: '', 宽限期结束: '', 注册时间: '', 所有者地址: '',
+            错误信息: '', 注册状态: premium > 0n ? 'premium' : 'unregistered',
+            过期状态: premium > 0n ? 'expired' : 'valid', 宽限状态: 'no_grace',
+            溢价状态: premium > 0n ? 'in_premium' : 'no_premium', 时间戳: 0
           };
         }
 
-        const registrationMeta = (expiry || premiumAmount > 0n || !available) ? await getRegistrationMetaFinal(label, tokenId, ctx) : { time: '', owner: '' };
         let owner = '';
-        try { owner = await getFastOwnerFinal(tokenId, ctx, 2); } catch (_) {}
-        if (!owner) owner = await getRegistryOwnerFinal(domain, ctx);
-        if (!owner) owner = registrationMeta.owner || await getLastOwnerFinal(tokenId, ctx);
-
+        try { owner = await getFastOwnerFinal(tokenId, ctx, 1); } catch (_) {}
         const expiryDate = expiry ? new Date(expiry * 1000) : null;
-        const graceEndDate = graceEndTs ? new Date(graceEndTs * 1000) : null;
-        let regStatus = 'registered';
-        let state = 'registered';
-        let expiryStatus = 'valid';
-        let graceStatus = 'no_grace';
-
-        if (expiry && nowTs > graceEndTs) {
-          regStatus = 'unregistered';
-          state = 'unregistered';
-          owner = '';
-          expiryStatus = 'expired';
-        } else if (expiry && nowTs > expiry) {
-          regStatus = 'expired';
-          state = 'expired';
-          expiryStatus = 'expired';
-          graceStatus = 'in_grace';
-        } else if (!expiry && (!owner || /^0x0{40}$/i.test(owner))) {
-          // Reserved/special names can report available=false without active registration.
-          regStatus = 'unregistered';
-          state = 'unregistered';
-          owner = '';
-          expiryStatus = 'valid';
-        }
-
-        const isUnregisteredLike = regStatus === 'unregistered';
+        const now = Date.now();
+        const graceEnd = expiryDate ? expiryDate.getTime() + 90 * 86400000 : 0;
+        const expired = expiryDate ? now > expiryDate.getTime() : false;
+        const inGrace = expiryDate ? now > expiryDate.getTime() && now <= graceEnd : false;
         markRpcSuccessFinal(rpc, Date.now() - started);
         return {
-          序号: idx + 1,
-          域名: domain,
-          状态: state,
-          过期天数: isUnregisteredLike ? '' : (expiry ? Math.floor((expiry * 1000 - Date.now()) / 86400000) : ''),
-          过期时间: isUnregisteredLike ? '' : (expiryDate ? formatDate(expiryDate) : ''),
-          宽限期结束: isUnregisteredLike ? '' : (graceEndDate ? formatDate(graceEndDate) : ''),
-          注册时间: isUnregisteredLike ? '' : (registrationMeta.time || ''),
-          所有者地址: isUnregisteredLike ? '' : (owner || registrationMeta.owner || ''),
-          错误信息: '',
-          注册状态: regStatus,
-          过期状态: expiryStatus,
-          宽限状态: graceStatus,
-          溢价状态: 'no_premium',
-          时间戳: isUnregisteredLike ? 0 : (expiry || 0)
+          序号: idx + 1, 域名: domain, 状态: expired ? 'expired' : 'registered',
+          过期天数: expiryDate ? Math.floor((expiryDate.getTime() - now) / 86400000) : '',
+          过期时间: expiryDate ? formatDate(expiryDate) : '',
+          宽限期结束: graceEnd ? formatDate(new Date(graceEnd)) : '',
+          注册时间: '', 所有者地址: owner || '', 错误信息: '',
+          注册状态: expired ? 'expired' : 'registered',
+          过期状态: expired ? 'expired' : 'valid', 宽限状态: inGrace ? 'in_grace' : 'no_grace',
+          溢价状态: 'no_premium', 时间戳: expiry || 0
         };
       } catch (e) {
         lastError = e;
@@ -5531,7 +5448,8 @@
 
     return {
       序号: idx + 1, 域名: domain, 状态: 'error', 过期天数: '', 过期时间: '', 宽限期结束: '', 注册时间: '', 所有者地址: '',
-      错误信息: (`${String((lastError && (lastError.message || lastError.reason || lastError.code || JSON.stringify(lastError))) || (currentLang === 'zh' ? '未知错误: RPC无响应或返回空' : 'Unknown error: empty RPC response'))} | attempts:${maxRetries} rpcs:${triedRpcs.size}`).slice(0, 180), 注册状态: 'error', 过期状态: 'error', 宽限状态: 'error', 溢价状态: 'no_premium', 时间戳: 0
+      错误信息: String((lastError && (lastError.message || lastError.reason || lastError.code)) || 'RPC error').slice(0, 120),
+      注册状态: 'error', 过期状态: 'error', 宽限状态: 'error', 溢价状态: 'no_premium', 时间戳: 0
     };
   };
 
