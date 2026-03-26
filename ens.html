@@ -2646,6 +2646,40 @@
             });
         }
 
+        function isPremiumResult(result) {
+            if (!result || typeof result !== 'object') return false;
+            const registrationStatus = result.注册状态 || result.registrationStatus || result.状态 || result.status;
+            const premiumStatus = result.溢价状态 || result.premiumStatus;
+            const state = result.状态 || result.status;
+            return registrationStatus === 'premium' || premiumStatus === 'in_premium' || state === 'premium';
+        }
+
+        function normalizeQueryResult(result) {
+            if (!result || typeof result !== 'object') return result;
+            const normalized = { ...result };
+
+            if (!normalized.状态 && normalized.status) normalized.状态 = normalized.status;
+            if (!normalized.注册状态 && normalized.registrationStatus) normalized.注册状态 = normalized.registrationStatus;
+            if (!normalized.溢价状态 && normalized.premiumStatus) normalized.溢价状态 = normalized.premiumStatus;
+
+            if (!normalized.注册状态) {
+                const rawStatus = normalized.状态;
+                if (rawStatus === 'premium') normalized.注册状态 = 'premium';
+                else if (['registered', 'unregistered', 'expired', 'error'].includes(rawStatus)) normalized.注册状态 = rawStatus;
+            }
+
+            if (!normalized.溢价状态) {
+                normalized.溢价状态 = isPremiumResult(normalized) ? 'in_premium' : 'no_premium';
+            }
+
+            return normalized;
+        }
+
+        function normalizeQueryResults(results) {
+            if (!Array.isArray(results)) return [];
+            return results.map(item => normalizeQueryResult(item));
+        }
+
         function buildSessionPayload() {
             return {
                 version: 1,
@@ -2715,7 +2749,7 @@
             if (saved) {
                 try {
                     const data = JSON.parse(saved);
-                    queryResults = data.results || [];
+                    queryResults = normalizeQueryResults(data.results || []);
                     filteredResults = queryResults.filter(r => r);
 
                     updateTable();
@@ -2747,7 +2781,7 @@
                 if (!data || typeof data !== 'object') return false;
 
                 isRestoringSession = true;
-                queryResults = Array.isArray(data.queryResults) ? data.queryResults : (Array.isArray(data.results) ? data.results : []);
+                queryResults = normalizeQueryResults(Array.isArray(data.queryResults) ? data.queryResults : (Array.isArray(data.results) ? data.results : []));
                 filteredResults = queryResults.filter(Boolean);
                 pendingDomains = Array.isArray(data.pendingDomains) ? data.pendingDomains : [];
                 currentIndex = Number.isFinite(data.currentIndex) ? data.currentIndex : queryResults.filter(Boolean).length;
@@ -3857,14 +3891,14 @@
                 if (status !== 'all' && status !== 'address_desc' && status !== 'address_asc') {
                     if (status === 'registered' && r.注册状态 !== 'registered') return false;
                     if (status === 'unregistered' && r.注册状态 !== 'unregistered') return false;
-                    if (status === 'premium' && r.注册状态 !== 'premium' && r.溢价状态 !== 'in_premium') return false;
+                    if (status === 'premium' && !isPremiumResult(r)) return false;
                     if (status === 'expired' && r.过期状态 !== 'expired') return false;
                     if (status === 'error' && r.注册状态 !== 'error') return false;
                 }
 
                 if (premium !== 'all') {
-                    if (premium === 'in_premium' && r.溢价状态 !== 'in_premium' && r.注册状态 !== 'premium') return false;
-                    if (premium === 'no_premium' && (r.溢价状态 === 'in_premium' || r.注册状态 === 'premium')) return false;
+                    if (premium === 'in_premium' && !isPremiumResult(r)) return false;
+                    if (premium === 'no_premium' && isPremiumResult(r)) return false;
                 }
 
                 if (expiry !== 'all' && r.过期天数 !== '') {
@@ -4046,7 +4080,7 @@
                 } else if (r.注册状态 === 'unregistered') {
                     statusText = currentLang === 'zh' ? '未注册' : 'Unregistered';
                     statusHtml = `<span class="status-chip status-unregistered">${statusText}</span>`;
-                } else if (r.注册状态 === 'premium') {
+                } else if (isPremiumResult(r)) {
                     statusText = currentLang === 'zh' ? '溢价' : 'Premium';
                     statusHtml = `<span class="status-chip status-premium">${statusText}</span>`;
                 } else if (r.过期状态 === 'expired') {
@@ -4161,7 +4195,7 @@
             list.forEach(r => {
                 if (r.注册状态 === 'registered') reg++;
                 else if (r.注册状态 === 'unregistered') unreg++;
-                else if (r.注册状态 === 'premium' || r.溢价状态 === 'in_premium') premium++;
+                else if (isPremiumResult(r)) premium++;
                 else if (r.注册状态 === 'error') err++;
                 if (r.过期状态 === 'expired') exp++;
                 if (r.宽限状态 === 'in_grace') grace++;
@@ -4233,7 +4267,7 @@
                 if (r.宽限状态 === 'in_grace') statusDisplay = currentLang === 'zh' ? '宽限期' : 'Grace';
                 else if (r.注册状态 === 'registered') statusDisplay = currentLang === 'zh' ? '已注册' : 'Registered';
                 else if (r.注册状态 === 'unregistered') statusDisplay = currentLang === 'zh' ? '未注册' : 'Unregistered';
-                else if (r.注册状态 === 'premium') statusDisplay = currentLang === 'zh' ? '溢价' : 'Premium';
+                else if (isPremiumResult(r)) statusDisplay = currentLang === 'zh' ? '溢价' : 'Premium';
                 else if (r.过期状态 === 'expired') statusDisplay = currentLang === 'zh' ? '过期' : 'Expired';
                 else statusDisplay = currentLang === 'zh' ? '错误' : 'Error';
 
