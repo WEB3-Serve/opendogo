@@ -4812,6 +4812,7 @@
     };
   };
 
+  let lastUiRefreshAt = 0;
   window.worker = async function() {
     while (isQueryRunning && !isPaused) {
       const idx = currentIndex++;
@@ -4822,32 +4823,36 @@
       queryResults[idx] = result;
       processedDomains++;
 
-      const elapsedSec = Math.max((Date.now() - startTime) / 1000, 0.001);
-      const speed = (processedDomains / elapsedSec).toFixed(1) || '0';
-      const querySpeedEl = document.getElementById('querySpeed');
-      const querySpeedDisplayEl = document.getElementById('querySpeedDisplay');
-      if (querySpeedEl) querySpeedEl.innerHTML = `${translations[currentLang].speed}: ${speed} ${translations[currentLang].speedUnit}`;
-      if (querySpeedDisplayEl) querySpeedDisplayEl.textContent = speed;
-      const pct = totalDomains ? (processedDomains / totalDomains * 100) : 0;
-      const progressBar = document.getElementById('progressBar');
-      const progressText = document.getElementById('progressText');
-      const progressPercent = document.getElementById('progressPercent');
-      const progressMiniBar = document.getElementById('progressMiniBar');
-      const queryProgress = document.getElementById('queryProgress');
-      if (progressBar) progressBar.style.width = pct + '%';
-      if (progressMiniBar) progressMiniBar.style.width = pct + '%';
-      if (progressText) progressText.innerHTML = `${processedDomains}/${totalDomains}`;
-      if (queryProgress) queryProgress.textContent = `${processedDomains}/${totalDomains}`;
-      if (progressPercent) progressPercent.innerText = Math.round(pct) + '%';
-
-      updateRetryAllButton();
+      const nowMs = Date.now();
+      const shouldRefreshUi = (nowMs - lastUiRefreshAt >= 120) || processedDomains === totalDomains;
+      if (shouldRefreshUi) {
+        lastUiRefreshAt = nowMs;
+        const elapsedSec = Math.max((nowMs - startTime) / 1000, 0.001);
+        const speed = (processedDomains / elapsedSec).toFixed(1) || '0';
+        const querySpeedEl = document.getElementById('querySpeed');
+        const querySpeedDisplayEl = document.getElementById('querySpeedDisplay');
+        if (querySpeedEl) querySpeedEl.innerHTML = `${translations[currentLang].speed}: ${speed} ${translations[currentLang].speedUnit}`;
+        if (querySpeedDisplayEl) querySpeedDisplayEl.textContent = speed;
+        const pct = totalDomains ? (processedDomains / totalDomains * 100) : 0;
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+        const progressPercent = document.getElementById('progressPercent');
+        const progressMiniBar = document.getElementById('progressMiniBar');
+        const queryProgress = document.getElementById('queryProgress');
+        if (progressBar) progressBar.style.width = pct + '%';
+        if (progressMiniBar) progressMiniBar.style.width = pct + '%';
+        if (progressText) progressText.innerHTML = `${processedDomains}/${totalDomains}`;
+        if (queryProgress) queryProgress.textContent = `${processedDomains}/${totalDomains}`;
+        if (progressPercent) progressPercent.innerText = Math.round(pct) + '%';
+        updateRetryAllButton();
+      }
       if (processedDomains % 20 === 0 || processedDomains === totalDomains) {
         filteredResults = queryResults.filter(Boolean);
         applyFilters();
         updateStatistics();
         updateRpcList();
       }
-      if (processedDomains % 5 === 0 || processedDomains === totalDomains) {
+      if (processedDomains % 25 === 0 || processedDomains === totalDomains) {
         saveResultsToStorage();
         scheduleSessionSave();
       }
@@ -4884,6 +4889,7 @@
     totalDomains = domains.length;
     processedDomains = 0;
     startTime = Date.now();
+    lastUiRefreshAt = 0;
     currentPage = 1;
     document.getElementById('startQueryBtn').disabled = true;
     document.getElementById('resumeQueryBtn').disabled = true;
@@ -4904,6 +4910,7 @@
     ensureFastDefaults();
     isQueryRunning = true;
     isPaused = false;
+    lastUiRefreshAt = 0;
     document.getElementById('startQueryBtn').disabled = true;
     document.getElementById('resumeQueryBtn').disabled = true;
     document.getElementById('stopQueryBtn').disabled = false;
@@ -5409,8 +5416,10 @@
       const ctx = preferredSource && preferredSource.web3 ? preferredSource : getOrCreateCtx(rpc);
       const started = Date.now();
       try {
-        const { available, price, priceError } = await readAvailableAndPrice(ctx, label);
-        const expiryRaw = await ctx.registrar.methods.nameExpires(tokenId).call().catch(() => 0);
+        const [{ available, price, priceError }, expiryRaw] = await Promise.all([
+          readAvailableAndPrice(ctx, label),
+          ctx.registrar.methods.nameExpires(tokenId).call().catch(() => 0)
+        ]);
         const expiry = Number(expiryRaw || 0);
         const nowTs = Math.floor(Date.now() / 1000);
         const graceEndTs = expiry ? expiry + 90 * 24 * 3600 : 0;
