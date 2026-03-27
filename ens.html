@@ -2476,6 +2476,7 @@
         let totalDomains = 0, processedDomains = 0, startTime = null;
         let currentPage = 1, pageSize = 50, totalPages = 1;
         let rpcStatus = {}, isLoadingDomains = false;
+        let addressFilterScrollState = null;
 
         const STORAGE_KEY = 'ens_query_results';
         const STORAGE_TIME_KEY = 'ens_query_time';
@@ -3092,14 +3093,36 @@
             const searchInput = document.getElementById('filterSearch');
             const currentSearch = searchInput.value.toLowerCase().trim();
             const addressLower = address.toLowerCase();
+            const tableContainer = document.querySelector('.table-wrapper');
+            const isApplyingAddressFilter = currentSearch !== addressLower && !currentSearch;
 
-            if (currentSearch === addressLower) {
+            if (isApplyingAddressFilter) {
+                addressFilterScrollState = {
+                    page: currentPage,
+                    scrollTop: tableContainer ? tableContainer.scrollTop : 0
+                };
+            }
+
+            const isClearingSameAddress = currentSearch === addressLower;
+            const previousAddressFilterState = isClearingSameAddress ? addressFilterScrollState : null;
+
+            if (isClearingSameAddress) {
                 searchInput.value = '';
             } else {
                 searchInput.value = address;
             }
 
             applyFilters({ resetPage: false, preserveScroll: true });
+
+            if (previousAddressFilterState) {
+                currentPage = previousAddressFilterState.page || 1;
+                updateTable({ preserveScroll: false });
+                const restoredTableContainer = document.querySelector('.table-wrapper');
+                if (restoredTableContainer && Number.isFinite(previousAddressFilterState.scrollTop)) {
+                    restoredTableContainer.scrollTop = previousAddressFilterState.scrollTop;
+                }
+                addressFilterScrollState = null;
+            }
 
             const shortAddr = shortenAddress(address);
             addLog(translations[currentLang].logFilterByAddress.replace('{address}', shortAddr), 'info');
@@ -3171,8 +3194,18 @@
 
         function clearAddressSearch(event, address) {
             event?.stopPropagation?.();
+            const previousAddressFilterState = addressFilterScrollState;
             document.getElementById('filterSearch').value = '';
             applyFilters({ resetPage: false, preserveScroll: true });
+            if (previousAddressFilterState) {
+                currentPage = previousAddressFilterState.page || 1;
+                updateTable({ preserveScroll: false });
+                const tableContainer = document.querySelector('.table-wrapper');
+                if (tableContainer && Number.isFinite(previousAddressFilterState.scrollTop)) {
+                    tableContainer.scrollTop = previousAddressFilterState.scrollTop;
+                }
+                addressFilterScrollState = null;
+            }
             const shortAddr = shortenAddress(address);
             addLog(translations[currentLang].clearAddressSearch || `已清除地址 "${shortAddr}" 搜索`, 'info');
         }
@@ -3951,6 +3984,12 @@
             if (status === 'address_desc' || status === 'address_asc') {
                 const withAddress = filtered.filter(item => item.所有者地址);
                 const withoutAddress = filtered.filter(item => !item.所有者地址);
+                const compareByTime = (a, b) => {
+                    const aTime = a.时间戳 || 0;
+                    const bTime = b.时间戳 || 0;
+                    return sort === 'expiry_desc' ? bTime - aTime : aTime - bTime;
+                };
+                const compareBySequence = (a, b) => (a.序号 || 0) - (b.序号 || 0);
 
                 const addressGroups = new Map();
                 withAddress.forEach(item => {
@@ -3960,6 +3999,20 @@
                     }
                     addressGroups.get(addr).push(item);
                 });
+
+                addressGroups.forEach(group => {
+                    if (sort === 'expiry_asc' || sort === 'expiry_desc') {
+                        group.sort(compareByTime);
+                    } else {
+                        group.sort(compareBySequence);
+                    }
+                });
+
+                if (sort === 'expiry_asc' || sort === 'expiry_desc') {
+                    withoutAddress.sort(compareByTime);
+                } else {
+                    withoutAddress.sort(compareBySequence);
+                }
 
                 const sortedGroups = Array.from(addressGroups.entries());
                 sortedGroups.sort((a, b) => {
@@ -4006,6 +4059,7 @@
         }
 
         function clearFilters() {
+            addressFilterScrollState = null;
             document.getElementById('filterStatus').value = 'all';
             document.getElementById('filterPremium').value = 'all';
             document.getElementById('filterExpiry').value = 'all';
