@@ -1072,14 +1072,14 @@
         }
 
         th:nth-child(1), td:nth-child(1) { width: 5%; }
-        th:nth-child(2), td:nth-child(2) { width: 16%; }
+        th:nth-child(2), td:nth-child(2) { width: 12%; }
         th:nth-child(3), td:nth-child(3) { width: 10%; }
         th:nth-child(4), td:nth-child(4) { width: 7%; }
         th:nth-child(5), td:nth-child(5) { width: 15%; }
         th:nth-child(6), td:nth-child(6) { width: 13%; }
         th:nth-child(7), td:nth-child(7) { width: 15%; }
-        th:nth-child(8), td:nth-child(8) { width: 11%; }
-        th:nth-child(9), td:nth-child(9) { width: 8%; }
+        th:nth-child(8), td:nth-child(8) { width: 13%; }
+        th:nth-child(9), td:nth-child(9) { width: 10%; }
 
         td.status-cell,
         td.owner-column {
@@ -1088,11 +1088,34 @@
         }
 
         td.domain-cell {
-            white-space: normal;
-            overflow: visible;
-            text-overflow: clip;
-            word-break: break-all;
+            position: relative;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            word-break: normal;
             line-height: 1.35;
+        }
+
+        td.domain-cell:hover::after {
+            content: attr(data-full-domain);
+            position: absolute;
+            left: 50%;
+            top: calc(100% + 6px);
+            transform: translateX(-50%);
+            background: color-mix(in srgb, var(--card) 92%, #000 8%);
+            color: var(--text);
+            border: 1px solid color-mix(in srgb, var(--primary) 24%, var(--border) 76%);
+            border-radius: 8px;
+            padding: 6px 10px;
+            font-size: 0.76rem;
+            line-height: 1.35;
+            white-space: nowrap;
+            max-width: min(360px, calc(100vw - 24px));
+            overflow: hidden;
+            text-overflow: ellipsis;
+            box-shadow: 0 8px 22px rgba(0,0,0,0.2);
+            z-index: 2400;
+            pointer-events: none;
         }
 
         .status-chip {
@@ -1215,8 +1238,26 @@
         }
 
         .owner-clear {
-            color: var(--danger);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: color-mix(in srgb, var(--danger) 80%, #fff 20%);
             cursor: pointer;
+            border-radius: 999px;
+            border: 1px solid color-mix(in srgb, var(--danger) 40%, transparent 60%);
+            background: color-mix(in srgb, var(--danger) 18%, transparent 82%);
+            font-size: 0.68rem;
+            font-weight: 700;
+            line-height: 1;
+            transition: all 0.15s ease;
+            user-select: none;
+        }
+
+        .owner-clear:hover {
+            color: #fff;
+            background: var(--danger);
+            border-color: var(--danger);
+            transform: scale(1.06);
         }
 
         .owner-tooltip {
@@ -4098,10 +4139,12 @@
                         <div class="owner-cell">
                             ${countBadgeHtml}
                             <span class="owner-address owner-tooltip-trigger ${isAddressInSearch ? 'active' : ''}" onclick="filterByAddress('${r.所有者地址}')" data-owner-tooltip="${tooltipText}" title="${titleText}" aria-label="${titleText}">${shortAddr}</span>
-                            <i class="fas fa-times-circle owner-clear"
-                               onclick="clearAddressSearch(event, '${r.所有者地址}')"
-                               title="${translations[currentLang].clearAddressSearch}"
-                               style="visibility:${count > 1 ? 'visible' : 'hidden'}"></i>
+                            <span class="owner-clear"
+                                  role="button"
+                                  aria-label="${translations[currentLang].clearAddressSearch}"
+                                  onclick="clearAddressSearch(event, '${r.所有者地址}')"
+                                  title="${translations[currentLang].clearAddressSearch}"
+                                  style="visibility:${count > 1 ? 'visible' : 'hidden'}">×</span>
                         </div>
                     `;
                 }
@@ -4123,7 +4166,7 @@
 
                 tbody.innerHTML += `<tr>
                     <td>${r.序号}</td>
-                    <td class="domain-cell" title="${domainTitle}">${domainText}</td>
+                    <td class="domain-cell" title="${domainTitle}" data-full-domain="${domainTitle}">${domainText}</td>
                     <td class="status-cell">${statusHtml}</td>
                     <td>${r.过期天数 !== undefined && r.过期天数 !== '' ? r.过期天数 : '-'}</td>
                     <td>${r.过期时间 ? formatDisplayDate(r.过期时间) : '-'}</td>
