@@ -1276,18 +1276,36 @@
             border: 1px solid var(--border);
             background: var(--bg);
             color: var(--text-muted);
-            border-radius: 999px;
-            font-size: 0.68rem;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            min-width: 24px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.66rem;
             line-height: 1;
-            padding: 4px 8px;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            padding: 0;
             cursor: pointer;
             transition: all 0.15s ease;
         }
 
-        .owner-mode-switch:hover {
+        .owner-mode-switch[data-mode="owner"] {
             color: var(--primary);
-            border-color: color-mix(in srgb, var(--primary) 40%, var(--border) 60%);
-            background: var(--primary-light);
+            border-color: color-mix(in srgb, var(--primary) 45%, var(--border) 55%);
+            background: color-mix(in srgb, var(--primary-light) 70%, var(--bg) 30%);
+        }
+
+        .owner-mode-switch[data-mode="admin"] {
+            color: var(--warning);
+            border-color: color-mix(in srgb, var(--warning) 45%, var(--border) 55%);
+            background: color-mix(in srgb, var(--warning) 14%, var(--bg) 86%);
+        }
+
+        .owner-mode-switch:hover {
+            transform: scale(1.08);
         }
 
         .owner-tooltip {
@@ -2337,6 +2355,10 @@
                 default: '默认',
                 addressCountDetail: '{address} 共有 {count} 个域名',
                 addressCountSummary: '该地址共有 {count} 个域名',
+                ownerAddressCountDetail: '注册人地址 {address} 共有 {count} 个域名',
+                adminAddressCountDetail: '管理地址 {address} 共有 {count} 个域名',
+                ownerModeHint: '所有者：显示注册人与拥有地址',
+                adminModeHint: '管理员：显示管理地址',
                 earliest: '最早到期',
                 latest: '最晚到期',
                 search: '搜索',
@@ -2474,6 +2496,10 @@
                 default: 'Default',
                 addressCountDetail: '{address} owns {count} domains',
                 addressCountSummary: 'This address owns {count} domains',
+                ownerAddressCountDetail: 'Registrant {address} owns {count} domains',
+                adminAddressCountDetail: 'Manager {address} manages {count} domains',
+                ownerModeHint: 'Owner mode: show registrant/owned address',
+                adminModeHint: 'Admin mode: show manager address',
                 earliest: 'Earliest',
                 latest: 'Latest',
                 search: 'Search',
@@ -2671,9 +2697,9 @@
         function getAddressByMode(record, mode = ownerDisplayMode) {
             if (!record) return '';
             if (mode === 'admin') {
-                return record.管理员地址 || record.所有者地址 || '';
+                return record.管理员地址 || '';
             }
-            return record.所有者地址 || record.管理员地址 || '';
+            return record.所有者地址 || '';
         }
 
         function updateOwnerModeUI() {
@@ -2682,8 +2708,13 @@
             if (!ownerHeaderLabel || !ownerModeToggle) return;
             const isOwner = ownerDisplayMode === 'owner';
             ownerHeaderLabel.textContent = isOwner ? translations[currentLang].owner : translations[currentLang].admin;
-            ownerModeToggle.textContent = isOwner ? translations[currentLang].admin : translations[currentLang].owner;
-            ownerModeToggle.title = isOwner ? translations[currentLang].switchToAdmin : translations[currentLang].switchToOwner;
+            ownerModeToggle.dataset.mode = isOwner ? 'owner' : 'admin';
+            ownerModeToggle.textContent = isOwner ? 'O' : 'A';
+            const modeHint = isOwner
+                ? translations[currentLang].ownerModeHint
+                : translations[currentLang].adminModeHint;
+            const switchHint = isOwner ? translations[currentLang].switchToAdmin : translations[currentLang].switchToOwner;
+            ownerModeToggle.title = `${modeHint} · ${switchHint}`;
             ownerModeToggle.setAttribute('aria-label', ownerModeToggle.title);
         }
 
@@ -4370,7 +4401,10 @@
                 if (activeAddress) {
                     const count = addressCountMap.get(activeAddress) || 1;
                     const shortAddr = shortenAddress(activeAddress);
-                    const titleText = (translations[currentLang].addressCountDetail || '{address} owns {count} domains')
+                    const addressCountDetailKey = ownerDisplayMode === 'owner' ? 'ownerAddressCountDetail' : 'adminAddressCountDetail';
+                    const titleText = ((translations[currentLang] && translations[currentLang][addressCountDetailKey])
+                        || translations[currentLang].addressCountDetail
+                        || '{address} owns {count} domains')
                         .replace('{address}', activeAddress)
                         .replace('{count}', count);
                     const isAddressInSearch = currentSearch && activeAddress &&
@@ -5875,7 +5909,7 @@
     } catch (_) {
       return {
         序号: idx + 1, 域名: domain, 状态: 'error', 过期天数: '', 过期时间: '', 宽限期结束: '', 注册时间: '', 所有者地址: '',
-        错误信息: 'tokenId error', 注册状态: 'error', 过期状态: 'error', 宽限状态: 'error', 溢价状态: 'no_premium', 时间戳: 0
+        管理员地址: '', 错误信息: 'tokenId error', 注册状态: 'error', 过期状态: 'error', 宽限状态: 'error', 溢价状态: 'no_premium', 时间戳: 0
       };
     }
 
@@ -5919,6 +5953,7 @@
           // ENS official flow: available=true means name can be registered now.
           // premium > 0 indicates Dutch-auction premium period, not an active registration.
           let previousOwner = '';
+          let managerAddress = '';
           const isGracePeriod = Boolean(expiry && nowTs > expiry && nowTs <= graceEndTs);
           if (isPremiumAvailable || isGracePeriod) {
             previousOwner = await withFinalTimeout(
@@ -5935,6 +5970,13 @@
               previousOwner = registrationMeta.owner || '';
             }
           }
+          if (isGracePeriod) {
+            managerAddress = await withFinalTimeout(
+              getRegistryOwnerFinal(domain, ctx),
+              Math.min(timeoutMs, 8000),
+              `registry manager timeout: ${domain}`
+            ).catch(() => '');
+          }
           markRpcSuccessFinal(rpc, Date.now() - started);
           if (isGracePeriod) {
             return {
@@ -5946,6 +5988,7 @@
               宽限期结束: formatDate(new Date(graceEndTs * 1000)),
               注册时间: '',
               所有者地址: previousOwner,
+              管理员地址: managerAddress,
               错误信息: '',
               注册状态: 'expired',
               过期状态: 'expired',
@@ -5963,6 +6006,7 @@
             宽限期结束: '',
             注册时间: '',
             所有者地址: isPremiumAvailable ? previousOwner : '',
+            管理员地址: managerAddress,
             错误信息: (!price && priceError && !inferredPremiumByExpiry)
               ? String(priceError.message || priceError.reason || priceError.code || '').slice(0, 80)
               : '',
@@ -6023,6 +6067,13 @@
         }
 
         const isUnregisteredLike = regStatus === 'unregistered';
+        const managerAddress = isUnregisteredLike
+          ? ''
+          : await withFinalTimeout(
+              getRegistryOwnerFinal(domain, ctx),
+              Math.min(timeoutMs, 8000),
+              `registry manager timeout: ${domain}`
+            ).catch(() => '');
         markRpcSuccessFinal(rpc, Date.now() - started);
         return {
           序号: idx + 1,
@@ -6033,6 +6084,7 @@
           宽限期结束: isUnregisteredLike ? '' : (graceEndDate ? formatDate(graceEndDate) : ''),
           注册时间: isUnregisteredLike ? '' : (registrationMeta.time || ''),
           所有者地址: isUnregisteredLike ? '' : (owner || registrationMeta.owner || ''),
+          管理员地址: managerAddress,
           错误信息: '',
           注册状态: regStatus,
           过期状态: expiryStatus,
@@ -6048,7 +6100,7 @@
 
     return {
       序号: idx + 1, 域名: domain, 状态: 'error', 过期天数: '', 过期时间: '', 宽限期结束: '', 注册时间: '', 所有者地址: '',
-      错误信息: (`${String((lastError && (lastError.message || lastError.reason || lastError.code || JSON.stringify(lastError))) || (currentLang === 'zh' ? '未知错误: RPC无响应或返回空' : 'Unknown error: empty RPC response'))} | attempts:${maxRetries} rpcs:${triedRpcs.size}`).slice(0, 180), 注册状态: 'error', 过期状态: 'error', 宽限状态: 'error', 溢价状态: 'no_premium', 时间戳: 0
+      管理员地址: '', 错误信息: (`${String((lastError && (lastError.message || lastError.reason || lastError.code || JSON.stringify(lastError))) || (currentLang === 'zh' ? '未知错误: RPC无响应或返回空' : 'Unknown error: empty RPC response'))} | attempts:${maxRetries} rpcs:${triedRpcs.size}`).slice(0, 180), 注册状态: 'error', 过期状态: 'error', 宽限状态: 'error', 溢价状态: 'no_premium', 时间戳: 0
     };
   };
 
