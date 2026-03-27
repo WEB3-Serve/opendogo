@@ -2509,6 +2509,13 @@
         const ENS_REGISTRY = "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e";
         const BASE_REGISTRAR = "0x57f1887a8BF19b14fC0dF6Fd9B2acc9Af147eA85";
         const CONTROLLER = "0x283Af0B28c62C092C9727F1Ee09c02CA627EB7F5";
+        const KNOWN_ENS_CONTRACT_ADDRESSES = new Set([
+            ENS_REGISTRY.toLowerCase(),
+            BASE_REGISTRAR.toLowerCase(),
+            CONTROLLER.toLowerCase(),
+            "0x0000000000000000000000000000000000000000",
+            "0xd4416b13d2b3a9abae7a6e6fa8a2f4f61f5b77a3" // NameWrapper
+        ]);
 
         const ENS_ABI = [{"constant":true,"inputs":[{"name":"node","type":"bytes32"}],"name":"owner","outputs":[{"name":"","type":"address"}],"type":"function"}];
         const REGISTRAR_ABI = [
@@ -3071,6 +3078,13 @@
             return addr.length > 10 ? addr.substring(0,6) + '...' + addr.substring(addr.length-4) : addr;
         }
 
+        function normalizeRegistrantOwner(owner) {
+            if (!owner) return '';
+            const normalized = String(owner).toLowerCase();
+            if (KNOWN_ENS_CONTRACT_ADDRESSES.has(normalized)) return '';
+            return owner;
+        }
+
         async function getLastOwner(tokenId) {
             if (lastOwnerCache.has(tokenId)) {
                 return lastOwnerCache.get(tokenId);
@@ -3389,10 +3403,7 @@
             for (let attempt = 0; attempt < maxRetries; attempt++) {
                 try {
                     const owner = await registrar.methods.ownerOf(tokenId).call();
-                    if (owner === '0x0000000000000000000000000000000000000000') {
-                        return '';
-                    }
-                    return owner;
+                    return normalizeRegistrantOwner(owner);
                 } catch (e) {
                     if (attempt === maxRetries - 1) throw e;
                     await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
@@ -4904,7 +4915,7 @@
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
         const owner = await ctx.registrar.methods.ownerOf(tokenId).call();
-        return owner === '0x0000000000000000000000000000000000000000' ? '' : owner;
+        return normalizeRegistrantOwner(owner);
       } catch (e) {
         lastErr = e;
         if (attempt < maxRetries - 1) {
@@ -5698,7 +5709,7 @@
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
         const owner = await ctx.registrar.methods.ownerOf(tokenId).call();
-        return owner === '0x0000000000000000000000000000000000000000' ? '' : owner;
+        return normalizeRegistrantOwner(owner);
       } catch (e) {
         lastErr = e;
         if (attempt < maxRetries - 1) await new Promise(r => setTimeout(r, 80 * (attempt + 1)));
@@ -5874,7 +5885,7 @@
               .catch(() => '')
           ]);
           registrationMeta = metaResult || registrationMeta;
-          owner = registryOwner || registrationMeta.owner || lastOwner || '';
+          owner = registrationMeta.owner || lastOwner || normalizeRegistrantOwner(registryOwner) || '';
         }
 
         const expiryDate = expiry ? new Date(expiry * 1000) : null;
