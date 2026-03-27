@@ -4437,9 +4437,12 @@
                                              activeAddress.toLowerCase().includes(currentSearch);
                     const tooltipText = titleText.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
                     const countTitleText = (translations[currentLang].addressCountSummary || '{count} domains').replace('{count}', count);
+                    const showAddressCount = count > 1;
                     addressHtml = `
                         <div class="owner-cell">
-                            <span class="owner-count" onclick="filterByAddress('${activeAddress}')" title="${countTitleText}" aria-label="${countTitleText}">${count}</span>
+                            ${showAddressCount
+                                ? `<span class="owner-count" onclick="filterByAddress('${activeAddress}')" title="${countTitleText}" aria-label="${countTitleText}">${count}</span>`
+                                : '<span class="owner-count is-placeholder" aria-hidden="true"></span>'}
                             <span class="owner-address owner-tooltip-trigger ${isAddressInSearch ? 'active' : ''}" onclick="filterByAddress('${activeAddress}')" data-owner-tooltip="${tooltipText}" title="${titleText}" aria-label="${titleText}">${shortAddr}</span>
                             <button type="button"
                                     class="owner-clear"
