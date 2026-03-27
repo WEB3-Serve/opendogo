@@ -3092,7 +3092,6 @@
         function filterByAddress(address) {
             const searchInput = document.getElementById('filterSearch');
             const sortSelect = document.getElementById('filterSort');
-            const currentSort = sortSelect ? sortSelect.value : 'default';
             const currentSearch = searchInput.value.toLowerCase().trim();
             const addressLower = address.toLowerCase();
             const tableContainer = document.querySelector('.table-wrapper');
@@ -3110,16 +3109,14 @@
 
             if (isClearingSameAddress) {
                 searchInput.value = '';
+                if (sortSelect) {
+                    sortSelect.value = 'default';
+                }
             } else {
                 searchInput.value = address;
             }
 
             applyFilters({ resetPage: false, preserveScroll: true });
-
-            if (sortSelect && sortSelect.value !== currentSort) {
-                sortSelect.value = currentSort;
-                applyFilters({ resetPage: false, preserveScroll: true });
-            }
 
             if (previousAddressFilterState) {
                 currentPage = previousAddressFilterState.page || 1;
@@ -3202,14 +3199,12 @@
         function clearAddressSearch(event, address) {
             event?.stopPropagation?.();
             const sortSelect = document.getElementById('filterSort');
-            const currentSort = sortSelect ? sortSelect.value : 'default';
             const previousAddressFilterState = addressFilterScrollState;
             document.getElementById('filterSearch').value = '';
-            applyFilters({ resetPage: false, preserveScroll: true });
-            if (sortSelect && sortSelect.value !== currentSort) {
-                sortSelect.value = currentSort;
-                applyFilters({ resetPage: false, preserveScroll: true });
+            if (sortSelect) {
+                sortSelect.value = 'default';
             }
+            applyFilters({ resetPage: false, preserveScroll: true });
             if (previousAddressFilterState) {
                 currentPage = previousAddressFilterState.page || 1;
                 updateTable({ preserveScroll: false });
