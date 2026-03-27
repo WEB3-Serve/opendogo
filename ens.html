@@ -1265,6 +1265,31 @@
             transform: scale(1.06);
         }
 
+        .owner-header-content {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+
+        .owner-mode-switch {
+            border: 1px solid var(--border);
+            background: var(--bg);
+            color: var(--text-muted);
+            border-radius: 999px;
+            font-size: 0.68rem;
+            line-height: 1;
+            padding: 4px 8px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .owner-mode-switch:hover {
+            color: var(--primary);
+            border-color: color-mix(in srgb, var(--primary) 40%, var(--border) 60%);
+            background: var(--primary-light);
+        }
+
         .owner-tooltip {
             position: fixed;
             left: 0;
@@ -1945,7 +1970,12 @@
                                     <th data-i18n="expiryTime">过期时间</th>
                                     <th data-i18n="graceEnd">宽限期结束</th>
                                     <th data-i18n="regTime">注册时间</th>
-                                    <th data-i18n="owner">所有者</th>
+                                    <th>
+                                        <div class="owner-header-content">
+                                            <span id="ownerHeaderLabel" data-i18n="owner">所有者</span>
+                                            <button type="button" id="ownerModeToggle" class="owner-mode-switch" onclick="toggleOwnerMode()"></button>
+                                        </div>
+                                    </th>
                                     <th data-i18n="action">操作</th>
                                 </tr>
                             </thead>
@@ -2261,6 +2291,9 @@
                 graceEnd: '宽限期结束',
                 regTime: '注册时间',
                 owner: '所有者',
+                admin: '管理员',
+                switchToOwner: '切换到所有者',
+                switchToAdmin: '切换到管理员',
                 action: '操作',
                 noData: '暂无数据',
                 go: '跳转',
@@ -2395,6 +2428,9 @@
                 graceEnd: 'Grace End',
                 regTime: 'Reg Time',
                 owner: 'Owner',
+                admin: 'Admin',
+                switchToOwner: 'Switch to Owner',
+                switchToAdmin: 'Switch to Admin',
                 action: 'Action',
                 noData: 'No data',
                 go: 'Go',
@@ -2498,6 +2534,7 @@
         let currentPage = 1, pageSize = 50, totalPages = 1;
         let rpcStatus = {}, isLoadingDomains = false;
         let addressFilterScrollState = null;
+        let ownerDisplayMode = 'owner';
 
         const STORAGE_KEY = 'ens_query_results';
         const STORAGE_TIME_KEY = 'ens_query_time';
@@ -2631,6 +2668,31 @@
                 : 'https://opensea.io/collection/ens';
         }
 
+        function getAddressByMode(record, mode = ownerDisplayMode) {
+            if (!record) return '';
+            if (mode === 'admin') {
+                return record.管理员地址 || record.所有者地址 || '';
+            }
+            return record.所有者地址 || record.管理员地址 || '';
+        }
+
+        function updateOwnerModeUI() {
+            const ownerHeaderLabel = document.getElementById('ownerHeaderLabel');
+            const ownerModeToggle = document.getElementById('ownerModeToggle');
+            if (!ownerHeaderLabel || !ownerModeToggle) return;
+            const isOwner = ownerDisplayMode === 'owner';
+            ownerHeaderLabel.textContent = isOwner ? translations[currentLang].owner : translations[currentLang].admin;
+            ownerModeToggle.textContent = isOwner ? translations[currentLang].admin : translations[currentLang].owner;
+            ownerModeToggle.title = isOwner ? translations[currentLang].switchToAdmin : translations[currentLang].switchToOwner;
+            ownerModeToggle.setAttribute('aria-label', ownerModeToggle.title);
+        }
+
+        function toggleOwnerMode() {
+            ownerDisplayMode = ownerDisplayMode === 'owner' ? 'admin' : 'owner';
+            updateOwnerModeUI();
+            applyFilters({ resetPage: false, preserveScroll: true });
+        }
+
         function switchLanguage(lang) {
             currentLang = lang;
             document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
@@ -2667,6 +2729,7 @@
                 }
             });
 
+            updateOwnerModeUI();
             updateDomainTypeHint();
             updateDomainsCount();
             updateTable({ preserveScroll: false });
@@ -4078,7 +4141,8 @@
 
                 if (search) {
                     const domainMatch = r.域名.toLowerCase().includes(search);
-                    const addressMatch = r.所有者地址 && r.所有者地址.toLowerCase().includes(search);
+                    const activeAddress = getAddressByMode(r);
+                    const addressMatch = activeAddress && activeAddress.toLowerCase().includes(search);
                     if (!domainMatch && !addressMatch) return false;
                 }
 
@@ -4097,8 +4161,8 @@
             });
 
             if (status === 'address_desc' || status === 'address_asc') {
-                const withAddress = filtered.filter(item => item.所有者地址);
-                const withoutAddress = filtered.filter(item => !item.所有者地址);
+                const withAddress = filtered.filter(item => getAddressByMode(item));
+                const withoutAddress = filtered.filter(item => !getAddressByMode(item));
                 const compareByTime = (a, b) => {
                     const aTime = a.时间戳 || 0;
                     const bTime = b.时间戳 || 0;
@@ -4108,7 +4172,7 @@
 
                 const addressGroups = new Map();
                 withAddress.forEach(item => {
-                    const addr = item.所有者地址;
+                    const addr = getAddressByMode(item);
                     if (!addressGroups.has(addr)) {
                         addressGroups.set(addr, []);
                     }
@@ -4248,8 +4312,8 @@
             const validResults = filteredResults.filter(r => r && r.序号);
 
             const addressCountMap = new Map();
-            queryResults.filter(r => r && r.所有者地址).forEach(r => {
-                const addr = r.所有者地址;
+            queryResults.filter(r => r && getAddressByMode(r)).forEach(r => {
+                const addr = getAddressByMode(r);
                 if (addr) {
                     addressCountMap.set(addr, (addressCountMap.get(addr) || 0) + 1);
                 }
@@ -4302,27 +4366,28 @@
                 }
 
                 let addressHtml = '-';
-                if (r.所有者地址) {
-                    const count = addressCountMap.get(r.所有者地址) || 1;
-                    const shortAddr = shortenAddress(r.所有者地址);
+                const activeAddress = getAddressByMode(r);
+                if (activeAddress) {
+                    const count = addressCountMap.get(activeAddress) || 1;
+                    const shortAddr = shortenAddress(activeAddress);
                     const titleText = (translations[currentLang].addressCountDetail || '{address} owns {count} domains')
-                        .replace('{address}', r.所有者地址)
+                        .replace('{address}', activeAddress)
                         .replace('{count}', count);
-                    const isAddressInSearch = currentSearch && r.所有者地址 &&
-                                             r.所有者地址.toLowerCase().includes(currentSearch);
+                    const isAddressInSearch = currentSearch && activeAddress &&
+                                             activeAddress.toLowerCase().includes(currentSearch);
                     const tooltipText = titleText.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
                     const countBadgeHtml = count > 1
-                        ? `<span class="owner-count owner-tooltip-trigger" onclick="filterByAddress('${r.所有者地址}')" data-owner-tooltip="${tooltipText}" title="${titleText}" aria-label="${titleText}">${count}</span>`
+                        ? `<span class="owner-count owner-tooltip-trigger" onclick="filterByAddress('${activeAddress}')" data-owner-tooltip="${tooltipText}" title="${titleText}" aria-label="${titleText}">${count}</span>`
                         : '<span class="owner-count is-placeholder" aria-hidden="true"></span>';
 
                     addressHtml = `
                         <div class="owner-cell">
                             ${countBadgeHtml}
-                            <span class="owner-address owner-tooltip-trigger ${isAddressInSearch ? 'active' : ''}" onclick="filterByAddress('${r.所有者地址}')" data-owner-tooltip="${tooltipText}" title="${titleText}" aria-label="${titleText}">${shortAddr}</span>
+                            <span class="owner-address owner-tooltip-trigger ${isAddressInSearch ? 'active' : ''}" onclick="filterByAddress('${activeAddress}')" data-owner-tooltip="${tooltipText}" title="${titleText}" aria-label="${titleText}">${shortAddr}</span>
                             <button type="button"
                                     class="owner-clear"
                                     aria-label="${translations[currentLang].clearAddressSearch}"
-                                    onclick="clearAddressSearch(event, '${r.所有者地址}')"
+                                    onclick="clearAddressSearch(event, '${activeAddress}')"
                                     title="${translations[currentLang].clearAddressSearch}"
                                     style="visibility:${count > 1 ? 'visible' : 'hidden'}">×</button>
                         </div>
@@ -4466,7 +4531,9 @@
                 currentLang === 'zh' ? '过期时间' : 'Expiry Time',
                 currentLang === 'zh' ? '宽限期结束' : 'Grace End',
                 currentLang === 'zh' ? '注册时间' : 'Reg Time',
-                currentLang === 'zh' ? '所有者' : 'Owner',
+                ownerDisplayMode === 'owner'
+                    ? (currentLang === 'zh' ? '所有者' : 'Owner')
+                    : (currentLang === 'zh' ? '管理员' : 'Admin'),
                 currentLang === 'zh' ? '操作' : 'Action'
             ];
 
@@ -4498,7 +4565,7 @@
                     escapeCSV(r.过期时间 || ''),
                     escapeCSV(r.宽限期结束 || ''),
                     escapeCSV(r.注册时间 || ''),
-                    escapeCSV(r.所有者地址 || ''),
+                    escapeCSV(getAddressByMode(r)),
                     escapeCSV(`https://app.ens.domains/${r.域名}`)
                 ].join(',') + '\n';
             });
