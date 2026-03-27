@@ -623,6 +623,7 @@
             border: 1px solid var(--border);
             border-radius: var(--radius);
             padding: 14px;
+            order: 1;
         }
 
         .module-title {
@@ -693,6 +694,11 @@
             flex: 1;
             display: flex;
             flex-direction: column;
+            order: 2;
+        }
+
+        .user-module {
+            order: 3;
         }
 
         .filter-grid-2col {
@@ -1917,7 +1923,7 @@
                 </div>
             </div>
 
-            <!-- 右侧面板 - 用户中心/查询控制/筛选 -->
+            <!-- 右侧面板 - 查询控制/筛选/用户中心 -->
             <div class="right-panel">
                 <!-- 用户中心模块 -->
                 <div class="user-module">
@@ -4725,9 +4731,26 @@
     return getFastOwner(tokenId, localCtx, Math.max(1, maxRetries));
   };
 
+  function withTimeout(promise, timeoutMs, timeoutMessage) {
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error(timeoutMessage || 'Request timeout')), timeoutMs);
+      promise.then(
+        (value) => {
+          clearTimeout(timer);
+          resolve(value);
+        },
+        (err) => {
+          clearTimeout(timer);
+          reject(err);
+        }
+      );
+    });
+  }
+
   window.queryDomain = async function(domain, idx, preferredCtx) {
     const label = domain.replace('.eth', '');
     const maxRetries = Math.max(1, uiNum('maxRetries', 2));
+    const perAttemptTimeoutMs = Math.max(2500, uiNum('requestTimeoutMs', 9000));
     let tokenId;
     try {
       tokenId = Web3.utils.keccak256(label);
@@ -4744,13 +4767,27 @@
       const ctx = attempt === 0 && preferredCtx ? preferredCtx : buildRpcContext(rpc);
       const started = Date.now();
       try {
-        const available = await ctx.controller.methods.available(label).call();
+        const available = await withTimeout(
+          ctx.controller.methods.available(label).call(),
+          perAttemptTimeoutMs,
+          `RPC timeout: available(${domain})`
+        );
 
         if (available) {
           try {
-            const price = await ctx.controller.methods.rentPrice(label, 31536000).call();
+            const price = await withTimeout(
+              ctx.controller.methods.rentPrice(label, 31536000).call(),
+              perAttemptTimeoutMs,
+              `RPC timeout: rentPrice(${domain})`
+            );
             let expiry = 0;
-            try { expiry = await ctx.registrar.methods.nameExpires(tokenId).call(); } catch (_) {}
+            try {
+              expiry = await withTimeout(
+                ctx.registrar.methods.nameExpires(tokenId).call(),
+                perAttemptTimeoutMs,
+                `RPC timeout: nameExpires(${domain})`
+              );
+            } catch (_) {}
             if (price && price.premium && Number(price.premium) > 0) {
               const lastOwner = await getLastOwnerWithContext(tokenId, ctx);
               markRpcSuccess(rpc, Date.now() - started);
@@ -4783,7 +4820,11 @@
           }
         }
 
-        const expiry = await ctx.registrar.methods.nameExpires(tokenId).call();
+        const expiry = await withTimeout(
+          ctx.registrar.methods.nameExpires(tokenId).call(),
+          perAttemptTimeoutMs,
+          `RPC timeout: nameExpires(${domain})`
+        );
         const expiryDate = new Date(Number(expiry) * 1000);
         const now = new Date();
         const days = Math.floor((expiryDate - now) / 86400000);
