@@ -4350,9 +4350,9 @@
             const preserveScroll = options.preserveScroll !== false;
             const tableContainer = document.querySelector('.table-wrapper');
             const previousScrollTop = preserveScroll && tableContainer ? tableContainer.scrollTop : 0;
+            const showSequenceColumn = (queryResults || []).filter(r => r).length > 1;
             if (!filteredResults || filteredResults.length === 0) {
                 const noDataText = currentLang === 'zh' ? '暂无数据' : 'No data';
-                const showSequenceColumn = (queryResults || []).filter(r => r).length > 1;
                 const noHeader = document.getElementById('noHeader');
                 if (noHeader) noHeader.style.display = showSequenceColumn ? '' : 'none';
                 document.getElementById('resultsBody').innerHTML = `<tr><td colspan="${showSequenceColumn ? 9 : 8}" style="text-align: center; padding: 20px;">${noDataText}</td></tr>`;
@@ -4383,7 +4383,6 @@
             const end = Math.min(start + pageSize, validResults.length);
 
             const currentSearch = document.getElementById('filterSearch').value.toLowerCase().trim();
-            const showSequenceColumn = validResults.length > 1;
             const noHeader = document.getElementById('noHeader');
             if (noHeader) noHeader.style.display = showSequenceColumn ? '' : 'none';
 
@@ -4583,7 +4582,7 @@
                 data = queryResults.filter(r => r).sort((a,b) => a.序号 - b.序号);
             }
 
-            const showSequenceColumn = data.length > 1;
+            const showSequenceColumn = (queryResults || []).filter(r => r).length > 1;
             const cols = [
                 currentLang === 'zh' ? '域名' : 'Domain',
                 currentLang === 'zh' ? '状态' : 'Status',
