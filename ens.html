@@ -2515,8 +2515,8 @@
                 lengthPlaceholder: 'e.g. 1-3 or 5',
                 clearFilters: 'Clear Filters',
                 clearResults: 'Clear Results',
-                footerKeywords: 'ENS域名批量查询工具 | web3域名批量查询 | eth批量域名查询 | ENS批量工具 | 动态RPC自动切换 | web3工具箱 | 以太坊域名工具 | 动态RPC节点 | 区块链域名查询',
-                footerCopyright: '© 2026-现在 opendogo 版权所有',
+                footerKeywords: 'ENS batch domain query tool | web3 domain bulk lookup | ETH domain batch checker | ENS automation toolkit | dynamic RPC auto-switching | web3 utility suite | Ethereum naming tools | dynamic RPC nodes | blockchain domain search',
+                footerCopyright: '© 2026–present opendogo. All rights reserved.',
                 rpcDetails: 'RPC Node Details',
                 node: 'Node',
                 responseTime: 'Response',
@@ -4555,7 +4555,9 @@
             if (confirm(confirmMessage)) {
                 queryResults = [];
                 filteredResults = [];
-                document.getElementById('resultsBody').innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 20px;">' +
+                const noHeader = document.getElementById('noHeader');
+                if (noHeader) noHeader.style.display = 'none';
+                document.getElementById('resultsBody').innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 20px;">' +
                     (currentLang === 'zh' ? '暂无数据' : 'No data') + '</td></tr>';
                 document.getElementById('resultsCount').innerText = '';
                 document.getElementById('exportBtn').disabled = true;
@@ -4581,8 +4583,8 @@
                 data = queryResults.filter(r => r).sort((a,b) => a.序号 - b.序号);
             }
 
+            const showSequenceColumn = data.length > 1;
             const cols = [
-                currentLang === 'zh' ? '序号' : '#',
                 currentLang === 'zh' ? '域名' : 'Domain',
                 currentLang === 'zh' ? '状态' : 'Status',
                 currentLang === 'zh' ? '过期天数' : 'Expiry Days',
@@ -4594,6 +4596,9 @@
                     : (currentLang === 'zh' ? '管理员' : 'Admin'),
                 currentLang === 'zh' ? '操作' : 'Action'
             ];
+            if (showSequenceColumn) {
+                cols.unshift(currentLang === 'zh' ? '序号' : '#');
+            }
 
             let csv = cols.join(',') + '\n';
 
@@ -4615,8 +4620,7 @@
                     return str;
                 };
 
-                csv += [
-                    escapeCSV(r.序号),
+                const row = [
                     escapeCSV(r.域名),
                     escapeCSV(statusDisplay),
                     escapeCSV(r.过期天数 || ''),
@@ -4625,7 +4629,11 @@
                     escapeCSV(r.注册时间 || ''),
                     escapeCSV(getAddressByMode(r)),
                     escapeCSV(`https://app.ens.domains/${r.域名}`)
-                ].join(',') + '\n';
+                ];
+                if (showSequenceColumn) {
+                    row.unshift(escapeCSV(r.序号));
+                }
+                csv += row.join(',') + '\n';
             });
 
             const blob = new Blob(['\uFEFF' + csv], {type:'text/csv;charset=utf-8;'});
