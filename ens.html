@@ -5898,9 +5898,7 @@
 
         let owner = ownerFromFastCall || '';
         if (!owner) {
-          const [wrappedOwner, registryOwner, metaResult, lastOwner] = await Promise.all([
-            getWrappedOwnerFinal(domain, ctx),
-            getRegistryOwnerFinal(domain, ctx),
+          const [metaResult, lastOwner] = await Promise.all([
             withFinalTimeout(getRegistrationMetaFinal(label, tokenId, ctx), timeoutMs, `registration meta timeout: ${domain}`)
               .catch(() => ({ time: '', owner: '' })),
             withFinalTimeout(getLastOwnerFinal(tokenId, ctx), timeoutMs, `last owner timeout: ${domain}`)
@@ -5908,7 +5906,7 @@
           ]);
           registrationMeta = metaResult || registrationMeta;
           const normalizedMetaOwner = normalizeRegistrantOwner(registrationMeta.owner || '');
-          owner = wrappedOwner || normalizedMetaOwner || normalizeRegistrantOwner(lastOwner) || normalizeRegistrantOwner(registryOwner) || '';
+          owner = normalizedMetaOwner || normalizeRegistrantOwner(lastOwner) || '';
         }
 
         const expiryDate = expiry ? new Date(expiry * 1000) : null;
