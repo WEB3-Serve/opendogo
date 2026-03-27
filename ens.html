@@ -3099,7 +3099,7 @@
                 searchInput.value = address;
             }
 
-            applyFilters();
+            applyFilters({ resetPage: false, preserveScroll: true });
 
             const shortAddr = shortenAddress(address);
             addLog(translations[currentLang].logFilterByAddress.replace('{address}', shortAddr), 'info');
@@ -3172,7 +3172,7 @@
         function clearAddressSearch(event, address) {
             event?.stopPropagation?.();
             document.getElementById('filterSearch').value = '';
-            applyFilters();
+            applyFilters({ resetPage: false, preserveScroll: true });
             const shortAddr = shortenAddress(address);
             addLog(translations[currentLang].clearAddressSearch || `已清除地址 "${shortAddr}" 搜索`, 'info');
         }
@@ -3895,7 +3895,9 @@
             );
         }
 
-        function applyFilters() {
+        function applyFilters(options = {}) {
+            const resetPage = options.resetPage !== false;
+            const preserveScroll = options.preserveScroll !== false;
             const status = document.getElementById('filterStatus').value;
             const premium = document.getElementById('filterPremium').value;
             const expiry = document.getElementById('filterExpiry').value;
@@ -3996,8 +3998,10 @@
             }
 
             filteredResults = filtered;
-            currentPage = 1;
-            updateTable();
+            if (resetPage) {
+                currentPage = 1;
+            }
+            updateTable({ preserveScroll });
             updateStatistics();
         }
 
