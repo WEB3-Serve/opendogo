@@ -1283,13 +1283,18 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.66rem;
+            font-size: 0.9rem;
             line-height: 1;
             font-weight: 700;
             letter-spacing: 0.02em;
             padding: 0;
             cursor: pointer;
             transition: all 0.15s ease;
+        }
+
+        .owner-mode-switch::before {
+            content: "↕";
+            transform: translateY(-0.5px);
         }
 
         .owner-mode-switch[data-mode="owner"] {
@@ -2709,7 +2714,6 @@
             const isOwner = ownerDisplayMode === 'owner';
             ownerHeaderLabel.textContent = isOwner ? translations[currentLang].owner : translations[currentLang].admin;
             ownerModeToggle.dataset.mode = isOwner ? 'owner' : 'admin';
-            ownerModeToggle.textContent = isOwner ? 'O' : 'A';
             const modeHint = isOwner
                 ? translations[currentLang].ownerModeHint
                 : translations[currentLang].adminModeHint;
@@ -4410,13 +4414,9 @@
                     const isAddressInSearch = currentSearch && activeAddress &&
                                              activeAddress.toLowerCase().includes(currentSearch);
                     const tooltipText = titleText.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
-                    const countBadgeHtml = count > 1
-                        ? `<span class="owner-count owner-tooltip-trigger" onclick="filterByAddress('${activeAddress}')" data-owner-tooltip="${tooltipText}" title="${titleText}" aria-label="${titleText}">${count}</span>`
-                        : '<span class="owner-count is-placeholder" aria-hidden="true"></span>';
-
                     addressHtml = `
                         <div class="owner-cell">
-                            ${countBadgeHtml}
+                            <span class="owner-count is-placeholder" aria-hidden="true"></span>
                             <span class="owner-address owner-tooltip-trigger ${isAddressInSearch ? 'active' : ''}" onclick="filterByAddress('${activeAddress}')" data-owner-tooltip="${tooltipText}" title="${titleText}" aria-label="${titleText}">${shortAddr}</span>
                             <button type="button"
                                     class="owner-clear"
