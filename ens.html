@@ -2509,12 +2509,13 @@
         const ENS_REGISTRY = "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e";
         const BASE_REGISTRAR = "0x57f1887a8BF19b14fC0dF6Fd9B2acc9Af147eA85";
         const CONTROLLER = "0x283Af0B28c62C092C9727F1Ee09c02CA627EB7F5";
+        const NAME_WRAPPER = "0xd4416b13d2b3a9abae7a6e6fa8a2f4f61f5b77a3";
         const KNOWN_ENS_CONTRACT_ADDRESSES = new Set([
             ENS_REGISTRY.toLowerCase(),
             BASE_REGISTRAR.toLowerCase(),
             CONTROLLER.toLowerCase(),
             "0x0000000000000000000000000000000000000000",
-            "0xd4416b13d2b3a9abae7a6e6fa8a2f4f61f5b77a3" // NameWrapper
+            NAME_WRAPPER.toLowerCase()
         ]);
 
         const ENS_ABI = [{"constant":true,"inputs":[{"name":"node","type":"bytes32"}],"name":"owner","outputs":[{"name":"","type":"address"}],"type":"function"}];
@@ -2538,6 +2539,9 @@
             "name": "Transfer",
             "type": "event"
         }];
+        const NAME_WRAPPER_ABI = [
+            {"constant":true,"inputs":[{"name":"id","type":"uint256"}],"name":"ownerOf","outputs":[{"name":"","type":"address"}],"type":"function"}
+        ];
 
         const RPC_LIST = [
             "https://ethereum.publicnode.com",
@@ -4869,7 +4873,8 @@
       registry: new w3.eth.Contract(ENS_ABI, ENS_REGISTRY),
       registrar: new w3.eth.Contract(REGISTRAR_ABI, BASE_REGISTRAR),
       controller: new w3.eth.Contract(CONTROLLER_ABI, CONTROLLER),
-      transferContract: new w3.eth.Contract(TRANSFER_ABI, BASE_REGISTRAR)
+      transferContract: new w3.eth.Contract(TRANSFER_ABI, BASE_REGISTRAR),
+      nameWrapper: new w3.eth.Contract(NAME_WRAPPER_ABI, NAME_WRAPPER)
     };
     rpcCtxCache.set(rpc, ctx);
     return ctx;
@@ -5458,6 +5463,21 @@
     }
   }
 
+  async function getWrappedOwnerFinal(domain, ctx) {
+    try {
+      const timeoutMs = Math.max(3000, num('timeout', 12) * 1000);
+      const wrappedTokenId = ctx.web3.utils.toBN(ensNamehashFinal(domain)).toString();
+      const wrappedOwner = await withFinalTimeout(
+        ctx.nameWrapper.methods.ownerOf(wrappedTokenId).call(),
+        Math.min(timeoutMs, 10000),
+        `nameWrapper owner timeout: ${domain}`
+      );
+      return normalizeRegistrantOwner(normalizeAddressFinal(wrappedOwner));
+    } catch (_) {
+      return '';
+    }
+  }
+
   function getLookupContexts(preferredCtx) {
     const currentRpc = typeof window.getCurrentRpc === 'function' ? window.getCurrentRpc() : '';
     const rankedReliable = RPC_LIST
@@ -5562,7 +5582,8 @@
       registry: new web3Instance.eth.Contract(ENS_ABI, ENS_REGISTRY),
       registrar: new web3Instance.eth.Contract(REGISTRAR_ABI, BASE_REGISTRAR),
       controller: new web3Instance.eth.Contract(CONTROLLER_ABI, CONTROLLER),
-      transferContract: new web3Instance.eth.Contract(TRANSFER_ABI, BASE_REGISTRAR)
+      transferContract: new web3Instance.eth.Contract(TRANSFER_ABI, BASE_REGISTRAR),
+      nameWrapper: new web3Instance.eth.Contract(NAME_WRAPPER_ABI, NAME_WRAPPER)
     };
     finalRpcCtxCache.set(key, ctx);
     return ctx;
@@ -5877,7 +5898,8 @@
 
         let owner = ownerFromFastCall || '';
         if (!owner) {
-          const [registryOwner, metaResult, lastOwner] = await Promise.all([
+          const [wrappedOwner, registryOwner, metaResult, lastOwner] = await Promise.all([
+            getWrappedOwnerFinal(domain, ctx),
             getRegistryOwnerFinal(domain, ctx),
             withFinalTimeout(getRegistrationMetaFinal(label, tokenId, ctx), timeoutMs, `registration meta timeout: ${domain}`)
               .catch(() => ({ time: '', owner: '' })),
@@ -5886,7 +5908,7 @@
           ]);
           registrationMeta = metaResult || registrationMeta;
           const normalizedMetaOwner = normalizeRegistrantOwner(registrationMeta.owner || '');
-          owner = normalizedMetaOwner || lastOwner || normalizeRegistrantOwner(registryOwner) || '';
+          owner = wrappedOwner || normalizedMetaOwner || normalizeRegistrantOwner(lastOwner) || normalizeRegistrantOwner(registryOwner) || '';
         }
 
         const expiryDate = expiry ? new Date(expiry * 1000) : null;
