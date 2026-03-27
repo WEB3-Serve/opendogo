@@ -4110,8 +4110,9 @@
             );
         }
 
+        let lastAppliedFilterSignature = null;
+
         function applyFilters(options = {}) {
-            const resetPage = options.resetPage !== false;
             const preserveScroll = options.preserveScroll !== false;
             const status = document.getElementById('filterStatus').value;
             const premium = document.getElementById('filterPremium').value;
@@ -4124,6 +4125,9 @@
                 .map(v => v.trim().toLowerCase())
                 .filter(Boolean);
             const lengthRule = (document.getElementById('filterLength')?.value || '').trim();
+            const filterSignature = JSON.stringify({ status, premium, expiry, grace, sort, search, excludeKeywords, lengthRule, ownerDisplayMode });
+            const hasExplicitReset = Object.prototype.hasOwnProperty.call(options, 'resetPage');
+            const resetPage = hasExplicitReset ? options.resetPage !== false : (lastAppliedFilterSignature !== filterSignature);
             let minLength = null;
             let maxLength = null;
             if (lengthRule) {
@@ -4144,6 +4148,7 @@
 
             if (!queryResults || queryResults.length === 0) {
                 filteredResults = [];
+                lastAppliedFilterSignature = filterSignature;
                 updateTable();
                 updateStatistics();
                 return;
@@ -4268,6 +4273,7 @@
             if (resetPage) {
                 currentPage = 1;
             }
+            lastAppliedFilterSignature = filterSignature;
             updateTable({ preserveScroll });
             updateStatistics();
         }
@@ -4283,6 +4289,17 @@
             document.getElementById('filterExclude').value = '';
             document.getElementById('filterLength').value = '';
             filteredResults = (queryResults.filter(r=>r) || []).sort((a,b)=>a.序号-b.序号);
+            lastAppliedFilterSignature = JSON.stringify({
+                status: 'all',
+                premium: 'all',
+                expiry: 'all',
+                grace: 'all',
+                sort: 'default',
+                search: '',
+                excludeKeywords: [],
+                lengthRule: '',
+                ownerDisplayMode
+            });
             currentPage = 1;
             updateTable();
             updateStatistics();
@@ -4414,9 +4431,10 @@
                     const isAddressInSearch = currentSearch && activeAddress &&
                                              activeAddress.toLowerCase().includes(currentSearch);
                     const tooltipText = titleText.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+                    const countTitleText = (translations[currentLang].addressCountSummary || '{count} domains').replace('{count}', count);
                     addressHtml = `
                         <div class="owner-cell">
-                            <span class="owner-count is-placeholder" aria-hidden="true"></span>
+                            <span class="owner-count" onclick="filterByAddress('${activeAddress}')" title="${countTitleText}" aria-label="${countTitleText}">${count}</span>
                             <span class="owner-address owner-tooltip-trigger ${isAddressInSearch ? 'active' : ''}" onclick="filterByAddress('${activeAddress}')" data-owner-tooltip="${tooltipText}" title="${titleText}" aria-label="${titleText}">${shortAddr}</span>
                             <button type="button"
                                     class="owner-clear"
