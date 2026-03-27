@@ -691,7 +691,7 @@
             border: 1px solid var(--border);
             border-radius: var(--radius);
             padding: 14px;
-            flex: 1;
+            flex: 0 0 auto;
             display: flex;
             flex-direction: column;
             order: 2;
@@ -705,7 +705,7 @@
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 10px;
-            flex: 1;
+            flex: 0 0 auto;
             align-content: start;
         }
 
@@ -1978,7 +1978,6 @@
                                 <span data-i18n="hideCardKey">隐藏卡密</span>
                             </label>
                         </div>
-                        <div class="user-tip" data-i18n="cardKeyTip">卡密仅保存在当前浏览器本地。</div>
                     </div>
 
                     <div class="user-status-row">
@@ -2214,7 +2213,7 @@
                 cardKeyStatus: '卡密状态：',
                 cardKeyInactive: '未激活',
                 cardKeyActive: '已激活',
-                cardKeyTip: '卡密仅保存在当前浏览器本地。',
+                cardKeyTip: '',
                 register: '注册',
                 login: '登录',
                 logout: '退出',
@@ -2342,7 +2341,7 @@
                 cardKeyStatus: 'Code status:',
                 cardKeyInactive: 'Inactive',
                 cardKeyActive: 'Activated',
-                cardKeyTip: 'Stored locally in this browser only.',
+                cardKeyTip: '',
                 register: 'Register',
                 login: 'Login',
                 logout: 'Logout',
@@ -5137,6 +5136,21 @@
     return Number.isFinite(value) ? value : fallback;
   }
 
+  function withFinalTimeout(promise, timeoutMs, message) {
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error(message || 'RPC timeout')), Math.max(1000, timeoutMs || 1000));
+      Promise.resolve(promise)
+        .then(value => {
+          clearTimeout(timer);
+          resolve(value);
+        })
+        .catch(error => {
+          clearTimeout(timer);
+          reject(error);
+        });
+    });
+  }
+
   function normalizeRpcUrl(url) {
     if (!url || typeof url !== 'string') return '';
     const trimmed = url.trim();
@@ -5179,7 +5193,12 @@
 
   async function getRegistryOwnerFinal(domain, ctx) {
     try {
-      const owner = await ctx.registry.methods.owner(ensNamehashFinal(domain)).call();
+      const timeoutMs = Math.max(3000, num('timeout', 12) * 1000);
+      const owner = await withFinalTimeout(
+        ctx.registry.methods.owner(ensNamehashFinal(domain)).call(),
+        Math.min(timeoutMs, 10000),
+        `registry owner timeout: ${domain}`
+      );
       return normalizeAddressFinal(owner);
     } catch (_) {
       return '';
@@ -5208,35 +5227,52 @@
   }
 
   async function loadRegistrationMetaFromCtx(tokenId, ctx) {
+    const timeoutMs = Math.max(3000, num('timeout', 12) * 1000);
     let events = [];
     try {
-      events = await ctx.registrar.getPastEvents('NameRegistered', {
-        filter: { id: tokenId },
-        fromBlock: 9380410,
-        toBlock: 'latest'
-      });
+      events = await withFinalTimeout(
+        ctx.registrar.getPastEvents('NameRegistered', {
+          filter: { id: tokenId },
+          fromBlock: 9380410,
+          toBlock: 'latest'
+        }),
+        timeoutMs,
+        'NameRegistered events timeout'
+      );
     } catch (_) {
       events = [];
     }
 
     if (events.length) {
       const event = events[events.length - 1];
-      const block = await ctx.web3.eth.getBlock(event.blockNumber);
+      const block = await withFinalTimeout(
+        ctx.web3.eth.getBlock(event.blockNumber),
+        Math.min(timeoutMs, 8000),
+        'block lookup timeout'
+      );
       return {
         time: block?.timestamp ? formatDate(new Date(Number(block.timestamp) * 1000)) : '',
         owner: normalizeAddressFinal(event?.returnValues?.owner || '')
       };
     }
 
-    const transferEvents = await ctx.transferContract.getPastEvents('Transfer', {
-      filter: { tokenId },
-      fromBlock: 9380410,
-      toBlock: 'latest'
-    });
+    const transferEvents = await withFinalTimeout(
+      ctx.transferContract.getPastEvents('Transfer', {
+        filter: { tokenId },
+        fromBlock: 9380410,
+        toBlock: 'latest'
+      }),
+      timeoutMs,
+      'Transfer events timeout'
+    );
     const mintEvent = transferEvents.find(ev => /^0x0{40}$/i.test(ev?.returnValues?.from || ''));
     if (!mintEvent) return { time: '', owner: '' };
 
-    const mintBlock = await ctx.web3.eth.getBlock(mintEvent.blockNumber);
+    const mintBlock = await withFinalTimeout(
+      ctx.web3.eth.getBlock(mintEvent.blockNumber),
+      Math.min(timeoutMs, 8000),
+      'mint block lookup timeout'
+    );
     return {
       time: mintBlock?.timestamp ? formatDate(new Date(Number(mintBlock.timestamp) * 1000)) : '',
       owner: normalizeAddressFinal(mintEvent?.returnValues?.to || '')
@@ -5432,14 +5468,19 @@
   async function getLastOwnerFinal(tokenId, ctx) {
     const cacheKey = String(tokenId).toLowerCase();
     if (lastOwnerCache.has(cacheKey)) return lastOwnerCache.get(cacheKey);
+    const timeoutMs = Math.max(3000, num('timeout', 12) * 1000);
 
     for (const lookupCtx of getLookupContexts(ctx)) {
       try {
-        const events = await lookupCtx.transferContract.getPastEvents('Transfer', {
-          filter: { tokenId },
-          fromBlock: 9380410,
-          toBlock: 'latest'
-        });
+        const events = await withFinalTimeout(
+          lookupCtx.transferContract.getPastEvents('Transfer', {
+            filter: { tokenId },
+            fromBlock: 9380410,
+            toBlock: 'latest'
+          }),
+          timeoutMs,
+          'last owner events timeout'
+        );
         if (!events.length) continue;
 
         for (let i = events.length - 1; i >= 0; i--) {
@@ -5465,6 +5506,7 @@
   window.queryDomain = async function(domain, idx, preferredSource) {
     const label = domain.replace(/\.eth$/i, '');
     const maxRetries = Math.max(1, num('maxRetries', 3));
+    const timeoutMs = Math.max(3000, num('timeout', 12) * 1000);
     let tokenId;
     try {
       tokenId = Web3.utils.keccak256(label);
@@ -5491,10 +5533,14 @@
       const ctx = preferredSource && preferredSource.web3 ? preferredSource : getOrCreateCtx(rpc);
       const started = Date.now();
       try {
-        const [{ available, price, priceError }, expiryRaw] = await Promise.all([
-          readAvailableAndPrice(ctx, label),
-          ctx.registrar.methods.nameExpires(tokenId).call().catch(() => 0)
-        ]);
+        const [{ available, price, priceError }, expiryRaw] = await withFinalTimeout(
+          Promise.all([
+            readAvailableAndPrice(ctx, label),
+            ctx.registrar.methods.nameExpires(tokenId).call().catch(() => 0)
+          ]),
+          timeoutMs,
+          `query timeout: ${domain}`
+        );
         const expiry = Number(expiryRaw || 0);
         const nowTs = Math.floor(Date.now() / 1000);
         const graceEndTs = expiry ? expiry + 90 * 24 * 3600 : 0;
@@ -5513,9 +5559,17 @@
           let previousOwner = '';
           const isGracePeriod = Boolean(expiry && nowTs > expiry && nowTs <= graceEndTs);
           if (isPremiumAvailable || isGracePeriod) {
-            previousOwner = await getLastOwnerFinal(tokenId, ctx);
+            previousOwner = await withFinalTimeout(
+              getLastOwnerFinal(tokenId, ctx),
+              timeoutMs,
+              `last owner timeout: ${domain}`
+            );
             if (!previousOwner) {
-              const registrationMeta = await getRegistrationMetaFinal(label, tokenId, ctx);
+              const registrationMeta = await withFinalTimeout(
+                getRegistrationMetaFinal(label, tokenId, ctx),
+                timeoutMs,
+                `registration meta timeout: ${domain}`
+              );
               previousOwner = registrationMeta.owner || '';
             }
           }
@@ -5569,10 +5623,16 @@
         })();
 
         let owner = ownerFromFastCall || '';
-        if (!owner) owner = await getRegistryOwnerFinal(domain, ctx);
         if (!owner) {
-          registrationMeta = await getRegistrationMetaFinal(label, tokenId, ctx);
-          owner = registrationMeta.owner || await getLastOwnerFinal(tokenId, ctx);
+          const [registryOwner, metaResult, lastOwner] = await Promise.all([
+            getRegistryOwnerFinal(domain, ctx),
+            withFinalTimeout(getRegistrationMetaFinal(label, tokenId, ctx), timeoutMs, `registration meta timeout: ${domain}`)
+              .catch(() => ({ time: '', owner: '' })),
+            withFinalTimeout(getLastOwnerFinal(tokenId, ctx), timeoutMs, `last owner timeout: ${domain}`)
+              .catch(() => '')
+          ]);
+          registrationMeta = metaResult || registrationMeta;
+          owner = registryOwner || registrationMeta.owner || lastOwner || '';
         }
 
         const expiryDate = expiry ? new Date(expiry * 1000) : null;
