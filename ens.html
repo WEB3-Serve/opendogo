@@ -3112,15 +3112,20 @@
                 }
 
                 for (let i = events.length - 1; i >= 0; i--) {
-                    const to = events[i].returnValues.to;
-                    if (to !== "0x0000000000000000000000000000000000000000") {
+                    const to = normalizeRegistrantOwner(((events[i]?.returnValues?.to || '') !== '0x0000000000000000000000000000000000000000') ? (events[i]?.returnValues?.to || '') : '');
+                    if (to) {
                         lastOwnerCache.set(tokenId, to);
                         return to;
                     }
+                    const from = normalizeRegistrantOwner(((events[i]?.returnValues?.from || '') !== '0x0000000000000000000000000000000000000000') ? (events[i]?.returnValues?.from || '') : '');
+                    if (from) {
+                        lastOwnerCache.set(tokenId, from);
+                        return from;
+                    }
                 }
 
-                const lastFrom = events[events.length - 1].returnValues.from;
-                if (lastFrom && lastFrom !== "0x0000000000000000000000000000000000000000") {
+                const lastFrom = normalizeRegistrantOwner(((events[events.length - 1]?.returnValues?.from || '') !== '0x0000000000000000000000000000000000000000') ? (events[events.length - 1]?.returnValues?.from || '') : '');
+                if (lastFrom) {
                     lastOwnerCache.set(tokenId, lastFrom);
                     return lastFrom;
                 }
@@ -3403,10 +3408,12 @@
             await new Promise(r => setTimeout(r, 10));
         }
 
-        async function getOwnerWithRetry(tokenId, maxRetries = 3) {
+        async function getOwnerWithRetry(tokenId, maxRetries = 3, domain = '') {
             for (let attempt = 0; attempt < maxRetries; attempt++) {
                 try {
                     const owner = await registrar.methods.ownerOf(tokenId).call();
+                    if (!owner || owner === '0x0000000000000000000000000000000000000000') return '';
+                    if (String(owner).toLowerCase() === NAME_WRAPPER.toLowerCase()) return '';
                     return normalizeRegistrantOwner(owner);
                 } catch (e) {
                     if (attempt === maxRetries - 1) throw e;
@@ -3537,7 +3544,7 @@
                             // rentPrice失败，尝试获取所有者
                             let owner = '';
                             try {
-                                owner = await getOwnerWithRetry(tokenId, 3);
+                                owner = await getOwnerWithRetry(tokenId, 3, domain);
                             } catch {
                                 owner = '';
                             }
@@ -3575,7 +3582,7 @@
 
                     let owner = '';
                     try {
-                        owner = await getOwnerWithRetry(tokenId, 3);
+                        owner = await getOwnerWithRetry(tokenId, 3, domain);
 
                         // 如果owner是空地址（已过期），查询最后持有者
                         if (!owner || owner === '0x0000000000000000000000000000000000000000') {
@@ -5478,6 +5485,11 @@
     }
   }
 
+  function isWrapperCustodyOwner(owner) {
+    if (!owner) return false;
+    return String(owner).toLowerCase() === NAME_WRAPPER.toLowerCase();
+  }
+
   function getLookupContexts(preferredCtx) {
     const currentRpc = typeof window.getCurrentRpc === 'function' ? window.getCurrentRpc() : '';
     const rankedReliable = RPC_LIST
@@ -5725,11 +5737,15 @@
     }
   }
 
-  async function getFastOwnerFinal(tokenId, ctx, maxRetries = 2) {
+  async function getFastOwnerFinal(domain, tokenId, ctx, maxRetries = 2) {
     let lastErr;
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
-        const owner = await ctx.registrar.methods.ownerOf(tokenId).call();
+        const owner = normalizeAddressFinal(await ctx.registrar.methods.ownerOf(tokenId).call());
+        if (!owner) return '';
+        if (isWrapperCustodyOwner(owner)) {
+          return await getWrappedOwnerFinal(domain, ctx);
+        }
         return normalizeRegistrantOwner(owner);
       } catch (e) {
         lastErr = e;
@@ -5758,14 +5774,19 @@
         if (!events.length) continue;
 
         for (let i = events.length - 1; i >= 0; i--) {
-          const to = normalizeAddressFinal(events[i]?.returnValues?.to || '');
+          const to = normalizeRegistrantOwner(((events[i]?.returnValues?.to || '') !== '0x0000000000000000000000000000000000000000') ? (events[i]?.returnValues?.to || '') : '');
           if (to) {
             lastOwnerCache.set(cacheKey, to);
             return to;
           }
+          const from = normalizeRegistrantOwner(((events[i]?.returnValues?.from || '') !== '0x0000000000000000000000000000000000000000') ? (events[i]?.returnValues?.from || '') : '');
+          if (from) {
+            lastOwnerCache.set(cacheKey, from);
+            return from;
+          }
         }
 
-        const fallback = normalizeAddressFinal(events[events.length - 1]?.returnValues?.from || '');
+        const fallback = normalizeRegistrantOwner(normalizeAddressFinal(events[events.length - 1]?.returnValues?.from || ''));
         if (fallback) {
           lastOwnerCache.set(cacheKey, fallback);
           return fallback;
@@ -5890,7 +5911,7 @@
         let registrationMeta = registrationMetaCache.get(cacheKey) || { time: '', owner: '' };
         const ownerFromFastCall = await (async () => {
           try {
-            return await getFastOwnerFinal(tokenId, ctx, 2);
+            return await getFastOwnerFinal(domain, tokenId, ctx, 2);
           } catch (_) {
             return '';
           }
