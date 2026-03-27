@@ -1903,6 +1903,7 @@
                             <button id="startQueryBtn" class="btn btn-success btn-sm" onclick="startQuery()"><i class="fas fa-play"></i> <span data-i18n="start">开始</span></button>
                             <button id="resumeQueryBtn" class="btn btn-info btn-sm" onclick="resumeQuery()" disabled><i class="fas fa-forward"></i> <span data-i18n="resume">继续</span></button>
                             <button id="stopQueryBtn" class="btn btn-danger btn-sm" onclick="stopQuery()" disabled><i class="fas fa-stop"></i> <span data-i18n="pause">暂停</span></button>
+                            <button id="cancelQueryBtn" class="btn btn-warning btn-sm" onclick="cancelQuery()" disabled><i class="fas fa-ban"></i> <span data-i18n="cancel">取消</span></button>
                         </div>
                     </div>
                 </div>
@@ -2058,7 +2059,7 @@
                     <div class="param-grid-2col">
                         <div class="param-row">
                             <span class="param-label" data-i18n="maxWorkers">协程数</span>
-                            <input type="number" id="maxWorkers" class="param-input" value="60" min="1" max="200">
+                            <input type="number" id="maxWorkers" class="param-input" value="50" min="1" max="200">
                         </div>
                         <div class="param-row">
                             <span class="param-label" data-i18n="requestDelay">延迟(ms)</span>
@@ -2238,6 +2239,7 @@
                 start: '开始',
                 resume: '继续',
                 pause: '暂停',
+                cancel: '取消',
                 results: '查询结果',
                 perSecond: '个/秒',
                 retryFailed: '重试失败',
@@ -2320,6 +2322,7 @@
                 logLoadComplete: '已完成加载 {count} 个域名',
                 logQueryStart: '开始查询 {count} 个域名',
                 logQueryPaused: '查询已暂停，已处理 {processed}/{total}',
+                logQueryCanceled: '查询已取消，已处理 {processed}/{total}',
                 logQueryResumed: '继续查询，剩余 {remaining} 个域名',
                 logQueryComplete: '查询完成！共 {count} 个域名',
                 logExport: '导出 {count} 条 CSV',
@@ -2366,6 +2369,7 @@
                 start: 'Start',
                 resume: 'Resume',
                 pause: 'Pause',
+                cancel: 'Cancel',
                 results: 'Results',
                 perSecond: '/s',
                 retryFailed: 'Retry Failed',
@@ -2448,6 +2452,7 @@
                 logLoadComplete: 'Loaded {count} domains',
                 logQueryStart: 'Starting query for {count} domains',
                 logQueryPaused: 'Paused at {processed}/{total}',
+                logQueryCanceled: 'Canceled at {processed}/{total}',
                 logQueryResumed: 'Resumed, {remaining} remaining',
                 logQueryComplete: 'Completed! {count} domains',
                 logExport: 'Exported {count} CSV',
@@ -2844,6 +2849,7 @@
                 document.getElementById('startQueryBtn').disabled = false;
                 document.getElementById('resumeQueryBtn').disabled = !(isPaused && currentIndex < pendingDomains.length);
                 document.getElementById('stopQueryBtn').disabled = true;
+                document.getElementById('cancelQueryBtn').disabled = !(isQueryRunning || (isPaused && currentIndex < pendingDomains.length));
                 updateRetryAllButton();
 
                 requestAnimationFrame(() => {
@@ -3667,12 +3673,13 @@
             document.getElementById('startQueryBtn').disabled = true;
             document.getElementById('resumeQueryBtn').disabled = true;
             document.getElementById('stopQueryBtn').disabled = false;
+            document.getElementById('cancelQueryBtn').disabled = false;
             document.getElementById('exportBtn').disabled = true;
             document.getElementById('retryAllBtn').disabled = true;
 
             addLog(translations[currentLang].logQueryStart.replace('{count}', totalDomains), 'info');
 
-            const maxWorkers = parseInt(document.getElementById('maxWorkers').value) || 60;
+            const maxWorkers = parseInt(document.getElementById('maxWorkers').value) || 50;
             activeWorkers = maxWorkers;
             for (let i=0; i<maxWorkers; i++) worker();
 
@@ -3692,11 +3699,32 @@
             document.getElementById('startQueryBtn').disabled = false;
             document.getElementById('resumeQueryBtn').disabled = false;
             document.getElementById('stopQueryBtn').disabled = true;
+            document.getElementById('cancelQueryBtn').disabled = false;
             document.getElementById('exportBtn').disabled = false;
 
             updateRetryAllButton();
 
             addLog(translations[currentLang].logQueryPaused
+                .replace('{processed}', processedDomains)
+                .replace('{total}', totalDomains), 'warning');
+        }
+
+        function cancelQuery() {
+            if (!isQueryRunning && !(isPaused && currentIndex < pendingDomains.length)) return;
+            isPaused = false;
+            isQueryRunning = false;
+            currentIndex = pendingDomains.length;
+            activeWorkers = 0;
+
+            document.getElementById('startQueryBtn').disabled = false;
+            document.getElementById('resumeQueryBtn').disabled = true;
+            document.getElementById('stopQueryBtn').disabled = true;
+            document.getElementById('cancelQueryBtn').disabled = true;
+            document.getElementById('exportBtn').disabled = false;
+            document.getElementById('retryAllBtn').disabled = false;
+
+            updateRetryAllButton();
+            addLog((translations[currentLang].logQueryCanceled || '查询已取消，已处理 {processed}/{total}')
                 .replace('{processed}', processedDomains)
                 .replace('{total}', totalDomains), 'warning');
         }
@@ -3710,13 +3738,14 @@
             document.getElementById('startQueryBtn').disabled = true;
             document.getElementById('resumeQueryBtn').disabled = true;
             document.getElementById('stopQueryBtn').disabled = false;
+            document.getElementById('cancelQueryBtn').disabled = false;
             document.getElementById('exportBtn').disabled = true;
             document.getElementById('retryAllBtn').disabled = true;
 
             addLog(translations[currentLang].logQueryResumed
                 .replace('{remaining}', pendingDomains.length - currentIndex), 'info');
 
-            const maxWorkers = parseInt(document.getElementById('maxWorkers').value)||60;
+            const maxWorkers = parseInt(document.getElementById('maxWorkers').value)||50;
             activeWorkers = maxWorkers;
             for (let i=0; i<maxWorkers; i++) worker();
         }
@@ -3728,6 +3757,7 @@
             document.getElementById('startQueryBtn').disabled = false;
             document.getElementById('resumeQueryBtn').disabled = true;
             document.getElementById('stopQueryBtn').disabled = true;
+            document.getElementById('cancelQueryBtn').disabled = true;
             document.getElementById('exportBtn').disabled = false;
 
             filteredResults = queryResults.filter(r=>r);
@@ -3810,6 +3840,7 @@
             document.getElementById('startQueryBtn').disabled = true;
             document.getElementById('resumeQueryBtn').disabled = true;
             document.getElementById('stopQueryBtn').disabled = true;
+            document.getElementById('cancelQueryBtn').disabled = true;
             document.getElementById('exportBtn').disabled = true;
             document.getElementById('retryAllBtn').disabled = true;
 
@@ -3921,6 +3952,7 @@
             document.getElementById('startQueryBtn').disabled = false;
             document.getElementById('resumeQueryBtn').disabled = false;
             document.getElementById('stopQueryBtn').disabled = true;
+            document.getElementById('cancelQueryBtn').disabled = !(isPaused && currentIndex < pendingDomains.length);
             document.getElementById('exportBtn').disabled = false;
 
             // 更新重试按钮状态
@@ -4692,6 +4724,7 @@
         window.validateDomains = validateDomains;
         window.startQuery = startQuery;
         window.stopQuery = stopQuery;
+        window.cancelQuery = cancelQuery;
         window.resumeQuery = resumeQuery;
         window.applyFilters = applyFilters;
         window.clearFilters = clearFilters;
@@ -4733,7 +4766,7 @@
     const delay = document.getElementById('requestDelay');
     if (delay && (delay.value === '20' || delay.value === '')) delay.value = '5';
     const workers = document.getElementById('maxWorkers');
-    if (workers && (workers.value === '50' || workers.value === '')) workers.value = '45';
+    if (workers && (workers.value === '60' || workers.value === '')) workers.value = '50';
     const retries = document.getElementById('maxRetries');
     if (retries && (retries.value === '5' || retries.value === '')) retries.value = '3';
   }
@@ -5064,12 +5097,13 @@
     document.getElementById('startQueryBtn').disabled = true;
     document.getElementById('resumeQueryBtn').disabled = true;
     document.getElementById('stopQueryBtn').disabled = false;
+    document.getElementById('cancelQueryBtn').disabled = false;
     document.getElementById('exportBtn').disabled = true;
     document.getElementById('retryAllBtn').disabled = true;
     resetRpcRunQueryCount();
     addLog((translations[currentLang].logQueryStart || '开始查询 {count} 个域名').replace('{count}', totalDomains), 'info');
     scheduleSessionSave(true);
-    const maxWorkers = Math.max(1, Math.min(200, uiNum('maxWorkers', 60)));
+    const maxWorkers = Math.max(1, Math.min(200, uiNum('maxWorkers', 50)));
     activeWorkers = maxWorkers;
     for (let i = 0; i < maxWorkers; i++) window.worker();
     finishWatcher();
@@ -5084,14 +5118,35 @@
     document.getElementById('startQueryBtn').disabled = true;
     document.getElementById('resumeQueryBtn').disabled = true;
     document.getElementById('stopQueryBtn').disabled = false;
+    document.getElementById('cancelQueryBtn').disabled = false;
     document.getElementById('exportBtn').disabled = true;
     document.getElementById('retryAllBtn').disabled = true;
     addLog((translations[currentLang].logQueryResumed || '继续查询，剩余 {remaining} 个域名').replace('{remaining}', pendingDomains.length - currentIndex), 'info');
     scheduleSessionSave(true);
-    const maxWorkers = Math.max(1, Math.min(200, uiNum('maxWorkers', 60)));
+    const maxWorkers = Math.max(1, Math.min(200, uiNum('maxWorkers', 50)));
     activeWorkers = maxWorkers;
     for (let i = 0; i < maxWorkers; i++) window.worker();
     finishWatcher();
+  };
+
+  window.cancelQuery = function() {
+    if (!isQueryRunning && !(isPaused && currentIndex < pendingDomains.length)) return;
+    isPaused = false;
+    isQueryRunning = false;
+    currentIndex = pendingDomains.length;
+    activeWorkers = 0;
+    document.getElementById('startQueryBtn').disabled = false;
+    document.getElementById('resumeQueryBtn').disabled = true;
+    document.getElementById('stopQueryBtn').disabled = true;
+    document.getElementById('cancelQueryBtn').disabled = true;
+    document.getElementById('exportBtn').disabled = false;
+    document.getElementById('retryAllBtn').disabled = false;
+    updateRetryAllButton();
+    addLog((translations[currentLang].logQueryCanceled || '查询已取消，已处理 {processed}/{total}')
+      .replace('{processed}', processedDomains)
+      .replace('{total}', totalDomains), 'warning');
+    saveResultsToStorage();
+    scheduleSessionSave(true);
   };
 
   let ownerTooltipEl = null;
@@ -5174,13 +5229,14 @@
     document.getElementById('startQueryBtn').disabled = true;
     document.getElementById('resumeQueryBtn').disabled = true;
     document.getElementById('stopQueryBtn').disabled = true;
+    document.getElementById('cancelQueryBtn').disabled = true;
     document.getElementById('exportBtn').disabled = true;
     document.getElementById('retryAllBtn').disabled = true;
     const progressText = document.getElementById('progressText');
     const progressPercent = document.getElementById('progressPercent');
     const progressBar = document.getElementById('progressMiniBar');
     let successCount = 0, failCount = 0;
-    const concurrency = Math.max(20, Math.min(120, uiNum('maxWorkers', 60)));
+    const concurrency = Math.max(20, Math.min(120, uiNum('maxWorkers', 50)));
     for (let i = 0; i < failedDomains.length; i += concurrency) {
       const batch = failedDomains.slice(i, i + concurrency);
       await Promise.all(batch.map(async item => {
@@ -5205,6 +5261,7 @@
     document.getElementById('startQueryBtn').disabled = false;
     document.getElementById('resumeQueryBtn').disabled = false;
     document.getElementById('stopQueryBtn').disabled = true;
+    document.getElementById('cancelQueryBtn').disabled = !(isPaused && currentIndex < pendingDomains.length);
     document.getElementById('exportBtn').disabled = false;
     saveResultsToStorage();
     updateRetryAllButton();
@@ -5216,8 +5273,8 @@
     setTimeout(() => {
       updateRpcList();
       const note = currentLang === 'zh'
-        ? '已切换到极速版：0延迟 + 智能动态RPC轮询 + 80并发默认值'
-        : 'Turbo mode enabled: 0 delay + smart dynamic RPC rotation + 80 workers';
+        ? '已切换到极速版：0延迟 + 智能动态RPC轮询 + 50并发默认值'
+        : 'Turbo mode enabled: 0 delay + smart dynamic RPC rotation + 50 workers';
       addLog(note, 'success');
     }, 300);
   });
@@ -6044,7 +6101,7 @@
     updateRetryProgress();
     addLog((translations[currentLang].logRetryAllStart || '开始批量重试 {count} 个失败的域名').replace('{count}', failedDomains.length), 'info');
     try {
-      const concurrency = Math.max(20, Math.min(120, num('maxWorkers', 60)));
+      const concurrency = Math.max(20, Math.min(120, num('maxWorkers', 50)));
       for (let i = 0; i < failedDomains.length; i += concurrency) {
         const batch = failedDomains.slice(i, i + concurrency);
         batch.forEach(item => {
