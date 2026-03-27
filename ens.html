@@ -1072,19 +1072,27 @@
         }
 
         th:nth-child(1), td:nth-child(1) { width: 5%; }
-        th:nth-child(2), td:nth-child(2) { width: 8%; }
+        th:nth-child(2), td:nth-child(2) { width: 16%; }
         th:nth-child(3), td:nth-child(3) { width: 10%; }
         th:nth-child(4), td:nth-child(4) { width: 7%; }
         th:nth-child(5), td:nth-child(5) { width: 15%; }
-        th:nth-child(6), td:nth-child(6) { width: 15%; }
+        th:nth-child(6), td:nth-child(6) { width: 13%; }
         th:nth-child(7), td:nth-child(7) { width: 15%; }
-        th:nth-child(8), td:nth-child(8) { width: 17%; }
+        th:nth-child(8), td:nth-child(8) { width: 11%; }
         th:nth-child(9), td:nth-child(9) { width: 8%; }
 
         td.status-cell,
         td.owner-column {
             overflow: visible;
             text-overflow: clip;
+        }
+
+        td.domain-cell {
+            white-space: normal;
+            overflow: visible;
+            text-overflow: clip;
+            word-break: break-all;
+            line-height: 1.35;
         }
 
         .status-chip {
@@ -4106,10 +4114,16 @@
                             <a href="${getOpenSeaCollectionUrl()}" target="_blank" rel="noopener noreferrer">${currentLang === 'zh' ? '市场' : 'Market'}</a>
                         </div>
                     </details>`;
+                const domainText = String(r.域名 || '');
+                const domainTitle = domainText
+                    .replace(/&/g, '&amp;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;');
 
                 tbody.innerHTML += `<tr>
                     <td>${r.序号}</td>
-                    <td>${r.域名}</td>
+                    <td class="domain-cell" title="${domainTitle}">${domainText}</td>
                     <td class="status-cell">${statusHtml}</td>
                     <td>${r.过期天数 !== undefined && r.过期天数 !== '' ? r.过期天数 : '-'}</td>
                     <td>${r.过期时间 ? formatDisplayDate(r.过期时间) : '-'}</td>
