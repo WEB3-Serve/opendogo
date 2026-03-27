@@ -5505,7 +5505,7 @@
       );
       return {
         time: block?.timestamp ? formatDate(new Date(Number(block.timestamp) * 1000)) : '',
-        owner: normalizeAddressFinal(event?.returnValues?.owner || '')
+        owner: normalizeRegistrantOwner(normalizeAddressFinal(event?.returnValues?.owner || ''))
       };
     }
 
@@ -5528,7 +5528,7 @@
     );
     return {
       time: mintBlock?.timestamp ? formatDate(new Date(Number(mintBlock.timestamp) * 1000)) : '',
-      owner: normalizeAddressFinal(mintEvent?.returnValues?.to || '')
+      owner: normalizeRegistrantOwner(normalizeAddressFinal(mintEvent?.returnValues?.to || ''))
     };
   }
 
@@ -5885,7 +5885,8 @@
               .catch(() => '')
           ]);
           registrationMeta = metaResult || registrationMeta;
-          owner = registrationMeta.owner || lastOwner || normalizeRegistrantOwner(registryOwner) || '';
+          const normalizedMetaOwner = normalizeRegistrantOwner(registrationMeta.owner || '');
+          owner = normalizedMetaOwner || lastOwner || normalizeRegistrantOwner(registryOwner) || '';
         }
 
         const expiryDate = expiry ? new Date(expiry * 1000) : null;
