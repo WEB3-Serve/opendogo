@@ -2,37 +2,32 @@
 # Dependencies
 node_modules/
 
-# Build artifacts
-dist/
-build/
-target/
-
-# Environment variables
+# Environment
 .env
 .env.local
 .env.*
 
-# IDE files
+# Compiled and build artifacts
+dist/
+build/
+*.o
+*.obj
+*.out
+
+# Logs and temp files
+*.log
+*.tmp
+*.swp
+
+# Editors
 .vscode/
 .idea/
-*.swp
-*.swo
-*.tmp
 
-# Logs
-*.log
-
-# Python cache (if any Python files are present)
+# Python specific
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
-
-# Database (Prisma related)
-prisma/migrations/
-!.gitignore
-
-# OS generated files
-.DS_Store
-Thumbs.db
+*.py~
+.Python
 ```
