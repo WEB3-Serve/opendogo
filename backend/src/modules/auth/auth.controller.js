@@ -23,14 +23,17 @@ router.post('/prelogin', loginRateLimit, asyncHandler(async (req, res) => {
     return res.status(429).json({ message: 'account temporarily locked', retryAfterSec: risk.retryAfterSec });
   }
 
-  const ok = validateAdminAccount(account, password);
-  if (!ok) {
+  const result = await validateAdminAccount(account, password);
+  if (!result.ok) {
     const nextRisk = markLoginFailed(ip, account);
-    return res.status(401).json({ message: 'invalid credentials', retryAfterSec: nextRisk.retryAfterSec });
+    const msg = result.reason === 'email not verified'
+      ? 'email not verified, please confirm your Supabase email first'
+      : 'invalid credentials';
+    return res.status(401).json({ message: msg, retryAfterSec: nextRisk.retryAfterSec });
   }
 
   const preAuthToken = issuePreAuthToken(account);
-  return res.json({ ok: true, need2FA: true, preAuthToken });
+  return res.json({ ok: true, need2FA: true, preAuthToken, provider: result.provider });
 }));
 
 router.post('/login', loginRateLimit, asyncHandler(async (req, res) => {
