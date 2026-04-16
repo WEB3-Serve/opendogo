@@ -1,4 +1,4 @@
-import { supabase, encryptData, decryptData, verifySignature } from '../lib/encryption.js';
+import { supabase } from '../lib/encryption.js';
 
 export default async function handler(req, res) {
   // CORS headers
@@ -15,41 +15,8 @@ export default async function handler(req, res) {
   }
 
   try {
-    const timestamp = req.headers['x-timestamp'];
-    const signature = req.headers['x-signature'];
     
-    // 验证时间戳（防止重放攻击，允许 5 分钟误差）
-    if (timestamp) {
-      const now = Date.now();
-      const timeDiff = Math.abs(now - parseInt(timestamp));
-      if (timeDiff > 5 * 60 * 1000) {
-        return res.status(400).json({ 
-          success: false, 
-          message: 'Request timestamp expired or invalid' 
-        });
-      }
-      
-      // 验证签名
-      if (signature && !verifySignature(req.body, timestamp, signature)) {
-        return res.status(401).json({ 
-          success: false, 
-          message: 'Invalid signature' 
-        });
-      }
-    }
-    
-    // 解密请求体（如果数据是加密的）
-    let requestData = req.body;
-    if (req.body.encrypted) {
-      const decrypted = decryptData(req.body.encrypted);
-      if (!decrypted) {
-        return res.status(400).json({ 
-          success: false, 
-          message: 'Failed to decrypt request data' 
-        });
-      }
-      requestData = decrypted;
-    }
+    const requestData = req.body;
     
     const { email, password } = requestData;
 
@@ -69,32 +36,19 @@ export default async function handler(req, res) {
 
     // Check if user needs to confirm email
     if (data.user && data.user.identities && data.user.identities.length === 0) {
-      const responseData = { 
+      return res.status(400).json({ 
         success: false, 
         message: 'This email is already registered' 
-      };
-      const encryptedResponse = encryptData(responseData);
-      return res.status(400).json({ 
-        encrypted: encryptedResponse,
-        timestamp: Date.now(),
       });
     }
 
-    const responseData = {
+    return res.status(200).json({
       success: true,
       message: 'Registration successful! Please check your email to verify your account.',
       user: {
         id: data.user?.id,
         email: data.user?.email,
       },
-    };
-    
-    // 加密响应数据
-    const encryptedResponse = encryptData(responseData);
-    
-    return res.status(200).json({
-      encrypted: encryptedResponse,
-      timestamp: Date.now(),
     });
 
   } catch (error) {
