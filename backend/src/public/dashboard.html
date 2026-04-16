@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Admin Dashboard</title></head>
+<body>
+  <h2>管理台联调页</h2>
+  <button onclick="loadAll()">加载数据</button>
+  <pre id="out"></pre>
+  <script>
+    async function api(path){
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/admin'+path,{headers:{Authorization:'Bearer '+token}});
+      return {status:res.status, data: await res.json()};
+    }
+    async function loadAll(){
+      const [summary, users, cards, rpc] = await Promise.all([
+        api('/dashboard/summary'), api('/users'), api('/cards'), api('/rpc/nodes')
+      ]);
+      out.textContent = JSON.stringify({summary, users, cards, rpc}, null, 2);
+    }
+  </script>
+</body></html>

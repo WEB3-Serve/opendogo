@@ -1,0 +1,102 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Admin {
+  id           Int      @id @default(autoincrement())
+  username     String   @unique
+  passwordHash String
+  role         String   @default("super_admin")
+  createdAt    DateTime @default(now())
+}
+
+model UserGroup {
+  id    Int    @id @default(autoincrement())
+  name  String @unique
+  users User[]
+}
+
+model User {
+  id            Int             @id @default(autoincrement())
+  username      String          @unique
+  status        String          @default("active")
+  activeUntil   DateTime?
+  groupId       Int?
+  group         UserGroup?      @relation(fields: [groupId], references: [id])
+  activations   ActivationLog[]
+  usedCardKeys  CardKey[]       @relation("CardUsedBy")
+}
+
+model CardGroup {
+  id    Int      @id @default(autoincrement())
+  name  String   @unique
+  cards CardKey[]
+}
+
+model CardKey {
+  id        Int       @id @default(autoincrement())
+  cardKey   String    @unique
+  cardType  String
+  status    String    @default("new")
+  groupId   Int?
+  group     CardGroup? @relation(fields: [groupId], references: [id])
+  usedById  Int?
+  usedBy    User?     @relation("CardUsedBy", fields: [usedById], references: [id])
+  usedAt    DateTime?
+  logs      ActivationLog[]
+}
+
+model ActivationLog {
+  id          Int      @id @default(autoincrement())
+  cardKeyId   Int
+  userId      Int
+  activatedAt DateTime @default(now())
+  card        CardKey  @relation(fields: [cardKeyId], references: [id])
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@unique([cardKeyId, userId])
+}
+
+model Announcement {
+  id        Int      @id @default(autoincrement())
+  title     String
+  content   String
+  status    String   @default("published")
+  createdAt DateTime @default(now())
+}
+
+model SystemConfig {
+  id    Int    @id @default(autoincrement())
+  scope String
+  key   String
+  value String
+
+  @@unique([scope, key])
+}
+
+model RpcNode {
+  id            Int           @id @default(autoincrement())
+  name          String
+  chain         String
+  endpoint      String
+  weight        Int           @default(100)
+  priority      Int           @default(1)
+  healthStatus  String        @default("unknown")
+  failCount     Int           @default(0)
+  lastLatencyMs Int?
+  logs          RpcHealthLog[]
+}
+
+model RpcHealthLog {
+  id        Int      @id @default(autoincrement())
+  nodeId    Int
+  success   Boolean
+  latencyMs Int?
+  checkedAt DateTime @default(now())
+  node      RpcNode  @relation(fields: [nodeId], references: [id])
+}
