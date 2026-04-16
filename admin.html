@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenDoGo - 管理员后台</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            width: 100%;
+            max-width: 450px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #e94560 0%, #0f3460 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 26px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .header .badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+
+        .form-container {
+            padding: 40px 30px;
+        }
+
+        .input-group {
+            margin-bottom: 25px;
+            position: relative;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 15px;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        .input-group input:focus {
+            border-color: #e94560;
+            box-shadow: 0 0 0 3px rgba(233, 69, 96, 0.1);
+        }
+
+        .input-group .hint {
+            font-size: 12px;
+            color: #999;
+            margin-top: 5px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #e94560 0%, #0f3460 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(233, 69, 96, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .message {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            display: block;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            display: block;
+        }
+
+        .message.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+            display: block;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .dashboard {
+            display: none;
+        }
+
+        .dashboard.show {
+            display: block;
+        }
+
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .dashboard-header h2 {
+            color: #333;
+            font-size: 22px;
+        }
+
+        .logout-btn-small {
+            background: #dc3545;
+            padding: 8px 20px;
+            font-size: 14px;
+            width: auto;
+            margin: 0;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+        }
+
+        .stat-card.red {
+            background: linear-gradient(135deg, #e94560 0%, #0f3460 100%);
+        }
+
+        .stat-card.green {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+
+        .stat-card.blue {
+            background: linear-gradient(135deg, #2193b0 0%, #6dd5ed 100%);
+        }
+
+        .stat-number {
+            font-size: 36px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #f8f9fa;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .data-table th {
+            background: #e9ecef;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .data-table td {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .status-badge.active {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-badge.inactive {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .back-link {
+            text-align: center;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .back-link a {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .back-link a:hover {
+            text-decoration: underline;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .totp-input-group {
+            display: none;
+        }
+
+        .totp-input-group.show {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .totp-hint {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            color: #856404;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔐 管理员后台</h1>
+            <p>OpenDoGo Management System</p>
+            <span class="badge">安全验证登录</span>
+        </div>
+
+        <div class="form-container">
+            <!-- 消息提示 -->
+            <div id="message" class="message"></div>
+
+            <!-- 登录表单 -->
+            <div id="loginForm">
+                <div class="input-group">
+                    <label for="adminAccount">管理员账号</label>
+                    <input type="text" id="adminAccount" placeholder="请输入管理员账号" autocomplete="username">
+                </div>
+                <div class="input-group">
+                    <label for="adminPassword">管理员密码</label>
+                    <input type="password" id="adminPassword" placeholder="请输入管理员密码" autocomplete="current-password">
+                </div>
+                
+                <!-- TOTP 验证码输入框（第一步登录后显示） -->
+                <div id="totpInputGroup" class="totp-input-group">
+                    <div class="totp-hint">
+                        🔒 账号密码验证通过，请输入 Google Authenticator 验证码
+                    </div>
+                    <label for="adminTOTP">谷歌验证码</label>
+                    <input type="text" id="adminTOTP" placeholder="6 位动态验证码" maxlength="6" pattern="[0-9]*" inputmode="numeric">
+                    <div class="hint">验证码每 30 秒更新一次</div>
+                </div>
+
+                <button class="btn" onclick="handleAdminLogin()" id="loginBtn">
+                    登录
+                </button>
+
+                <div class="back-link">
+                    <a href="/ens.html">← 返回用户首页</a>
+                </div>
+            </div>
+
+            <!-- 管理后台仪表盘 -->
+            <div id="dashboard" class="dashboard">
+                <div class="dashboard-header">
+                    <h2>欢迎回来，<span id="adminName">管理员</span></h2>
+                    <button class="btn logout-btn-small" onclick="handleLogout()">退出</button>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalUsers">0</div>
+                        <div class="stat-label">总用户数</div>
+                    </div>
+                    <div class="stat-card red">
+                        <div class="stat-number" id="todayLogins">0</div>
+                        <div class="stat-label">今日登录</div>
+                    </div>
+                    <div class="stat-card green">
+                        <div class="stat-number" id="activeCards">0</div>
+                        <div class="stat-label">活跃卡密</div>
+                    </div>
+                    <div class="stat-card blue">
+                        <div class="stat-number" id="rpcNodes">0</div>
+                        <div class="stat-label">RPC 节点</div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3 class="section-title">📊 最近用户</h3>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>邮箱</th>
+                                <th>注册时间</th>
+                                <th>状态</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recentUsers">
+                            <tr>
+                                <td colspan="3" style="text-align: center; color: #999;">暂无数据</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="section">
+                    <h3 class="section-title">⚙️ 系统状态</h3>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>组件</th>
+                                <th>状态</th>
+                                <th>更新时间</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>数据库 (Supabase)</td>
+                                <td><span class="status-badge active">运行中</span></td>
+                                <td>实时</td>
+                            </tr>
+                            <tr>
+                                <td>认证服务</td>
+                                <td><span class="status-badge active">运行中</span></td>
+                                <td>实时</td>
+                            </tr>
+                            <tr>
+                                <td>Vercel 部署</td>
+                                <td><span class="status-badge active">正常</span></td>
+                                <td>实时</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="back-link">
+                    <a href="/ens.html">← 返回用户首页</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // API 基础路径
+        const API_BASE = '/api';
+
+        // 显示消息
+        function showMessage(text, type) {
+            const msg = document.getElementById('message');
+            msg.textContent = text;
+            msg.className = 'message ' + type;
+            
+            // 3 秒后自动隐藏 info 类型消息
+            if (type === 'info') {
+                setTimeout(() => {
+                    msg.className = 'message';
+                }, 3000);
+            }
+        }
+
+        // 隐藏消息
+        function hideMessage() {
+            document.getElementById('message').className = 'message';
+        }
+
+        // 设置按钮加载状态
+        function setButtonLoading(loading) {
+            const btn = document.getElementById('loginBtn');
+            if (loading) {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="loading"></span>验证中...';
+            } else {
+                btn.disabled = false;
+                btn.innerHTML = '登录';
+            }
+        }
+
+        // 第一步：验证账号密码
+        let isFirstStep = true;
+
+        async function handleAdminLogin() {
+            hideMessage();
+            
+            const account = document.getElementById('adminAccount').value.trim();
+            const password = document.getElementById('adminPassword').value;
+            const totp = document.getElementById('adminTOTP')?.value.trim();
+
+            if (!account || !password) {
+                showMessage('请填写管理员账号和密码', 'error');
+                return;
+            }
+
+            // 如果已经显示了 TOTP 输入框，但未输入验证码
+            if (!isFirstStep && !totp) {
+                showMessage('请输入谷歌验证码', 'error');
+                return;
+            }
+
+            setButtonLoading(true);
+
+            try {
+                const response = await fetch(`${API_BASE}/admin/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        account, 
+                        password, 
+                        totp: isFirstStep ? undefined : totp 
+                    }),
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    if (data.step === '2fa_required') {
+                        // 第一步成功，显示 TOTP 输入框
+                        isFirstStep = false;
+                        document.getElementById('totpInputGroup').classList.add('show');
+                        document.getElementById('adminTOTP').focus();
+                        showMessage('账号密码验证通过，请输入谷歌验证码', 'info');
+                        document.getElementById('loginBtn').innerHTML = '验证并登录';
+                    } else {
+                        // 登录成功
+                        localStorage.setItem('adminToken', data.token);
+                        localStorage.setItem('adminAccount', data.account);
+                        showMessage('登录成功！正在进入后台...', 'success');
+                        
+                        setTimeout(() => {
+                            showDashboard();
+                        }, 1000);
+                    }
+                } else {
+                    showMessage(data.message || '登录失败', 'error');
+                    // 如果是第二步验证失败，重置为第一步
+                    if (!isFirstStep && data.message.includes('验证码')) {
+                        document.getElementById('adminTOTP').value = '';
+                        document.getElementById('adminTOTP').focus();
+                    }
+                }
+            } catch (error) {
+                console.error('Admin login error:', error);
+                showMessage('网络错误，请稍后重试', 'error');
+            } finally {
+                setButtonLoading(false);
+            }
+        }
+
+        // 显示仪表盘
+        function showDashboard() {
+            document.getElementById('loginForm').classList.add('hidden');
+            document.getElementById('dashboard').classList.add('show');
+            document.getElementById('adminName').textContent = localStorage.getItem('adminAccount') || '管理员';
+            
+            // 模拟数据（实际项目中可以从 API 获取）
+            document.getElementById('totalUsers').textContent = '0';
+            document.getElementById('todayLogins').textContent = '0';
+            document.getElementById('activeCards').textContent = '0';
+            document.getElementById('rpcNodes').textContent = '0';
+        }
+
+        // 处理登出
+        function handleLogout() {
+            localStorage.removeItem('adminToken');
+            localStorage.removeItem('adminAccount');
+            
+            document.getElementById('dashboard').classList.remove('show');
+            document.getElementById('loginForm').classList.remove('hidden');
+            document.getElementById('adminAccount').value = '';
+            document.getElementById('adminPassword').value = '';
+            document.getElementById('adminTOTP').value = '';
+            document.getElementById('totpInputGroup').classList.remove('show');
+            
+            isFirstStep = true;
+            document.getElementById('loginBtn').innerHTML = '登录';
+            
+            showMessage('已退出登录', 'success');
+        }
+
+        // 页面加载时检查登录状态
+        window.addEventListener('DOMContentLoaded', () => {
+            const token = localStorage.getItem('adminToken');
+            
+            if (token) {
+                showDashboard();
+            }
+        });
+
+        // 监听 TOTP 输入框，自动提交（当输入 6 位数字时）
+        document.addEventListener('DOMContentLoaded', () => {
+            const totpInput = document.getElementById('adminTOTP');
+            if (totpInput) {
+                totpInput.addEventListener('input', (e) => {
+                    // 只允许数字
+                    e.target.value = e.target.value.replace(/[^0-9]/g, '');
+                    
+                    // 当输入 6 位数字时，自动提交
+                    if (e.target.value.length === 6) {
+                        handleAdminLogin();
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

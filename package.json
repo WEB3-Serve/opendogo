@@ -1,0 +1,15 @@
+{
+  "name": "opendogo-system",
+  "version": "1.0.0",
+  "description": "OpenDoGo Full Stack System with Supabase Auth & Admin 2FA",
+  "scripts": {
+    "dev": "vercel dev"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "otpauth": "^9.2.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
