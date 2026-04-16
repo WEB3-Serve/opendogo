@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 
+import { getSupabaseClient } from '../../config/supabase.js';
 import { signJwt, verifyJwt } from '../../config/jwt.js';
 
 function safeEqual(a, b) {
@@ -44,7 +45,31 @@ function generateTotp(secret, epochSec = Math.floor(Date.now() / 1000), step = 3
   return code;
 }
 
-export function validateAdminAccount(account, password) {
+async function validateWithSupabase(email, password) {
+  const supabase = getSupabaseClient();
+  if (!supabase) return null;
+
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  if (error || !data?.user) {
+    return { ok: false, reason: 'invalid credentials' };
+  }
+
+  if (!data.user.email_confirmed_at) {
+    return { ok: false, reason: 'email not verified' };
+  }
+
+  if (data.session?.access_token) {
+    await supabase.auth.signOut();
+  }
+
+  return { ok: true, provider: 'supabase' };
+}
+
+function validateWithEnv(account, password) {
   const envAccount = process.env.ADMIN_ACCOUNT;
   const envPassword = process.env.ADMIN_PASSWORD;
 
@@ -52,7 +77,14 @@ export function validateAdminAccount(account, password) {
     throw new Error('Missing ADMIN_ACCOUNT/ADMIN_PASSWORD env');
   }
 
-  return safeEqual(account, envAccount) && safeEqual(password, envPassword);
+  const ok = safeEqual(account, envAccount) && safeEqual(password, envPassword);
+  return { ok, reason: ok ? '' : 'invalid credentials', provider: 'env' };
+}
+
+export async function validateAdminAccount(account, password) {
+  const bySupabase = await validateWithSupabase(account, password);
+  if (bySupabase) return bySupabase;
+  return validateWithEnv(account, password);
 }
 
 export function issuePreAuthToken(account) {
