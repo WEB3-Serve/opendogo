@@ -1814,35 +1814,23 @@
                     return;
                 }
                 
-                // 调用 Supabase 注册并保存到数据库
-                const { supabase } = await import('./lib/supabase-client.js');
-                
-                // 检查用户名是否已存在
-                const { data: existingUser } = await supabase
-                    .from('users')
-                    .select('id')
-                    .eq('username', username)
-                    .single();
-                
-                if (existingUser) {
-                    showToast(translations[currentLang].usernameUnavailable, 'error');
-                    return;
-                }
-                
-                // 插入新用户到数据库
-                const { error: insertError } = await supabase
-                    .from('users')
-                    .insert([{
+                // 调用 API 注册新用户
+                const response = await fetch('/api/users?action=create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
                         username: username,
                         email: email,
                         status: true,
                         query_count: 0,
-                        balance: 0.0000,
-                        created_at: new Date().toISOString()
-                    }]);
+                        balance: 0.0000
+                    })
+                });
                 
-                if (insertError) {
-                    throw new Error(insertError.message);
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || data.message || 'Registration failed');
                 }
                 
                 // 注册成功
@@ -1917,25 +1905,14 @@
                 currentVerifyToken = data.token || 'token_' + Date.now();
                 currentVerifyEmail = email;
                 
-                // 开发模式：在控制台显示验证码
-                if (data.debug_code) {
-                    console.log(`【验证码】${email} 的验证码是：${data.debug_code}（有效期 5 分钟）`);
-                }
-                
                 showToast(`${translations[currentLang].codeSentTo}: ${email}`, 'success');
                 startCountdown(sendBtn, 60, type);
 
             } catch (error) {
                 console.error('Send code error:', error);
-                // 失败时使用本地存储回退（开发模式）
-                const verifyCode = Math.floor(100000 + Math.random() * 900000).toString();
-                const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
-                localStorage.setItem('verify_code_' + email, verifyCode);
-                localStorage.setItem('verify_code_exp_' + email, expiresAt);
-                currentVerifyEmail = email;
-                console.log(`【验证码 - 本地模式】${email} 的验证码是：${verifyCode}`);
-                showToast(`${translations[currentLang].codeSentTo}: ${email} (开发模式，查看控制台)`, 'success');
-                startCountdown(sendBtn, 60, type);
+                showToast(error.message || translations[currentLang].sendCodeFailed, 'error');
+                sendBtn.disabled = false;
+                btnSpan.textContent = originalText;
             }
         }
         function startCountdown(btn, seconds, type) {
@@ -1981,45 +1958,28 @@
 
         async function verifyCode(email, code) {
             try {
-                // 首先检查 localStorage（开发模式）
-                const storedCode = localStorage.getItem('verify_code_' + email);
-                const storedExp = localStorage.getItem('verify_code_exp_' + email);
+                // 调用 API 验证验证码
+                const response = await fetch('/api/verify-code', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        action: 'verify-code',
+                        email: email,
+                        code: code
+                    })
+                });
                 
-                if (storedCode && storedExp) {
-                    const expTime = new Date(storedExp).getTime();
-                    if (Date.now() > expTime) {
-                        showToast('验证码已过期，请重新获取', 'warning');
-                        return false;
-                    }
-                    return code === storedCode;
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Verification failed');
                 }
                 
-                // 尝试从 Supabase 验证
-                const { supabase } = await import('./lib/supabase-client.js');
-                const { data, error } = await supabase
-                    .from('verification_codes')
-                    .select('*')
-                    .eq('email', email)
-                    .eq('code', code)
-                    .eq('is_used', false)
-                    .gt('expires_at', new Date().toISOString())
-                    .single();
-                
-                if (error || !data) {
-                    return false;
-                }
-                
-                // 标记验证码为已使用
-                await supabase
-                    .from('verification_codes')
-                    .update({ is_used: true })
-                    .eq('id', data.id);
-                
-                return true;
+                return data.valid === true;
             } catch (e) {
                 console.error('Verify code error:', e);
-                // 回退到简单验证
-                return code.length === 6 && email === currentVerifyEmail;
+                showToast(e.message || '验证码验证失败', 'error');
+                return false;
             }
         }
 
@@ -2079,22 +2039,27 @@
         // ========== 认证处理 ==========
         async function handleLogin(account, password, rememberMe) {
             try {
-                // 模拟登录
-                await new Promise(r => setTimeout(r, 800));
+                const response = await fetch('/api/auth', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'login',
+                        username: account,
+                        password: password
+                    })
+                });
                 
-                const mockUser = {
-                    id: 1,
-                    username: account.includes('@') ? account.split('@')[0] : account,
-                    email: account.includes('@') ? account : `${account}@example.com`,
-                    role: account === 'admin' ? 'admin' : 'user'
-                };
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || data.message || 'Login failed');
+                }
                 
                 isLoggedIn = true;
-                currentUser = mockUser;
+                currentUser = data.user;
                 
-                localStorage.setItem('access_token', 'mock_token_' + Date.now());
-                localStorage.setItem('refresh_token', 'mock_refresh_' + Date.now());
-                localStorage.setItem('current_user', JSON.stringify(mockUser));
+                localStorage.setItem('access_token', data.token);
+                localStorage.setItem('current_user', JSON.stringify(data.user));
                 
                 if (rememberMe) {
                     localStorage.setItem('remember_me', 'true');
