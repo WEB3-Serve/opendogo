@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理后台登录 - ENS Manager</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #2563EB;
+            --primary-hover: #1D4ED8;
+            --bg: #F9FAFB;
+            --card: #FFFFFF;
+            --text: #1F2937;
+            --text-light: #6B7280;
+            --border: #E5E7EB;
+            --danger: #DC2626;
+            --success: #059669;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .login-container {
+            background: var(--card);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            width: 100%;
+            max-width: 420px;
+            padding: 48px 40px;
+        }
+
+        .logo-section {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .logo-icon {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, var(--primary), #7C3AED);
+            border-radius: 16px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 16px;
+        }
+
+        .logo-icon i {
+            font-size: 32px;
+            color: white;
+        }
+
+        .logo-section h1 {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+
+        .logo-section p {
+            color: var(--text-light);
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-wrapper i {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-light);
+            font-size: 16px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 16px 12px 44px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-size: 15px;
+            transition: all 0.2s;
+            background: var(--bg);
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .form-input.error {
+            border-color: var(--danger);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn i.fa-spinner {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background: rgba(220, 38, 38, 0.1);
+            color: var(--danger);
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+
+        .step-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--border);
+            transition: all 0.3s;
+        }
+
+        .step-dot.active {
+            background: var(--primary);
+            width: 24px;
+            border-radius: 4px;
+        }
+
+        .step-dot.completed {
+            background: var(--success);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .security-hint {
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid var(--border);
+            text-align: center;
+        }
+
+        .security-hint p {
+            font-size: 13px;
+            color: var(--text-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .security-hint i {
+            color: var(--success);
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="logo-section">
+            <div class="logo-icon">
+                <i class="fas fa-shield-alt"></i>
+            </div>
+            <h1>管理后台</h1>
+            <p>ENS Manager Administration</p>
+        </div>
+
+        <div class="step-indicator">
+            <div class="step-dot active" id="step1"></div>
+            <div class="step-dot" id="step2"></div>
+        </div>
+
+        <div class="error-message" id="errorMessage"></div>
+
+        <!-- Step 1: Username & Password -->
+        <form id="loginForm" class="fade-in">
+            <div class="form-group">
+                <label for="username">账号</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-user"></i>
+                    <input type="text" id="username" class="form-input" placeholder="请输入管理员账号" required autocomplete="username">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="password">密码</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="password" class="form-input" placeholder="请输入密码" required autocomplete="current-password">
+                </div>
+            </div>
+
+            <button type="submit" class="btn" id="submitBtn">
+                <span>登录</span>
+                <i class="fas fa-arrow-right"></i>
+            </button>
+        </form>
+
+        <!-- Step 2: 2FA Code -->
+        <form id="twoFaForm" class="hidden fade-in">
+            <div class="form-group">
+                <label for="twoFaCode">谷歌验证码</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-shield-alt"></i>
+                    <input type="text" id="twoFaCode" class="form-input" placeholder="请输入 6 位验证码" maxlength="6" pattern="[0-9]*" inputmode="numeric" required>
+                </div>
+                <p style="font-size: 12px; color: var(--text-light); margin-top: 8px;">
+                    请打开您的 Google Authenticator 应用查看验证码
+                </p>
+            </div>
+
+            <button type="submit" class="btn" id="verifyBtn">
+                <span>验证并进入</span>
+                <i class="fas fa-check"></i>
+            </button>
+
+            <button type="button" class="btn" style="background: var(--bg); color: var(--text); margin-top: 12px;" onclick="backToStep1()">
+                <i class="fas fa-arrow-left"></i>
+                <span>返回上一步</span>
+            </button>
+        </form>
+
+        <div class="security-hint">
+            <p>
+                <i class="fas fa-lock"></i>
+                双重安全认证保护您的管理账户
+            </p>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api'
+        let tempToken = null
+
+        const loginForm = document.getElementById('loginForm')
+        const twoFaForm = document.getElementById('twoFaForm')
+        const errorMessage = document.getElementById('errorMessage')
+        const step1 = document.getElementById('step1')
+        const step2 = document.getElementById('step2')
+
+        function showError(message) {
+            errorMessage.textContent = message
+            errorMessage.style.display = 'block'
+            setTimeout(() => {
+                errorMessage.style.display = 'none'
+            }, 5000)
+        }
+
+        function setLoading(btn, loading) {
+            if (loading) {
+                btn.disabled = true
+                const icon = btn.querySelector('i')
+                icon.className = 'fas fa-spinner'
+            } else {
+                btn.disabled = false
+                const icon = btn.querySelector('i')
+                icon.className = btn.id === 'submitBtn' ? 'fas fa-arrow-right' : 'fas fa-check'
+            }
+        }
+
+        function goToStep2() {
+            loginForm.classList.add('hidden')
+            twoFaForm.classList.remove('hidden')
+            step1.classList.remove('active')
+            step1.classList.add('completed')
+            step2.classList.add('active')
+            document.getElementById('twoFaCode').focus()
+        }
+
+        function backToStep1() {
+            twoFaForm.classList.add('hidden')
+            loginForm.classList.remove('hidden')
+            step1.classList.add('active')
+            step1.classList.remove('completed')
+            step2.classList.remove('active')
+            tempToken = null
+        }
+
+        // Step 1: Login with username and password
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault()
+            const username = document.getElementById('username').value.trim()
+            const password = document.getElementById('password').value
+
+            const btn = document.getElementById('submitBtn')
+            setLoading(btn, true)
+
+            try {
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                })
+
+                const data = await response.json()
+
+                if (!response.ok) {
+                    throw new Error(data.message || '登录失败')
+                }
+
+                if (data.data && data.data.tempToken) {
+                    tempToken = data.data.tempToken
+                    goToStep2()
+                } else {
+                    throw new Error('未收到临时令牌')
+                }
+            } catch (error) {
+                console.error('Login error:', error)
+                showError(error.message || '登录失败，请检查账号和密码')
+                setLoading(btn, false)
+            }
+        })
+
+        // Step 2: Verify 2FA code
+        twoFaForm.addEventListener('submit', async (e) => {
+            e.preventDefault()
+            const code = document.getElementById('twoFaCode').value.trim()
+
+            if (!/^\d{6}$/.test(code)) {
+                showError('请输入 6 位数字验证码')
+                return
+            }
+
+            const btn = document.getElementById('verifyBtn')
+            setLoading(btn, true)
+
+            try {
+                const response = await fetch(`${API_BASE}/auth/verify-2fa`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tempToken, code })
+                })
+
+                const data = await response.json()
+
+                if (!response.ok) {
+                    throw new Error(data.message || '验证失败')
+                }
+
+                // Store token
+                if (data.data && data.data.token) {
+                    localStorage.setItem('admin_token', data.data.token)
+                    localStorage.setItem('admin_user', JSON.stringify(data.data.user))
+                    
+                    // Redirect to admin dashboard
+                    window.location.href = '/admin/dashboard.html'
+                } else {
+                    throw new Error('未收到访问令牌')
+                }
+            } catch (error) {
+                console.error('2FA verification error:', error)
+                showError(error.message || '验证失败，请重试')
+                setLoading(btn, false)
+            }
+        })
+
+        // Auto-focus username field
+        document.getElementById('username').focus()
+    </script>
+</body>
+</html>
