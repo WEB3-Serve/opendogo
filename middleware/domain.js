@@ -53,9 +53,22 @@ function isAllowedDomain(request) {
   return false
 }
 
-// 获取重定向目标URL
-function getRedirectUrl() {
-  return process.env.UNAUTHORIZED_REDIRECT_URL || 'https://example.com/unauthorized'
+// 获取重定向目标URL - 从数据库配置读取，不再使用环境变量
+async function getRedirectUrl() {
+  try {
+    const { supabase } = await import('../lib/supabase.js')
+    const { data } = await supabase
+      .from('system_config')
+      .select('config_value')
+      .eq('config_key', 'unauthorized_redirect_url')
+      .eq('is_active', true)
+      .single()
+    
+    return data?.config_value || 'https://example.com/unauthorized'
+  } catch (error) {
+    console.error('Failed to get redirect URL from config:', error)
+    return 'https://example.com/unauthorized'
+  }
 }
 
 // 域名授权中间件
@@ -88,8 +101,8 @@ export async function domainMiddleware(request) {
       })
     }
     
-    // 对于前端页面请求，返回重定向 HTML
-    const redirectUrl = getRedirectUrl()
+    // 对于前端页面请求，返回重定向 HTML（异步获取 redirectUrl）
+    const redirectUrl = await getRedirectUrl()
     const html = `
       <!DOCTYPE html>
       <html lang="zh-CN">

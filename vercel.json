@@ -17,13 +17,12 @@
     }
   ],
   "env": {
-    "SUPABASE_URL": "@supabase_url",
-    "SUPABASE_ANON_KEY": "@supabase_anon_key",
-    "JWT_SECRET": "@jwt_secret",
-    "ADMIN_ACCOUNT": "@admin_account",
-    "ADMIN_PASSWORD": "@admin_password",
-    "ADMIN_2FA_SECRET": "@admin_2fa_secret",
-    "ALLOWED_DOMAINS": "@allowed_domains",
-    "UNAUTHORIZED_REDIRECT_URL": "@unauthorized_redirect_url"
+    "SUPABASE_URL": "SUPABASE_URL",
+    "SUPABASE_KEY": "SUPABASE_KEY",
+    "JWT_SECRET": "JWT_SECRET",
+    "ADMIN_ACCOUNT": "ADMIN_ACCOUNT",
+    "ADMIN_PASSWORD": "ADMIN_PASSWORD",
+    "ADMIN_2FA_SECRET": "ADMIN_2FA_SECRET",
+    "ALLOWED_DOMAINS": "ALLOWED_DOMAINS"
   }
 }
