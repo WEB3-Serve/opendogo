@@ -2401,37 +2401,14 @@
             addLog(translations[currentLang].logValidate || '验证域名格式', 'info');
         }
 
-        // 用户相关函数
+        // 用户相关函数 - 已移至 index.html 中的 handleLogin/handleRegisterSubmit
+        // 这些函数保留仅作为兼容，实际不再使用
         function registerUser() {
-            const username = document.getElementById('username').value.trim();
-            const password = document.getElementById('password').value.trim();
-
-            if (!username || !password) {
-                alert(currentLang === 'zh' ? '请输入账号和密码' : 'Please enter username and password');
-                return;
-            }
-
-            // 模拟注册成功
-            currentUser = username;
-            isLoggedIn = true;
-            updateUserStatus();
-            addLog(currentLang === 'zh' ? `用户 ${username} 注册成功` : `User ${username} registered successfully`, 'success');
+            console.warn('registerUser is deprecated, use handleRegisterSubmit instead');
         }
 
         function loginUser() {
-            const username = document.getElementById('username').value.trim();
-            const password = document.getElementById('password').value.trim();
-
-            if (!username || !password) {
-                alert(currentLang === 'zh' ? '请输入账号和密码' : 'Please enter username and password');
-                return;
-            }
-
-            // 模拟登录成功
-            currentUser = username;
-            isLoggedIn = true;
-            updateUserStatus();
-            addLog(currentLang === 'zh' ? `用户 ${username} 登录成功` : `User ${username} logged in successfully`, 'success');
+            console.warn('loginUser is deprecated, use handleLogin instead');
         }
 
         function logoutUser() {

@@ -209,6 +209,12 @@
             justify-content: center;
             min-height: 100vh;
             background: var(--bg);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 9999;
         }
 
         .login-card {
@@ -218,6 +224,10 @@
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             width: 100%;
             max-width: 420px;
+        }
+
+        #adminView.login-active {
+            display: none !important;
         }
 
         .login-title {
@@ -287,7 +297,7 @@
     </div>
 
     <!-- 管理后台界面 -->
-    <div id="adminView" class="hidden">
+    <div id="adminView" class="hidden login-active">
         <!-- 侧边栏 -->
         <aside class="sidebar">
             <div class="sidebar-header">
@@ -407,7 +417,7 @@
         // 加载管理面板
         async function loadAdminPanel() {
             document.getElementById('loginView').classList.add('hidden');
-            document.getElementById('adminView').classList.remove('hidden');
+            document.getElementById('adminView').classList.remove('hidden', 'login-active');
             
             const user = await authManager.getCurrentUser();
             if (user) {
