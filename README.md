@@ -1,214 +1,430 @@
-# OpenDoGo 完整系统架构说明
+# ENS Manager - 完整部署指南
 
-## 📁 项目结构
-
-```
-/workspace/
-├── api/                      # Vercel Serverless API 后端
-│   ├── lib/                  # 核心库文件
-│   │   ├── supabase.js       # Supabase 数据库客户端配置
-│   │   └── totp.js           # Google Authenticator (TOTP) 验证
-│   ├── admin/                # 管理员接口
-│   │   └── login.js          # 管理员登录（双因子验证）
-│   ├── user/                 # 用户接口
-│   │   ├── register.js       # 用户注册（Supabase 邮箱验证）
-│   │   ├── login.js          # 用户登录
-│   │   └── profile.js        # 用户信息获取
-├── ens.html                  # 用户前端页面（登录/注册）
-├── admin.html                # 管理员后台页面（双因子验证）
-├── package.json              # 项目依赖配置
-└── vercel.json               # Vercel 部署配置
-```
-
-## 🔗 访问地址
-
-| 页面 | 地址 | 说明 |
-|------|------|------|
-| **用户首页** | `https://opendogo.vercel.app/ens.html` | 用户注册/登录 |
-| **管理后台** | `https://opendogo.vercel.app/admin.html` | 管理员登录（需双因子验证） |
-
-## 📡 API 接口列表
-
-### 用户接口
-
-| 接口 | 方法 | 说明 |
-|------|------|------|
-| `/api/user/register` | POST | 用户注册（自动发送邮箱验证） |
-| `/api/user/login` | POST | 用户登录 |
-| `/api/user/profile` | GET | 获取用户信息（需 Token） |
-
-### 管理员接口
-
-| 接口 | 方法 | 说明 |
-|------|------|------|
-| `/api/admin/login` | POST | 管理员登录（两步验证） |
-
-## 🔐 管理员登录流程
-
-1. **第一步**：输入账号密码
-   - 从环境变量读取：`ADMIN_ACCOUNT`、`ADMIN_PASSWORD`
-   - 验证通过后返回 `step: '2fa_required'`
-
-2. **第二步**：输入谷歌验证码
-   - 从环境变量读取：`ADMIN_2FA_SECRET`
-   - 使用 TOTP 算法验证 6 位动态码
-   - 验证通过颁发管理员 Token
-
-## 📧 用户注册流程
-
-1. 用户填写邮箱和密码
-2. 调用 Supabase Auth 注册
-3. Supabase 自动发送验证邮件
-4. 用户点击邮件链接验证邮箱
-5. 验证后方可登录
-
-## 🗄️ 数据库配置（Supabase）
-
-### 免费套餐功能
-- ✅ PostgreSQL 数据库（500MB）
-- ✅ 用户认证系统
-- ✅ 邮箱验证
-- ✅ 自动 API 生成
-- ✅ 实时订阅
-
-### 获取 Supabase 配置
-1. 访问 https://supabase.com
-2. 创建新项目
-3. 在 Settings → API 获取：
-   - Project URL → `SUPABASE_URL`
-   - anon/public key → `SUPABASE_KEY`
-
-### 启用邮箱验证
-1. 进入 Supabase Dashboard
-2. Authentication → Providers → Email
-3. 开启 "Enable Email Signup"
-4. 配置自定义 SMTP（可选，否则用 Supabase 默认）
-
-## 🔑 环境变量配置
-
-在 Vercel 项目设置中添加以下环境变量：
-
-```bash
-# Supabase 配置
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_KEY=your-anon-key-here
-
-# 管理员账号
-ADMIN_ACCOUNT=admin
-ADMIN_PASSWORD=YourSecurePassword123
-
-# Google Authenticator 密钥（32 字符 Base32）
-ADMIN_2FA_SECRET=JBSWY3DPEHPK3PXP
-```
-
-### 生成 2FA 密钥
-
-方法 1：使用在线工具
-- 访问 https://totp.danhersam.com/
-- 生成新密钥并保存到 Google Authenticator
-
-方法 2：使用 Node.js
-```javascript
-const OTPAuth = require('otpauth');
-const secret = new OTPAuth.Secret({ size: 20 });
-console.log(secret.base32); // 保存此密钥
-```
-
-## 🚀 部署步骤
-
-### 1. 准备 GitHub 仓库
-```bash
-cd /workspace
-git init
-git add .
-git commit -m "Initial commit"
-git branch -M main
-git remote add origin https://github.com/yourusername/opendogo.git
-git push -u origin main
-```
-
-### 2. Vercel 部署
-1. 访问 https://vercel.com
-2. Import GitHub Repository
-3. 选择 `opendogo` 仓库
-4. **重要**：添加环境变量（见上文）
-5. 点击 Deploy
-
-### 3. 配置自定义域名（可选）
-1. Vercel Project Settings → Domains
-2. 添加 `opendogo.vercel.app`（自动配置）
-3. 或添加自定义域名
-
-## 📱 Google Authenticator 配置
-
-### 绑定步骤
-1. 下载 Google Authenticator App
-2. 打开 App，点击 "+"
-3. 选择 "手动输入密钥"
-4. 输入：
-   - 账户名：`Admin`
-   - 密钥：`ADMIN_2FA_SECRET` 的值
-5. 保存后即可看到 6 位动态码
-
-## 🧪 测试流程
-
-### 测试用户注册
-1. 访问 `https://opendogo.vercel.app/ens.html`
-2. 切换到"注册"标签
-3. 输入邮箱和密码
-4. 收到提示"请检查邮箱验证"
-5. 查收验证邮件并点击链接
-
-### 测试管理员登录
-1. 访问 `https://opendogo.vercel.app/admin.html`
-2. 输入管理员账号密码
-3. 点击登录
-4. 出现谷歌验证码输入框
-5. 打开 Google Authenticator 输入 6 位码
-6. 成功进入后台
-
-## ⚠️ 注意事项
-
-1. **安全建议**
-   - 生产环境使用强密码
-   - 定期更换 `ADMIN_2FA_SECRET`
-   - 不要将密钥提交到 Git
-
-2. **Supabase 限制**
-   - 免费版每月 50,000 MAU
-   - 数据库 500MB
-   - 适合初创项目
-
-3. **Vercel 限制**
-   - Serverless Function 超时 10 秒
-   - 每月 100GB 带宽（免费版）
-
-## 🛠️ 故障排查
-
-### 常见问题
-
-**Q: 收不到验证邮件？**
-- 检查垃圾邮件箱
-- Supabase 默认使用共享邮箱，可能延迟
-- 配置自定义 SMTP 提高送达率
-
-**Q: 管理员登录提示配置错误？**
-- 检查 Vercel 环境变量是否正确
-- 确保 `ADMIN_2FA_SECRET` 是有效的 Base32 字符串
-
-**Q: API 返回 CORS 错误？**
-- 检查 `vercel.json` 中的 headers 配置
-- 确保前端请求使用正确的域名
-
-## 📞 技术支持
-
-如有问题，请检查：
-1. Vercel Deployment Logs
-2. Supabase Logs
-3. 浏览器控制台错误信息
+## 📋 目录
+- [功能特性](#功能特性)
+- [技术架构](#技术架构)
+- [部署步骤](#部署步骤)
+- [环境变量配置](#环境变量配置)
+- [数据库初始化](#数据库初始化)
+- [安全配置](#安全配置)
+- [API 接口文档](#api-接口文档)
+- [常见问题](#常见问题)
 
 ---
 
-**系统版本**: v1.0.0  
-**最后更新**: 2024  
-**技术栈**: Vercel + Supabase + Google Authenticator
+## ✨ 功能特性
+
+### 🔐 安全认证系统
+- **双重认证 (2FA)**: 账号密码 + Google Authenticator
+- **域名授权**: 防止代码被盗用，仅允许指定域名访问
+- **JWT Token**: 安全的会话管理
+- **操作日志**: 完整的审计追踪
+
+### 👥 用户管理
+- 用户列表与分组
+- 卡密系统（生成、规则、分组）
+- 激活记录追踪
+- 批量操作支持
+
+### 🔗 RPC 管理
+- 多 RPC 节点池
+- 健康检测与自动故障转移
+- 智能负载均衡
+- 响应时间监控
+
+### 📊 仪表盘
+- 实时数据统计
+- 查询趋势图表
+- 系统健康状态
+- 告警通知
+
+### 🌐 ENS 查询
+- 批量域名查询
+- 缓存优化
+- 多种 RPC 源支持
+- 实时进度显示
+
+---
+
+## 🏗️ 技术架构
+
+```
+┌─────────────────────────────────────────────────┐
+│                 Frontend (HTML/CSS/JS)          │
+│  • index.html (首页)                            │
+│  • ens.html (查询页面)                          │
+│  • admin/login.html (后台登录)                  │
+│  • admin/dashboard.html (管理后台)              │
+└─────────────────────────────────────────────────┘
+                        ↓
+┌─────────────────────────────────────────────────┐
+│         Vercel Serverless Functions             │
+│  • /api/auth/* (认证)                           │
+│  • /api/users/* (用户管理)                      │
+│  • /api/cards/* (卡密管理)                      │
+│  • /api/rpc/* (RPC 管理)                         │
+│  • /api/ens/query (ENS 查询)                     │
+│  • /api/config/* (配置管理)                     │
+│  • /api/dashboard/* (仪表盘)                    │
+│  • /api/logs/* (日志管理)                       │
+└─────────────────────────────────────────────────┘
+                        ↓
+┌─────────────────────────────────────────────────┐
+│          Supabase (PostgreSQL)                  │
+│  • admins (管理员)                              │
+│  • users (用户)                                 │
+│  • card_keys (卡密)                             │
+│  • rpc_nodes (RPC 节点)                          │
+│  • domain_authorizations (域名授权)             │
+│  • operation_logs (操作日志)                    │
+│  • api_logs (API 日志)                           │
+│  • error_logs (错误日志)                        │
+└─────────────────────────────────────────────────┘
+```
+
+---
+
+## 🚀 部署步骤
+
+### 1. 准备工作
+
+#### 需要的账户
+- [GitHub](https://github.com/) 账户
+- [Vercel](https://vercel.com/) 账户
+- [Supabase](https://supabase.com/) 账户
+- Google Authenticator App
+
+### 2. 创建 Supabase 项目
+
+1. 登录 [Supabase](https://supabase.com/)
+2. 创建新项目
+3. 等待项目初始化完成
+4. 进入 **SQL Editor**
+5. 复制 `scripts/init-db.sql` 的全部内容并执行
+
+### 3. 获取 Supabase 凭证
+
+1. 进入项目 **Settings** → **API**
+2. 记录以下信息：
+   - **Project URL**: `https://xxxxx.supabase.co`
+   - **anon public key**: `eyJhbGc...`
+
+### 4. 生成 JWT 密钥
+
+```bash
+# 使用 OpenSSL 生成随机密钥
+openssl rand -hex 32
+```
+
+或使用在线工具：https://generate-secret.vercel.app/32
+
+### 5. 配置 Google 2FA
+
+1. 安装 Google Authenticator App
+2. 访问：https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=&cad=rja&uact=8&ved=... (搜索 "Google Authenticator setup")
+3. 或者使用在线工具生成密钥：
+   ```bash
+   # 生成 Base32 密钥
+   openssl rand -base32 32
+   ```
+4. 在 Google Authenticator 中添加此密钥
+5. 记录生成的密钥（用于 `ADMIN_2FA_SECRET`）
+
+### 6. Fork 并部署到 Vercel
+
+1. **Fork 仓库到你的 GitHub**
+   ```bash
+   git clone https://github.com/YOUR_USERNAME/ens-manager.git
+   cd ens-manager
+   ```
+
+2. **推送到你的 GitHub**
+   ```bash
+   git remote add origin https://github.com/YOUR_USERNAME/ens-manager.git
+   git push -u origin main
+   ```
+
+3. **部署到 Vercel**
+   - 登录 [Vercel](https://vercel.com/)
+   - 点击 **Add New Project**
+   - 选择你的 GitHub 仓库
+   - 配置环境变量（见下一步）
+   - 点击 **Deploy**
+
+### 7. 配置环境变量
+
+在 Vercel 项目设置中，添加以下环境变量：
+
+| 变量名 | 说明 | 示例值 |
+|--------|------|--------|
+| `SUPABASE_URL` | Supabase 项目 URL | `https://xxxxx.supabase.co` |
+| `SUPABASE_ANON_KEY` | Supabase anon key | `eyJhbGc...` |
+| `JWT_SECRET` | JWT 签名密钥 | `a1b2c3d4e5f6...` (64 字符) |
+| `ADMIN_ACCOUNT` | 管理员账号 | `admin` |
+| `ADMIN_PASSWORD` | 管理员密码 | `YourSecurePassword123!` |
+| `ADMIN_2FA_SECRET` | Google 2FA 密钥 | `JBSWY3DPEHPK3PXP...` (Base32) |
+| `ALLOWED_DOMAINS` | 允许的域名（逗号分隔） | `opendogo.vercel.app,yourdomain.com` |
+| `UNAUTHORIZED_REDIRECT_URL` | 未授权跳转 URL | `https://example.com/unauthorized` |
+| `DEFAULT_RPC_URL` | 默认 RPC 节点 | `https://eth.llamarpc.com` |
+
+**重要提示：**
+- `ALLOWED_DOMAINS`: 如果不配置，所有域名都可以访问（开发模式）
+- 生产环境**必须**配置此变量以防止盗用
+
+### 8. 验证部署
+
+1. 访问 `https://your-project.vercel.app`
+2. 测试首页是否正常
+3. 访问 `https://your-project.vercel.app/admin/login.html`
+4. 使用配置的账号密码登录
+5. 输入 Google Authenticator 中的 6 位验证码
+6. 成功进入管理后台
+
+---
+
+## 🛡️ 安全配置
+
+### 域名授权系统
+
+域名授权系统防止他人盗用您的代码。工作原理：
+
+1. **检查机制**:
+   - 检查请求的 Host 头
+   - 检查 Referer 头
+   - 检查 Origin 头
+
+2. **未授权处理**:
+   - API 请求返回 403 错误
+   - 前端页面显示未授权提示并自动跳转
+
+3. **配置方法**:
+   ```env
+   ALLOWED_DOMAINS=opendogo.vercel.app,www.yourdomain.com
+   UNAUTHORIZED_REDIRECT_URL=https://yourdomain.com/unauthorized
+   ```
+
+4. **数据库管理**:
+   - 可通过 `/api/config/domain-auth` API 管理域名白名单
+   - 支持添加、删除、启用/禁用域名
+
+### 双因子认证流程
+
+```
+用户输入账号密码
+       ↓
+验证通过 → 生成临时 Token (5 分钟有效)
+       ↓
+弹出 2FA 输入框
+       ↓
+用户输入 Google Authenticator 验证码
+       ↓
+验证通过 → 生成正式 JWT Token
+       ↓
+进入管理后台
+```
+
+---
+
+## 📡 API 接口文档
+
+### 认证接口
+
+#### POST /api/auth/login
+登录（第一步：账号密码）
+
+**请求体:**
+```json
+{
+  "username": "admin",
+  "password": "YourPassword"
+}
+```
+
+**响应:**
+```json
+{
+  "success": true,
+  "message": "Credentials verified. Please enter 2FA code.",
+  "data": {
+    "tempToken": "eyJhbGc...",
+    "requires2FA": true
+  }
+}
+```
+
+#### POST /api/auth/verify-2fa
+验证 2FA（第二步）
+
+**请求体:**
+```json
+{
+  "tempToken": "eyJhbGc...",
+  "code": "123456"
+}
+```
+
+**响应:**
+```json
+{
+  "success": true,
+  "message": "2FA verification successful",
+  "data": {
+    "token": "eyJhbGc...",
+    "user": {
+      "username": "admin",
+      "role": "super_admin"
+    }
+  }
+}
+```
+
+### ENS 查询接口
+
+#### POST /api/ens/query
+批量查询 ENS 域名
+
+**请求体:**
+```json
+{
+  "domains": ["vitalik.eth", "ethereum.eth"],
+  "rpcUrl": "https://eth.llamarpc.com"
+}
+```
+
+**响应:**
+```json
+{
+  "success": true,
+  "message": "Query completed",
+  "data": [
+    {
+      "domain": "vitalik.eth",
+      "owner": "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+      "available": false,
+      "queriedAt": "2024-01-01T00:00:00Z"
+    }
+  ]
+}
+```
+
+#### GET /api/ens/query?domain=vitalik.eth
+查询单个域名
+
+**响应:**
+```json
+{
+  "success": true,
+  "message": "Query completed",
+  "data": {
+    "domain": "vitalik.eth",
+    "owner": "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+    "available": false,
+    "fromCache": false,
+    "queriedAt": "2024-01-01T00:00:00Z"
+  }
+}
+```
+
+### 域名授权管理
+
+#### GET /api/config/domain-auth
+获取所有授权域名
+
+**响应:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "uuid",
+      "domain": "opendogo.vercel.app",
+      "description": "主站",
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z"
+    }
+  ]
+}
+```
+
+#### POST /api/config/domain-auth
+添加授权域名
+
+**请求体:**
+```json
+{
+  "domain": "newdomain.com",
+  "description": "新站点",
+  "expires_at": "2025-12-31T23:59:59Z"
+}
+```
+
+#### DELETE /api/config/domain-auth?id=uuid
+删除授权域名
+
+---
+
+## ❓ 常见问题
+
+### Q1: 登录后一直提示"Invalid 2FA code"？
+
+**解决方案:**
+1. 确保服务器时间同步（2FA 基于时间）
+2. 检查 `ADMIN_2FA_SECRET` 是否正确
+3. 重新生成密钥并在 Google Authenticator 中重新添加
+4. 尝试使用当前时间的验证码（每 30 秒刷新）
+
+### Q2: 域名授权不生效？
+
+**解决方案:**
+1. 检查环境变量 `ALLOWED_DOMAINS` 是否配置
+2. 确认域名格式正确（不要包含 `http://` 或 `https://`）
+3. 清除浏览器缓存后重试
+4. 检查 Vercel 环境变量是否已重新部署生效
+
+### Q3: ENS 查询返回错误？
+
+**解决方案:**
+1. 检查 RPC 节点是否可用
+2. 尝试更换 `DEFAULT_RPC_URL`
+3. 查看 `/api/logs/error` 中的错误日志
+4. 确保 Supabase 连接正常
+
+### Q4: 如何修改管理员密码？
+
+**解决方案:**
+直接修改 Vercel 环境变量 `ADMIN_PASSWORD`，然后重新部署：
+```bash
+vercel --prod
+```
+
+### Q5: 如何备份数据？
+
+**解决方案:**
+在 Supabase 控制台：
+1. 进入 **Database** → **Backups**
+2. 点击 **Create backup**
+3. 下载 SQL 文件保存
+
+---
+
+## 📞 技术支持
+
+如有问题，请提交 Issue 或联系开发者。
+
+---
+
+## 📝 更新日志
+
+### v1.0.0 (2024)
+- ✅ 完整的用户管理系统
+- ✅ 卡密生成与管理
+- ✅ RPC 节点池与调度
+- ✅ 域名授权防泄露系统
+- ✅ 双因子认证
+- ✅ ENS 批量查询
+- ✅ 仪表盘统计
+- ✅ 完整的日志系统
+
+---
+
+**© 2024 ENS Manager. All rights reserved.**

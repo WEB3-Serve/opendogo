@@ -1,0 +1,2169 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>ENS域名批量查询 · opendogo</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg: #F9FAFB;
+            --card: #FFFFFF;
+            --border: #E5E7EB;
+            --primary: #2563EB;
+            --primary-hover: #1D4ED8;
+            --primary-light: #DBEAFE;
+            --text: #1F2937;
+            --text-light: #4B5563;
+            --text-muted: #6B7280;
+            --success: #059669;
+            --success-hover: #047857;
+            --warning: #D97706;
+            --danger: #DC2626;
+            --info: #7C3AED;
+            --radius: 16px;
+            --radius-sm: 10px;
+            --shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+            --shadow-lg: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+            --btn-text: #FFFFFF;
+        }
+
+        .dark-theme {
+            --bg: #0F172A;
+            --card: #1E293B;
+            --border: #334155;
+            --primary: #60A5FA;
+            --primary-hover: #3B82F6;
+            --primary-light: #1E3A8A;
+            --text: #F1F5F9;
+            --text-light: #E2E8F0;
+            --text-muted: #94A3B8;
+            --success: #34D399;
+            --warning: #FBBF24;
+            --danger: #F87171;
+            --info: #A78BFA;
+            --btn-text: #0F172A;
+        }
+
+        .dark-theme .btn-primary,
+        .dark-theme .btn-success {
+            color: #0F172A;
+            font-weight: 600;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            line-height: 1.6;
+            min-height: 100vh;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        /* 导航栏 */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: var(--card);
+            border-bottom: 1px solid var(--border);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            padding: 0 24px;
+        }
+
+        .navbar-container {
+            max-width: 1280px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 70px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .logo i {
+            background: var(--primary-light);
+            padding: 10px;
+            border-radius: 12px;
+            color: var(--primary);
+            font-size: 1.2rem;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 32px;
+        }
+
+        .nav-links a {
+            color: var(--text);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.95rem;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--primary);
+        }
+
+        .nav-controls {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .theme-switch, .lang-switch {
+            display: flex;
+            gap: 4px;
+            background: var(--bg);
+            padding: 4px;
+            border-radius: 30px;
+            border: 1px solid var(--border);
+        }
+
+        .theme-btn, .lang-btn {
+            border: none;
+            background: transparent;
+            padding: 6px 12px;
+            border-radius: 30px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+
+        .theme-btn:hover, .lang-btn:hover {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+
+        .theme-btn.active, .lang-btn.active {
+            background: var(--primary);
+            color: var(--btn-text);
+        }
+
+        .nav-auth {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            background: var(--bg);
+            color: var(--text);
+            border: 1px solid var(--border);
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: var(--btn-text);
+            border: none;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--primary);
+            color: var(--primary);
+        }
+
+        .btn-outline:hover {
+            background: var(--primary-light);
+        }
+
+        /* 主要内容 */
+        .main-content {
+            padding-top: 70px;
+        }
+
+        /* Hero 区域 */
+        .hero {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 60px 24px 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .hero-content {
+            text-align: center;
+            max-width: 900px;
+        }
+
+        .hero-content h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            line-height: 1.2;
+            margin-bottom: 24px;
+            background: linear-gradient(135deg, var(--primary), var(--info));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-content p {
+            font-size: 1.1rem;
+            color: var(--text-light);
+            margin-bottom: 32px;
+        }
+
+        .hero-stats {
+            display: flex;
+            gap: 40px;
+            margin-bottom: 32px;
+            justify-content: center;
+        }
+
+        .hero-stat {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .hero-stat .number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .hero-stat .label {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+        }
+
+        .hero-buttons .btn {
+            padding: 14px 32px;
+            font-size: 1rem;
+        }
+
+        /* 登录卡片（隐藏，仅保留样式以防其他页面使用） */
+        .auth-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 32px;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .auth-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 16px;
+        }
+
+        .auth-tab {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        .auth-tab:hover {
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        .auth-tab.active {
+            background: var(--primary);
+            color: var(--btn-text);
+        }
+
+        .auth-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-group label {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text);
+        }
+
+        .form-group input {
+            padding: 12px 16px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text);
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-light);
+        }
+
+        .form-group input.error {
+            border-color: var(--danger);
+        }
+
+        .form-group input.error:focus {
+            box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+        }
+
+        .form-hint {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .form-hint.error {
+            color: var(--danger);
+        }
+
+        .verify-code-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .verify-code-row input {
+            flex: 1;
+        }
+
+        .verify-btn {
+            min-width: 110px;
+            padding: 12px 16px !important;
+            white-space: nowrap;
+            border-radius: 10px !important;
+            font-size: 0.9rem !important;
+        }
+
+        .verify-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        .form-options {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.9rem;
+        }
+
+        .form-check {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-muted);
+            cursor: pointer;
+        }
+
+        .form-check input {
+            accent-color: var(--primary);
+        }
+
+        .forgot-link {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .forgot-link:hover {
+            text-decoration: underline;
+        }
+
+        .auth-form .btn {
+            padding: 14px;
+            font-size: 1rem;
+            margin-top: 8px;
+        }
+
+        .auth-footer {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .auth-footer a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .auth-footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* 密码强度指示器 */
+        .password-strength {
+            margin-top: 6px;
+        }
+
+        .strength-bar {
+            height: 4px;
+            background: var(--border);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-bottom: 4px;
+        }
+
+        .strength-fill {
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s, background 0.3s;
+            border-radius: 2px;
+        }
+
+        .strength-fill.weak { background: var(--danger); width: 33%; }
+        .strength-fill.medium { background: var(--warning); width: 66%; }
+        .strength-fill.strong { background: var(--success); width: 100%; }
+
+        .strength-text {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        /* 特性区域 */
+        .features {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 60px 24px;
+        }
+
+        .section-title {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+
+        .section-title h2 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: var(--text);
+        }
+
+        .section-title p {
+            font-size: 1.1rem;
+            color: var(--text-muted);
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 24px;
+        }
+
+        .feature-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 28px 24px;
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--primary);
+        }
+
+        .feature-icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 20px;
+            background: var(--primary-light);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .feature-icon i {
+            font-size: 28px;
+            color: var(--primary);
+        }
+
+        .feature-card h3 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text);
+        }
+
+        .feature-card p {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        /* 公告区域 */
+        .announcements {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 0 24px 60px;
+        }
+
+        .announcement-list {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+
+        .announcement-item {
+            display: flex;
+            align-items: center;
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border);
+            transition: background 0.2s;
+        }
+
+        .announcement-item:last-child {
+            border-bottom: none;
+        }
+
+        .announcement-item:hover {
+            background: var(--bg);
+        }
+
+        .announcement-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 16px;
+        }
+
+        .announcement-icon.info { background: var(--primary-light); color: var(--primary); }
+        .announcement-icon.warning { background: rgba(217,119,6,0.12); color: var(--warning); }
+        .announcement-icon.success { background: rgba(5,150,105,0.12); color: var(--success); }
+
+        .announcement-content {
+            flex: 1;
+        }
+
+        .announcement-title {
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 4px;
+        }
+
+        .announcement-desc {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .announcement-time {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        /* 页脚 */
+        .footer {
+            background: var(--card);
+            border-top: 1px solid var(--border);
+            padding: 48px 24px 24px;
+        }
+
+        .footer-container {
+            max-width: 1280px;
+            margin: 0 auto;
+        }
+
+        .footer-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+
+        .footer-brand p {
+            color: var(--text-muted);
+            margin-top: 16px;
+            font-size: 0.9rem;
+        }
+
+        .footer-links h4 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--text);
+        }
+
+        .footer-links ul {
+            list-style: none;
+        }
+
+        .footer-links li {
+            margin-bottom: 10px;
+        }
+
+        .footer-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.2s;
+        }
+
+        .footer-links a:hover {
+            color: var(--primary);
+        }
+
+        .footer-bottom {
+            text-align: center;
+            padding-top: 24px;
+            border-top: 1px solid var(--border);
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .footer-keywords {
+            margin-bottom: 12px;
+            line-height: 1.8;
+        }
+
+        /* 用户菜单下拉 */
+        .user-dropdown {
+            position: relative;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--primary-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary);
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: border-color 0.2s;
+        }
+
+        .user-avatar:hover {
+            border-color: var(--primary);
+        }
+
+        .user-menu {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 8px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            box-shadow: var(--shadow-lg);
+            min-width: 180px;
+            display: none;
+            z-index: 100;
+        }
+
+        .user-menu.active {
+            display: block;
+        }
+
+        .user-menu-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 16px;
+            color: var(--text);
+            text-decoration: none;
+            transition: background 0.2s;
+            cursor: pointer;
+        }
+
+        .user-menu-item:hover {
+            background: var(--bg);
+            color: var(--primary);
+        }
+
+        .user-menu-divider {
+            height: 1px;
+            background: var(--border);
+            margin: 4px 0;
+        }
+
+        /* 模态框 */
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 32px;
+            max-width: 460px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+
+        .modal-header h3 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .modal-close {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: none;
+            background: var(--bg);
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .modal-close:hover {
+            background: var(--danger);
+            color: white;
+        }
+
+        /* Toast 提示 */
+        .toast-container {
+            position: fixed;
+            top: 90px;
+            right: 24px;
+            z-index: 3000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .toast {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px 20px;
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 280px;
+            max-width: 400px;
+            animation: slideIn 0.3s ease;
+            transition: opacity 0.3s;
+        }
+
+        .toast.success { border-left: 4px solid var(--success); }
+        .toast.error { border-left: 4px solid var(--danger); }
+        .toast.warning { border-left: 4px solid var(--warning); }
+        .toast.info { border-left: 4px solid var(--info); }
+
+        .toast i {
+            font-size: 1.2rem;
+        }
+
+        .toast.success i { color: var(--success); }
+        .toast.error i { color: var(--danger); }
+        .toast.warning i { color: var(--warning); }
+        .toast.info i { color: var(--info); }
+
+        .toast-content {
+            flex: 1;
+            color: var(--text);
+            font-size: 0.9rem;
+        }
+
+        .toast-close {
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .toast-close:hover {
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(100%);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* 响应式 */
+        @media (max-width: 1024px) {
+            .hero {
+                text-align: center;
+                gap: 40px;
+            }
+
+            .hero-content {
+                max-width: 100%;
+            }
+
+            .hero-stats {
+                justify-content: center;
+            }
+
+            .hero-buttons {
+                justify-content: center;
+            }
+
+            .features-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .footer-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .navbar-container {
+                flex-wrap: wrap;
+                height: auto;
+                padding: 12px 0;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .nav-controls {
+                width: 100%;
+                justify-content: space-between;
+                margin-top: 12px;
+            }
+
+            .hero-content h1 {
+                font-size: 2.2rem;
+            }
+
+            .hero-stats {
+                flex-wrap: wrap;
+                gap: 24px;
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .footer-grid {
+                grid-template-columns: 1fr;
+                gap: 24px;
+            }
+
+            .verify-code-row {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .verify-btn {
+                width: 100%;
+                min-width: auto;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hero-buttons {
+                flex-direction: column;
+                width: 100%;
+            }
+
+            .hero-buttons .btn {
+                width: 100%;
+            }
+
+            .auth-card {
+                padding: 20px;
+            }
+
+            .auth-tabs {
+                flex-wrap: wrap;
+            }
+
+            .auth-tab {
+                flex: 0 0 calc(50% - 4px);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Toast 容器 -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="#" class="logo">
+                <i class="fas fa-cube"></i>
+                <span data-i18n="logo">opendogo</span>
+            </a>
+            
+            <div class="nav-links">
+                <a href="#" data-i18n="home">首页</a>
+                <a href="#features" data-i18n="features">功能</a>
+                <a href="#pricing" data-i18n="pricing">价格</a>
+                <a href="#docs" data-i18n="docs">文档</a>
+            </div>
+            
+            <div class="nav-controls">
+                <div class="theme-switch">
+                    <button class="theme-btn" data-theme="auto" title="Auto theme"><i class="fas fa-gear"></i></button>
+                    <button class="theme-btn" data-theme="dark" title="Dark theme"><i class="fas fa-moon"></i></button>
+                    <button class="theme-btn" data-theme="light" title="Light theme"><i class="fas fa-desktop"></i></button>
+                </div>
+                <div class="lang-switch">
+                    <button class="lang-btn" data-lang="zh" onclick="switchLanguage('zh')">中文</button>
+                    <button class="lang-btn" data-lang="en" onclick="switchLanguage('en')">EN</button>
+                </div>
+            </div>
+            
+            <div class="nav-auth" id="navAuth">
+                <div id="authButtons">
+                    <button class="btn btn-outline" onclick="showModal('loginModal')" data-i18n="login">登录</button>
+                    <button class="btn btn-primary" onclick="showModal('registerModal')" data-i18n="register">注册</button>
+                </div>
+                <div id="userMenu" style="display: none;">
+                    <div class="user-dropdown">
+                        <div class="user-avatar" onclick="toggleUserMenu()">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div class="user-menu" id="userDropdownMenu">
+                            <div class="user-menu-item">
+                                <i class="fas fa-user-circle"></i>
+                                <span id="displayUsername">用户名</span>
+                            </div>
+                            <div class="user-menu-item">
+                                <i class="fas fa-envelope"></i>
+                                <span id="displayEmail">email@example.com</span>
+                            </div>
+                            <div class="user-menu-divider"></div>
+                            <a href="app.html" class="user-menu-item">
+                                <i class="fas fa-rocket"></i>
+                                <span data-i18n="goToApp">进入工具</span>
+                            </a>
+                            <a href="admin/dashboard.html" class="user-menu-item" id="adminLink" style="display: none;">
+                                <i class="fas fa-cog"></i>
+                                <span data-i18n="adminPanel">管理后台</span>
+                            </a>
+                            <div class="user-menu-divider"></div>
+                            <div class="user-menu-item" onclick="logout()">
+                                <i class="fas fa-sign-out-alt"></i>
+                                <span data-i18n="logout">退出登录</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要内容 -->
+    <main class="main-content">
+        <!-- Hero 区域 -->
+        <section class="hero">
+            <div class="hero-content">
+                <h1 data-i18n="heroTitle">ENS域名<br>批量查询工具</h1>
+                <p data-i18n="heroDesc">专业的以太坊域名批量查询工具，支持智能RPC切换、多维度筛选、实时统计，让域名投资更高效。</p>
+                
+                <div class="hero-stats">
+                    <div class="hero-stat">
+                        <span class="number">10M+</span>
+                        <span class="label" data-i18n="domainsQueried">已查询域名</span>
+                    </div>
+                    <div class="hero-stat">
+                        <span class="number">50</span>
+                        <span class="label" data-i18n="concurrency">高并发协程</span>
+                    </div>
+                    <div class="hero-stat">
+                        <span class="number">10+</span>
+                        <span class="label" data-i18n="rpcNodes">智能RPC节点</span>
+                    </div>
+                </div>
+                
+                <div class="hero-buttons">
+                    <button class="btn btn-primary" onclick="goToApp()">
+                        <i class="fas fa-play"></i>
+                        <span data-i18n="startNow">立即开始</span>
+                    </button>
+                    <button class="btn btn-outline" onclick="showModal('registerModal')">
+                        <i class="fas fa-user-plus"></i>
+                        <span data-i18n="freeRegister">免费注册</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+        
+        <!-- 特性区域 -->
+        <section class="features" id="features">
+            <div class="section-title">
+                <h2 data-i18n="featuresTitle">强大功能，助您高效查询</h2>
+                <p data-i18n="featuresDesc">专为ENS域名投资者打造的全功能批量查询工具</p>
+            </div>
+            
+            <div class="features-grid" id="featuresGrid"></div>
+        </section>
+        
+        <!-- 公告区域 -->
+        <section class="announcements">
+            <div class="section-title">
+                <h2 data-i18n="announcementsTitle">最新公告</h2>
+                <p data-i18n="announcementsDesc">关注我们的最新动态和更新</p>
+            </div>
+            
+            <div class="announcement-list" id="announcementList"></div>
+        </section>
+    </main>
+    
+    <!-- 页脚 -->
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <a href="#" class="logo" style="margin-bottom: 16px;">
+                        <i class="fas fa-cube"></i>
+                        <span>opendogo</span>
+                    </a>
+                    <p data-i18n="footerDesc">专业的ENS域名批量查询工具，为域名投资者提供高效、稳定的查询服务。</p>
+                </div>
+                
+                <div class="footer-links">
+                    <h4 data-i18n="product">产品</h4>
+                    <ul>
+                        <li><a href="#features" data-i18n="features">功能介绍</a></li>
+                        <li><a href="#pricing" data-i18n="pricing">价格方案</a></li>
+                        <li><a href="#" data-i18n="changelog">更新日志</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-links">
+                    <h4 data-i18n="support">支持</h4>
+                    <ul>
+                        <li><a href="#" data-i18n="docs">使用文档</a></li>
+                        <li><a href="#" data-i18n="faq">常见问题</a></li>
+                        <li><a href="#" data-i18n="contact">联系我们</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-links">
+                    <h4 data-i18n="legal">法律</h4>
+                    <ul>
+                        <li><a href="#" data-i18n="terms">服务条款</a></li>
+                        <li><a href="#" data-i18n="privacy">隐私政策</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <div class="footer-keywords" data-i18n="footerKeywords">
+                    ENS域名批量查询工具 | web3域名批量查询 | eth批量域名查询 | ENS批量工具 | 动态RPC自动切换 | web3工具箱
+                </div>
+                <div class="footer-copyright" data-i18n="footerCopyright">
+                    © 2026-现在 opendogo 版权所有
+                </div>
+            </div>
+        </div>
+    </footer>
+    
+    <!-- 登录模态框 -->
+    <div class="modal" id="loginModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 data-i18n="login">登录</h3>
+                <button class="modal-close" onclick="hideModal('loginModal')">&times;</button>
+            </div>
+            <form class="auth-form" id="modalLoginForm">
+                <div class="form-group">
+                    <label data-i18n="account">账号/邮箱</label>
+                    <input type="text" id="modalLoginAccount" placeholder="请输入账号或邮箱">
+                </div>
+                <div class="form-group">
+                    <label data-i18n="password">密码</label>
+                    <input type="password" id="modalLoginPassword" placeholder="请输入密码">
+                </div>
+                <div class="form-options">
+                    <label class="form-check">
+                        <input type="checkbox" id="modalRememberMe">
+                        <span data-i18n="rememberMe">记住我</span>
+                    </label>
+                    <a href="#" class="forgot-link" onclick="hideModal('loginModal'); showForgotPasswordModal()" data-i18n="forgotPassword">忘记密码？</a>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-sign-in-alt"></i>
+                    <span data-i18n="login">登录</span>
+                </button>
+                <div class="auth-footer">
+                    <span data-i18n="noAccount">还没有账号？</span>
+                    <a href="#" onclick="hideModal('loginModal'); showModal('registerModal')" data-i18n="registerNow">立即注册</a>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- 注册模态框 -->
+    <div class="modal" id="registerModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 data-i18n="register">注册</h3>
+                <button class="modal-close" onclick="hideModal('registerModal')">&times;</button>
+            </div>
+            <form class="auth-form" id="modalRegisterForm">
+                <div class="form-group">
+                    <label data-i18n="username">账号</label>
+                    <input type="text" id="modalRegUsername" placeholder="4-20位字母数字组合" maxlength="20">
+                </div>
+                <div class="form-group">
+                    <label data-i18n="email">邮箱</label>
+                    <input type="email" id="modalRegEmail" placeholder="请输入邮箱">
+                </div>
+                <div class="form-group">
+                    <label data-i18n="verifyCode">验证码</label>
+                    <div class="verify-code-row">
+                        <input type="text" id="modalRegVerifyCode" placeholder="6位验证码" maxlength="6">
+                        <button type="button" class="btn btn-outline verify-btn" id="modalSendCodeBtn" onclick="sendModalVerifyCode()">
+                            <span data-i18n="getCode">获取验证码</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label data-i18n="password">密码</label>
+                    <input type="password" id="modalRegPassword" placeholder="至少6位" maxlength="32">
+                    <div class="password-strength" id="modalPasswordStrength">
+                        <div class="strength-bar">
+                            <div class="strength-fill" id="modalStrengthFill"></div>
+                        </div>
+                        <div class="strength-text" id="modalStrengthText"></div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label data-i18n="confirmPassword">确认密码</label>
+                    <input type="password" id="modalRegConfirmPassword" placeholder="请再次输入密码" maxlength="32">
+                </div>
+                <div class="form-options">
+                    <label class="form-check">
+                        <input type="checkbox" id="modalAgreeTerms">
+                        <span data-i18n="agreeTerms">同意</span> <a href="#" data-i18n="termsOfService">服务条款</a>
+                    </label>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-user-plus"></i>
+                    <span data-i18n="register">注册</span>
+                </button>
+                <div class="auth-footer">
+                    <span data-i18n="haveAccount">已有账号？</span>
+                    <a href="#" onclick="hideModal('registerModal'); showModal('loginModal')" data-i18n="loginNow">立即登录</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 激活卡密模态框 -->
+    <div class="modal" id="activateModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 data-i18n="activate">激活卡密</h3>
+                <button class="modal-close" onclick="hideModal('activateModal')">&times;</button>
+            </div>
+            <form class="auth-form" id="modalActivateForm">
+                <div class="form-group">
+                    <label data-i18n="cardKey">卡密</label>
+                    <input type="text" id="modalActivateCardKey" placeholder="请输入卡密">
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-bolt"></i>
+                    <span data-i18n="activate">立即激活</span>
+                </button>
+                <div class="auth-footer">
+                    <span data-i18n="noAccount">还没有账号？</span>
+                    <a href="#" onclick="hideModal('activateModal'); showModal('registerModal')" data-i18n="registerNow">立即注册</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 忘记密码模态框 -->
+    <div class="modal" id="forgotPasswordModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 data-i18n="forgotPassword">忘记密码</h3>
+                <button class="modal-close" onclick="hideModal('forgotPasswordModal')">&times;</button>
+            </div>
+            <form class="auth-form" id="forgotPasswordForm">
+                <div class="form-group">
+                    <label data-i18n="email">邮箱</label>
+                    <input type="email" id="forgotEmail" placeholder="请输入注册邮箱">
+                </div>
+                <div class="form-group">
+                    <label data-i18n="verifyCode">验证码</label>
+                    <div class="verify-code-row">
+                        <input type="text" id="forgotVerifyCode" placeholder="6位验证码" maxlength="6">
+                        <button type="button" class="btn btn-outline verify-btn" id="forgotSendCodeBtn" onclick="sendForgotPasswordCode()">
+                            <span data-i18n="getCode">获取验证码</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label data-i18n="newPassword">新密码</label>
+                    <input type="password" id="forgotNewPassword" placeholder="至少6位" maxlength="32">
+                </div>
+                <div class="form-group">
+                    <label data-i18n="confirmPassword">确认密码</label>
+                    <input type="password" id="forgotConfirmPassword" placeholder="请再次输入密码" maxlength="32">
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-check"></i>
+                    <span data-i18n="resetPassword">重置密码</span>
+                </button>
+                <div class="auth-footer">
+                    <a href="#" onclick="hideModal('forgotPasswordModal'); showModal('loginModal')" data-i18n="backToLogin">返回登录</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // ========== 语言包 ==========
+        const translations = {
+            zh: {
+                logo: 'opendogo',
+                home: '首页',
+                features: '功能',
+                pricing: '价格',
+                docs: '文档',
+                login: '登录',
+                register: '注册',
+                activate: '激活卡密',
+                logout: '退出登录',
+                goToApp: '进入工具',
+                adminPanel: '管理后台',
+                heroTitle: 'ENS域名<br>批量查询工具',
+                heroDesc: '专业的以太坊域名批量查询工具，支持智能RPC切换、多维度筛选、实时统计，让域名投资更高效。',
+                domainsQueried: '已查询域名',
+                concurrency: '高并发协程',
+                rpcNodes: '智能RPC节点',
+                startNow: '立即开始',
+                freeRegister: '免费注册',
+                featuresTitle: '强大功能，助您高效查询',
+                featuresDesc: '专为ENS域名投资者打造的全功能批量查询工具',
+                feature1Title: '极速批量查询',
+                feature1Desc: '支持50+高并发协程，智能RPC动态切换，最快速度完成海量域名查询。',
+                feature2Title: '多维度筛选',
+                feature2Desc: '按状态、溢价、过期、长度、地址等多维度筛选，快速定位目标域名。',
+                feature3Title: '实时统计分析',
+                feature3Desc: '自动统计已注册、未注册、溢价、过期等状态，数据一目了然。',
+                feature4Title: '结果导出',
+                feature4Desc: '支持CSV格式导出查询结果，方便后续分析和处理。',
+                feature5Title: '内置域名模式',
+                feature5Desc: '一键生成3D/4D/3L/AABB等热门域名模式，快速加载查询。',
+                feature6Title: '断点续查',
+                feature6Desc: '支持暂停/继续/取消查询，自动保存进度，随时恢复查询。',
+                feature7Title: '智能RPC监控',
+                feature7Desc: '实时监控RPC节点状态，自动切换可用节点，确保查询稳定性。',
+                feature8Title: '数据安全保障',
+                feature8Desc: '查询数据本地存储，支持加密传输，保护您的隐私安全。',
+                announcementsTitle: '最新公告',
+                announcementsDesc: '关注我们的最新动态和更新',
+                announcement1Title: 'v2.0 版本正式发布',
+                announcement1Desc: '全新界面设计，支持更多查询模式，性能大幅提升。',
+                announcement2Title: '新用户注册福利',
+                announcement2Desc: '新用户注册即送3天VIP体验，畅享全部功能。',
+                announcement3Title: '系统维护通知',
+                announcement3Desc: '每周日凌晨2:00-4:00进行系统维护，期间可能短暂影响服务。',
+                product: '产品',
+                support: '支持',
+                legal: '法律',
+                changelog: '更新日志',
+                faq: '常见问题',
+                contact: '联系我们',
+                terms: '服务条款',
+                privacy: '隐私政策',
+                footerDesc: '专业的ENS域名批量查询工具，为域名投资者提供高效、稳定的查询服务。',
+                footerKeywords: 'ENS域名批量查询工具 | web3域名批量查询 | eth批量域名查询 | ENS批量工具 | 动态RPC自动切换 | web3工具箱 | 以太坊域名工具 | 动态RPC节点 | 区块链域名查询',
+                footerCopyright: '© 2026-现在 opendogo 版权所有',
+                account: '账号/邮箱',
+                accountPlaceholder: '请输入账号或邮箱',
+                username: '账号',
+                password: '密码',
+                email: '邮箱',
+                confirmPassword: '确认密码',
+                newPassword: '新密码',
+                usernamePlaceholder: '4-20位字母数字组合',
+                passwordPlaceholder: '至少6位',
+                emailPlaceholder: '请输入邮箱',
+                confirmPasswordPlaceholder: '请再次输入密码',
+                cardKey: '卡密',
+                cardKeyPlaceholder: '请输入卡密',
+                verifyCode: '验证码',
+                verifyCodePlaceholder: '6位验证码',
+                getCode: '获取验证码',
+                codeSent: '验证码已发送',
+                codeSentTo: '验证码已发送至邮箱',
+                sendingCode: '发送中...',
+                resendAfter: '秒后重试',
+                invalidEmail: '请输入正确的邮箱地址',
+                emailRequired: '请先输入邮箱地址',
+                invalidCode: '验证码错误或已过期',
+                verifyCodeRequired: '请输入验证码',
+                rememberMe: '记住我',
+                forgotPassword: '忘记密码？',
+                resetPassword: '重置密码',
+                backToLogin: '返回登录',
+                agreeTerms: '同意',
+                termsOfService: '服务条款',
+                haveAccount: '已有账号？',
+                noAccount: '还没有账号？',
+                loginNow: '立即登录',
+                registerNow: '立即注册',
+                passwordWeak: '弱',
+                passwordMedium: '中',
+                passwordStrong: '强',
+                usernameInvalid: '账号需为4-20位字母数字组合',
+                usernameAvailable: '账号可用',
+                usernameUnavailable: '账号已被注册',
+                passwordMismatch: '两次输入的密码不一致',
+                loginSuccess: '登录成功！',
+                loginFailed: '登录失败',
+                registerSuccess: '注册成功！请登录',
+                registerFailed: '注册失败',
+                activateSuccess: '卡密激活成功！',
+                activateFailed: '卡密激活失败',
+                logoutSuccess: '已退出登录',
+                networkError: '网络错误，请稍后重试',
+                checking: '检测中...'
+            },
+            en: {
+                logo: 'opendogo',
+                home: 'Home',
+                features: 'Features',
+                pricing: 'Pricing',
+                docs: 'Docs',
+                login: 'Login',
+                register: 'Register',
+                activate: 'Activate',
+                logout: 'Logout',
+                goToApp: 'Launch App',
+                adminPanel: 'Admin Panel',
+                heroTitle: 'ENS Domain<br>Batch Query Tool',
+                heroDesc: 'Professional Ethereum domain batch query tool with smart RPC switching, multi-dimensional filtering, and real-time statistics.',
+                domainsQueried: 'Domains Queried',
+                concurrency: 'Concurrency',
+                rpcNodes: 'Smart RPC Nodes',
+                startNow: 'Start Now',
+                freeRegister: 'Free Register',
+                featuresTitle: 'Powerful Features for Efficient Queries',
+                featuresDesc: 'All-in-one batch query tool designed for ENS domain investors',
+                feature1Title: 'Lightning Fast Queries',
+                feature1Desc: 'Support 50+ concurrent workers with smart dynamic RPC switching for maximum speed.',
+                feature2Title: 'Multi-dimensional Filter',
+                feature2Desc: 'Filter by status, premium, expiry, length, address and more to quickly locate target domains.',
+                feature3Title: 'Real-time Statistics',
+                feature3Desc: 'Automatically count registered, unregistered, premium, expired statuses for clear insights.',
+                feature4Title: 'Result Export',
+                feature4Desc: 'Export query results in CSV format for further analysis and processing.',
+                feature5Title: 'Built-in Domain Patterns',
+                feature5Desc: 'One-click generation of popular patterns like 3D/4D/3L/AABB for quick loading.',
+                feature6Title: 'Resume Query',
+                feature6Desc: 'Support pause/resume/cancel with auto-save progress, resume anytime.',
+                feature7Title: 'Smart RPC Monitor',
+                feature7Desc: 'Real-time RPC node status monitoring with automatic failover for stable queries.',
+                feature8Title: 'Data Security',
+                feature8Desc: 'Local storage with encrypted transmission to protect your privacy.',
+                announcementsTitle: 'Latest Announcements',
+                announcementsDesc: 'Stay updated with our latest news',
+                announcement1Title: 'v2.0 Released',
+                announcement1Desc: 'Brand new interface design, more query patterns, significant performance improvements.',
+                announcement2Title: 'New User Benefits',
+                announcement2Desc: 'New users get 3-day VIP trial with full feature access.',
+                announcement3Title: 'Maintenance Notice',
+                announcement3Desc: 'Weekly maintenance every Sunday 2:00-4:00 AM, brief service interruption possible.',
+                product: 'Product',
+                support: 'Support',
+                legal: 'Legal',
+                changelog: 'Changelog',
+                faq: 'FAQ',
+                contact: 'Contact',
+                terms: 'Terms',
+                privacy: 'Privacy',
+                footerDesc: 'Professional ENS domain batch query tool for efficient and stable domain investment.',
+                footerKeywords: 'ENS batch domain query tool | web3 domain bulk lookup | ETH domain batch checker | ENS automation toolkit | dynamic RPC auto-switching | web3 utility suite',
+                footerCopyright: '© 2026-present opendogo. All rights reserved.',
+                account: 'Account/Email',
+                accountPlaceholder: 'Enter account or email',
+                username: 'Username',
+                password: 'Password',
+                email: 'Email',
+                confirmPassword: 'Confirm Password',
+                newPassword: 'New Password',
+                usernamePlaceholder: '4-20 alphanumeric characters',
+                passwordPlaceholder: 'At least 6 characters',
+                emailPlaceholder: 'Enter email',
+                confirmPasswordPlaceholder: 'Confirm password',
+                cardKey: 'Access Code',
+                cardKeyPlaceholder: 'Enter access code',
+                verifyCode: 'Verification Code',
+                verifyCodePlaceholder: '6-digit code',
+                getCode: 'Get Code',
+                codeSent: 'Code sent',
+                codeSentTo: 'Verification code sent to email',
+                sendingCode: 'Sending...',
+                resendAfter: 's',
+                invalidEmail: 'Please enter a valid email address',
+                emailRequired: 'Please enter email address first',
+                invalidCode: 'Invalid or expired verification code',
+                verifyCodeRequired: 'Please enter verification code',
+                rememberMe: 'Remember me',
+                forgotPassword: 'Forgot password?',
+                resetPassword: 'Reset Password',
+                backToLogin: 'Back to Login',
+                agreeTerms: 'Agree to',
+                termsOfService: 'Terms of Service',
+                haveAccount: 'Already have an account?',
+                noAccount: 'Don\'t have an account?',
+                loginNow: 'Login now',
+                registerNow: 'Register now',
+                passwordWeak: 'Weak',
+                passwordMedium: 'Medium',
+                passwordStrong: 'Strong',
+                usernameInvalid: 'Username must be 4-20 alphanumeric characters',
+                usernameAvailable: 'Username available',
+                usernameUnavailable: 'Username already taken',
+                passwordMismatch: 'Passwords do not match',
+                loginSuccess: 'Login successful!',
+                loginFailed: 'Login failed',
+                registerSuccess: 'Registration successful! Please login.',
+                registerFailed: 'Registration failed',
+                activateSuccess: 'Access code activated successfully!',
+                activateFailed: 'Activation failed',
+                logoutSuccess: 'Logged out',
+                networkError: 'Network error, please try again later',
+                checking: 'Checking...'
+            }
+        };
+
+        // ========== 全局变量 ==========
+        let currentLang = 'zh';
+        let isLoggedIn = false;
+        let currentUser = null;
+        let countdownTimer = null;
+        let modalCountdownTimer = null;
+        let forgotCountdownTimer = null;
+        let currentVerifyToken = null;
+        let currentVerifyEmail = '';
+        let usernameCheckTimer = null;
+        
+        const API_BASE_URL = 'http://localhost:3000/api/v1';
+
+        // ========== 初始化 ==========
+        document.addEventListener('DOMContentLoaded', () => {
+            initThemeSwitcher();
+            initLanguage();
+            initForms();
+            initFeatures();
+            initAnnouncements();
+            initPasswordStrength();
+            initUsernameCheck();
+            checkAuthStatus();
+        });
+
+        // ========== 主题切换 ==========
+        function initThemeSwitcher() {
+            const media = window.matchMedia('(prefers-color-scheme: dark)');
+            const apply = theme => {
+                document.body.classList.remove('dark-theme');
+                const shouldUseDark = theme === 'dark' || (theme === 'auto' && media.matches);
+                if (shouldUseDark) {
+                    document.body.classList.add('dark-theme');
+                }
+                document.querySelectorAll('.theme-btn').forEach(b => b.classList.toggle('active', b.dataset.theme === theme));
+                localStorage.setItem('ens-tool-theme', theme);
+            };
+            const savedTheme = localStorage.getItem('ens-tool-theme') || 'auto';
+            apply(savedTheme);
+            document.querySelectorAll('.theme-btn').forEach(b => {
+                b.addEventListener('click', () => apply(b.dataset.theme));
+            });
+        }
+
+        // ========== 语言切换 ==========
+        function initLanguage() {
+            const savedLang = localStorage.getItem('ens-tool-language') || 'zh';
+            switchLanguage(savedLang);
+        }
+
+        function switchLanguage(lang) {
+            currentLang = lang;
+            localStorage.setItem('ens-tool-language', lang);
+            
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.lang === lang);
+            });
+            
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.dataset.i18n;
+                if (translations[lang] && translations[lang][key]) {
+                    if (el.tagName === 'INPUT') {
+                        el.placeholder = translations[lang][key];
+                    } else {
+                        el.innerHTML = translations[lang][key];
+                    }
+                }
+            });
+            
+            document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+                const key = el.dataset.i18nPlaceholder;
+                if (translations[lang] && translations[lang][key]) {
+                    el.placeholder = translations[lang][key];
+                }
+            });
+
+            // 重新渲染动态内容
+            initFeatures();
+            initAnnouncements();
+        }
+
+        // ========== 特性卡片 ==========
+        function initFeatures() {
+            const features = [
+                { icon: 'fa-bolt', titleKey: 'feature1Title', descKey: 'feature1Desc' },
+                { icon: 'fa-filter', titleKey: 'feature2Title', descKey: 'feature2Desc' },
+                { icon: 'fa-chart-pie', titleKey: 'feature3Title', descKey: 'feature3Desc' },
+                { icon: 'fa-download', titleKey: 'feature4Title', descKey: 'feature4Desc' },
+                { icon: 'fa-list-ul', titleKey: 'feature5Title', descKey: 'feature5Desc' },
+                { icon: 'fa-redo-alt', titleKey: 'feature6Title', descKey: 'feature6Desc' },
+                { icon: 'fa-satellite-dish', titleKey: 'feature7Title', descKey: 'feature7Desc' },
+                { icon: 'fa-shield-alt', titleKey: 'feature8Title', descKey: 'feature8Desc' }
+            ];
+
+            const grid = document.getElementById('featuresGrid');
+            if (!grid) return;
+
+            grid.innerHTML = features.map(f => `
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas ${f.icon}"></i>
+                    </div>
+                    <h3 data-i18n="${f.titleKey}">${translations[currentLang][f.titleKey]}</h3>
+                    <p data-i18n="${f.descKey}">${translations[currentLang][f.descKey]}</p>
+                </div>
+            `).join('');
+        }
+
+        // ========== 公告 ==========
+        function initAnnouncements() {
+            const announcements = [
+                { icon: 'fa-rocket', type: 'success', titleKey: 'announcement1Title', descKey: 'announcement1Desc', time: '2026-04-15' },
+                { icon: 'fa-gift', type: 'info', titleKey: 'announcement2Title', descKey: 'announcement2Desc', time: '2026-04-10' },
+                { icon: 'fa-tools', type: 'warning', titleKey: 'announcement3Title', descKey: 'announcement3Desc', time: '2026-04-01' }
+            ];
+
+            const list = document.getElementById('announcementList');
+            if (!list) return;
+
+            list.innerHTML = announcements.map(a => `
+                <div class="announcement-item">
+                    <div class="announcement-icon ${a.type}">
+                        <i class="fas ${a.icon}"></i>
+                    </div>
+                    <div class="announcement-content">
+                        <div class="announcement-title">${translations[currentLang][a.titleKey]}</div>
+                        <div class="announcement-desc">${translations[currentLang][a.descKey]}</div>
+                    </div>
+                    <div class="announcement-time">${a.time}</div>
+                </div>
+            `).join('');
+        }
+
+        // ========== 密码强度检测 ==========
+        function initPasswordStrength() {
+            const modalPasswordInput = document.getElementById('modalRegPassword');
+            
+            if (modalPasswordInput) {
+                modalPasswordInput.addEventListener('input', () => checkPasswordStrength(modalPasswordInput.value, 'modalStrengthFill', 'modalStrengthText'));
+            }
+        }
+
+        function checkPasswordStrength(password, fillId, textId) {
+            const fill = document.getElementById(fillId);
+            const text = document.getElementById(textId);
+            if (!fill || !text) return;
+
+            let strength = 0;
+            if (password.length >= 6) strength++;
+            if (password.length >= 8) strength++;
+            if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength++;
+            if (/[0-9]/.test(password)) strength++;
+            if (/[^a-zA-Z0-9]/.test(password)) strength++;
+
+            fill.className = 'strength-fill';
+            if (strength <= 2) {
+                fill.classList.add('weak');
+                text.textContent = translations[currentLang].passwordWeak;
+            } else if (strength <= 4) {
+                fill.classList.add('medium');
+                text.textContent = translations[currentLang].passwordMedium;
+            } else {
+                fill.classList.add('strong');
+                text.textContent = translations[currentLang].passwordStrong;
+            }
+        }
+
+        // ========== 用户名实时检测 ==========
+        function initUsernameCheck() {
+            const usernameInput = document.getElementById('modalRegUsername');
+            if (usernameInput) {
+                usernameInput.addEventListener('input', debounceUsernameCheck);
+            }
+        }
+
+        function debounceUsernameCheck() {
+            if (usernameCheckTimer) clearTimeout(usernameCheckTimer);
+            usernameCheckTimer = setTimeout(() => checkUsername(), 500);
+        }
+
+        async function checkUsername() {
+            const username = document.getElementById('modalRegUsername').value.trim();
+            // 简单验证，不做实时提示
+            if (!username) return;
+            
+            if (!/^[a-zA-Z0-9]{4,20}$/.test(username)) {
+                // 格式不正确
+                return;
+            }
+        }
+
+        // ========== 表单初始化 ==========
+        function initForms() {
+            // 模态框登录
+            document.getElementById('modalLoginForm')?.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const account = document.getElementById('modalLoginAccount').value.trim();
+                const password = document.getElementById('modalLoginPassword').value;
+                const rememberMe = document.getElementById('modalRememberMe').checked;
+                
+                if (!account || !password) {
+                    showToast(translations[currentLang].accountPlaceholder, 'warning');
+                    return;
+                }
+                
+                await handleLogin(account, password, rememberMe);
+                hideModal('loginModal');
+            });
+            
+            // 模态框注册
+            document.getElementById('modalRegisterForm')?.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                await handleRegisterSubmit();
+                hideModal('registerModal');
+            });
+
+            // 模态框激活卡密
+            document.getElementById('modalActivateForm')?.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const cardKey = document.getElementById('modalActivateCardKey').value.trim();
+                
+                if (!cardKey) {
+                    showToast(translations[currentLang].cardKeyPlaceholder, 'warning');
+                    return;
+                }
+                
+                await handleActivate(cardKey);
+                hideModal('activateModal');
+            });
+
+            // 忘记密码表单
+            document.getElementById('forgotPasswordForm')?.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                await handleForgotPasswordSubmit();
+            });
+        }
+
+        async function handleRegisterSubmit() {
+            const username = document.getElementById('modalRegUsername').value.trim();
+            const email = document.getElementById('modalRegEmail').value.trim();
+            const code = document.getElementById('modalRegVerifyCode').value.trim();
+            const password = document.getElementById('modalRegPassword').value;
+            const confirmPassword = document.getElementById('modalRegConfirmPassword').value;
+            const agreeTerms = document.getElementById('modalAgreeTerms').checked;
+            
+            // 验证
+            if (!username || !email || !code || !password) {
+                showToast(translations[currentLang].usernamePlaceholder, 'warning');
+                return;
+            }
+            
+            if (!/^[a-zA-Z0-9]{4,20}$/.test(username)) {
+                showToast(translations[currentLang].usernameInvalid, 'warning');
+                return;
+            }
+            
+            if (!validateEmail(email)) {
+                showToast(translations[currentLang].invalidEmail, 'warning');
+                return;
+            }
+            
+            if (code.length !== 6) {
+                showToast(translations[currentLang].verifyCodeRequired, 'warning');
+                return;
+            }
+            
+            if (password.length < 6) {
+                showToast(translations[currentLang].passwordPlaceholder, 'warning');
+                return;
+            }
+            
+            if (password !== confirmPassword) {
+                showToast(translations[currentLang].passwordMismatch, 'warning');
+                return;
+            }
+            
+            if (!agreeTerms) {
+                showToast(translations[currentLang].agreeTerms, 'warning');
+                return;
+            }
+            
+            try {
+                // 验证验证码
+                const codeValid = await verifyCode(email, code);
+                if (!codeValid) {
+                    showToast(translations[currentLang].invalidCode, 'error');
+                    return;
+                }
+                
+                // 模拟注册成功
+                showToast(translations[currentLang].registerSuccess, 'success');
+                
+                // 清空表单
+                clearRegisterForm();
+                stopCountdown('modal');
+                
+            } catch (error) {
+                showToast(error.message || translations[currentLang].registerFailed, 'error');
+            }
+        }
+
+        function clearRegisterForm() {
+            document.getElementById('modalRegUsername').value = '';
+            document.getElementById('modalRegEmail').value = '';
+            document.getElementById('modalRegVerifyCode').value = '';
+            document.getElementById('modalRegPassword').value = '';
+            document.getElementById('modalRegConfirmPassword').value = '';
+            document.getElementById('modalAgreeTerms').checked = false;
+            document.getElementById('modalStrengthFill').className = 'strength-fill';
+            document.getElementById('modalStrengthText').textContent = '';
+        }
+
+        // ========== 验证码功能 ==========
+        async function sendModalVerifyCode() {
+            await handleSendCode('modalRegEmail', 'modalSendCodeBtn', 'modal');
+        }
+
+        async function sendForgotPasswordCode() {
+            await handleSendCode('forgotEmail', 'forgotSendCodeBtn', 'forgot');
+        }
+
+        async function handleSendCode(emailId, btnId, type) {
+            const emailInput = document.getElementById(emailId);
+            const email = emailInput.value.trim();
+            const sendBtn = document.getElementById(btnId);
+            
+            if (!validateEmail(email)) {
+                showToast(translations[currentLang].invalidEmail, 'warning');
+                emailInput.focus();
+                return;
+            }
+            
+            sendBtn.disabled = true;
+            const btnSpan = sendBtn.querySelector('span');
+            const originalText = btnSpan.textContent;
+            btnSpan.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${translations[currentLang].sendingCode}`;
+            
+            try {
+                // 模拟API调用
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                currentVerifyToken = 'mock_token_' + Date.now();
+                currentVerifyEmail = email;
+                
+                showToast(`${translations[currentLang].codeSentTo}: ${email}`, 'success');
+                
+                startCountdown(sendBtn, 60, type);
+                
+            } catch (error) {
+                showToast(error.message || translations[currentLang].networkError, 'error');
+                sendBtn.disabled = false;
+                btnSpan.textContent = originalText;
+            }
+        }
+
+        function startCountdown(btn, seconds, type) {
+            const timerKey = type === 'modal' ? 'modalCountdownTimer' : 'forgotCountdownTimer';
+            let countdown = seconds;
+            
+            if (window[timerKey]) clearInterval(window[timerKey]);
+            
+            const btnSpan = btn.querySelector('span') || btn;
+            const originalText = translations[currentLang].getCode;
+            
+            const update = () => {
+                if (countdown <= 0) {
+                    clearInterval(window[timerKey]);
+                    window[timerKey] = null;
+                    btn.disabled = false;
+                    btnSpan.innerHTML = originalText;
+                    return;
+                }
+                
+                btnSpan.innerHTML = `${countdown}${translations[currentLang].resendAfter}`;
+                countdown--;
+            };
+            
+            update();
+            window[timerKey] = setInterval(update, 1000);
+        }
+
+        function stopCountdown(prefix) {
+            const timerKey = prefix === 'modal' ? 'modalCountdownTimer' : 'countdownTimer';
+            if (window[timerKey]) {
+                clearInterval(window[timerKey]);
+                window[timerKey] = null;
+            }
+            
+            const btnId = prefix === 'modal' ? 'modalSendCodeBtn' : 'sendCodeBtn';
+            const btn = document.getElementById(btnId);
+            if (btn) {
+                btn.disabled = false;
+                btn.querySelector('span').textContent = translations[currentLang].getCode;
+            }
+        }
+
+        async function verifyCode(email, code) {
+            // 模拟验证
+            await new Promise(r => setTimeout(r, 300));
+            return code.length === 6 && email === currentVerifyEmail;
+        }
+
+        // ========== 忘记密码 ==========
+        function showForgotPasswordModal() {
+            showModal('forgotPasswordModal');
+        }
+
+        async function handleForgotPasswordSubmit() {
+            const email = document.getElementById('forgotEmail').value.trim();
+            const code = document.getElementById('forgotVerifyCode').value.trim();
+            const newPassword = document.getElementById('forgotNewPassword').value;
+            const confirmPassword = document.getElementById('forgotConfirmPassword').value;
+            
+            if (!email || !code || !newPassword) {
+                showToast(translations[currentLang].usernamePlaceholder, 'warning');
+                return;
+            }
+            
+            if (!validateEmail(email)) {
+                showToast(translations[currentLang].invalidEmail, 'warning');
+                return;
+            }
+            
+            if (newPassword.length < 6) {
+                showToast(translations[currentLang].passwordPlaceholder, 'warning');
+                return;
+            }
+            
+            if (newPassword !== confirmPassword) {
+                showToast(translations[currentLang].passwordMismatch, 'warning');
+                return;
+            }
+            
+            try {
+                const codeValid = await verifyCode(email, code);
+                if (!codeValid) {
+                    showToast(translations[currentLang].invalidCode, 'error');
+                    return;
+                }
+                
+                showToast(currentLang === 'zh' ? '密码重置成功！请登录' : 'Password reset successful! Please login.', 'success');
+                hideModal('forgotPasswordModal');
+                showModal('loginModal');
+                
+                // 清空表单
+                document.getElementById('forgotEmail').value = '';
+                document.getElementById('forgotVerifyCode').value = '';
+                document.getElementById('forgotNewPassword').value = '';
+                document.getElementById('forgotConfirmPassword').value = '';
+                
+            } catch (error) {
+                showToast(error.message || translations[currentLang].networkError, 'error');
+            }
+        }
+
+        // ========== 认证处理 ==========
+        async function handleLogin(account, password, rememberMe) {
+            try {
+                // 模拟登录
+                await new Promise(r => setTimeout(r, 800));
+                
+                const mockUser = {
+                    id: 1,
+                    username: account.includes('@') ? account.split('@')[0] : account,
+                    email: account.includes('@') ? account : `${account}@example.com`,
+                    role: account === 'admin' ? 'admin' : 'user'
+                };
+                
+                isLoggedIn = true;
+                currentUser = mockUser;
+                
+                localStorage.setItem('access_token', 'mock_token_' + Date.now());
+                localStorage.setItem('refresh_token', 'mock_refresh_' + Date.now());
+                localStorage.setItem('current_user', JSON.stringify(mockUser));
+                
+                if (rememberMe) {
+                    localStorage.setItem('remember_me', 'true');
+                }
+                
+                updateAuthUI();
+                showToast(translations[currentLang].loginSuccess, 'success');
+                
+                // 清空登录表单
+                document.getElementById('modalLoginAccount').value = '';
+                document.getElementById('modalLoginPassword').value = '';
+                
+            } catch (error) {
+                showToast(error.message || translations[currentLang].loginFailed, 'error');
+            }
+        }
+
+        async function handleActivate(cardKey) {
+            if (!isLoggedIn) {
+                showToast(currentLang === 'zh' ? '请先登录后再激活卡密' : 'Please login first', 'warning');
+                showModal('loginModal');
+                return;
+            }
+            
+            try {
+                await new Promise(r => setTimeout(r, 800));
+                showToast(translations[currentLang].activateSuccess, 'success');
+                document.getElementById('modalActivateCardKey').value = '';
+                await checkAuthStatus();
+            } catch (error) {
+                showToast(error.message || translations[currentLang].activateFailed, 'error');
+            }
+        }
+
+        async function logout() {
+            isLoggedIn = false;
+            currentUser = null;
+            
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+            localStorage.removeItem('current_user');
+            
+            updateAuthUI();
+            showToast(translations[currentLang].logoutSuccess, 'info');
+        }
+
+        async function checkAuthStatus() {
+            const token = localStorage.getItem('access_token');
+            const savedUser = localStorage.getItem('current_user');
+            
+            if (token && savedUser) {
+                try {
+                    isLoggedIn = true;
+                    currentUser = JSON.parse(savedUser);
+                    updateAuthUI();
+                } catch (error) {
+                    localStorage.removeItem('access_token');
+                    localStorage.removeItem('current_user');
+                    updateAuthUI();
+                }
+            } else {
+                updateAuthUI();
+            }
+        }
+
+        function updateAuthUI() {
+            const authButtons = document.getElementById('authButtons');
+            const userMenu = document.getElementById('userMenu');
+            const displayUsername = document.getElementById('displayUsername');
+            const displayEmail = document.getElementById('displayEmail');
+            const adminLink = document.getElementById('adminLink');
+            
+            if (isLoggedIn && currentUser) {
+                authButtons.style.display = 'none';
+                userMenu.style.display = 'block';
+                displayUsername.textContent = currentUser.username;
+                displayEmail.textContent = currentUser.email;
+                
+                if (currentUser.role === 'admin' || currentUser.role === 'super_admin') {
+                    adminLink.style.display = 'flex';
+                }
+            } else {
+                authButtons.style.display = 'flex';
+                userMenu.style.display = 'none';
+            }
+        }
+
+        // ========== 辅助函数 ==========
+        function validateEmail(email) {
+            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+        }
+
+        function showModal(modalId) {
+            document.getElementById(modalId).classList.add('active');
+        }
+
+        function hideModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        function toggleUserMenu() {
+            document.getElementById('userDropdownMenu').classList.toggle('active');
+        }
+
+        function goToApp() {
+            if (isLoggedIn) {
+                window.location.href = 'app.html';
+            } else {
+                showModal('loginModal');
+            }
+        }
+
+        // ========== Toast 提示 ==========
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            
+            const icons = { success: 'fa-check-circle', error: 'fa-exclamation-circle', warning: 'fa-exclamation-triangle', info: 'fa-info-circle' };
+            
+            toast.innerHTML = `
+                <i class="fas ${icons[type]}"></i>
+                <div class="toast-content">${message}</div>
+                <i class="fas fa-times toast-close" onclick="this.parentElement.remove()"></i>
+            `;
+            
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                if (toast.parentElement) {
+                    toast.style.opacity = '0';
+                    setTimeout(() => toast.remove(), 300);
+                }
+            }, 4000);
+        }
+
+        // ========== 事件监听 ==========
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.user-dropdown')) {
+                document.getElementById('userDropdownMenu')?.classList.remove('active');
+            }
+        });
+
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) modal.classList.remove('active');
+            });
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.modal.active').forEach(m => m.classList.remove('active'));
+            }
+        });
+
+        // ========== 暴露全局函数 ==========
+        window.switchLanguage = switchLanguage;
+        window.showModal = showModal;
+        window.hideModal = hideModal;
+        window.toggleUserMenu = toggleUserMenu;
+        window.goToApp = goToApp;
+        window.logout = logout;
+        window.sendModalVerifyCode = sendModalVerifyCode;
+        window.sendForgotPasswordCode = sendForgotPasswordCode;
+        window.showForgotPasswordModal = showForgotPasswordModal;
+    </script>
+</body>
+</html>
