@@ -1,108 +1,255 @@
-import { verifyTOTP } from '../../lib/2fa.js'
-import { createToken, verifyToken, parseAuthHeader } from '../../lib/auth.js'
-import { nanoid } from 'nanoid'
 import { supabase } from '../../lib/supabase.js'
 import { successResponse, errorResponse, handleOptions } from '../../lib/response.js'
 
-// ==================== AUTH 模块 ====================
+// ==================== AUTH 模块 (Supabase Auth) ====================
 
 async function handleLogin(request) {
   try {
-    const { username, password } = await request.json()
+    const { email, password } = await request.json()
 
-    if (!username || !password) {
-      return errorResponse('Username and password are required', 400)
+    if (!email || !password) {
+      return errorResponse('Email and password are required', 400)
     }
 
-    const adminAccount = globalThis.ADMIN_ACCOUNT
-    const adminPassword = globalThis.ADMIN_PASSWORD
+    // 使用 Supabase Auth 登录
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    })
 
-    if (!adminAccount || !adminPassword) {
-      return errorResponse('Admin credentials not configured', 500)
+    if (error) {
+      console.error('Supabase login error:', error.message)
+      return errorResponse(error.message || 'Login failed', 401)
     }
 
-    if (username !== adminAccount || password !== adminPassword) {
-      await supabase.from('operation_logs').insert({
-        action: 'LOGIN_FAILED',
-        details: { username, ip: request.headers.get('x-forwarded-for') },
-        created_at: new Date().toISOString()
-      })
-      return errorResponse('Invalid credentials', 401)
+    const user = data.user
+    const session = data.session
+
+    // 获取用户 profile 信息
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('id, username, email, role, card_key, group_id, status, expires_at, query_count')
+      .eq('id', user.id)
+      .single()
+
+    if (profileError) {
+      console.error('Get profile error:', profileError.message)
     }
 
-    const tempToken = await createToken({
-      username,
-      role: 'pending_2fa',
-      permissions: [],
-      twoFactorVerified: false,
-      temp: true
-    }, '5m')
+    // 检查用户状态
+    if (profile && profile.status === false) {
+      return errorResponse('Account is disabled', 403)
+    }
 
-    return successResponse({ tempToken, requires2FA: true }, 'Credentials verified. Please enter 2FA code.')
+    // 记录登录日志
+    await supabase.from('operation_logs').insert({
+      action: 'USER_LOGIN',
+      user_id: user.id,
+      details: { email, ip: request.headers.get('x-forwarded-for') || 'unknown' },
+      created_at: new Date().toISOString()
+    })
+
+    return successResponse({ 
+      token: session.access_token,
+      refresh_token: session.refresh_token,
+      user: { 
+        id: user.id,
+        username: profile?.username || user.email?.split('@')[0],
+        email: user.email,
+        role: profile?.role || 'user',
+        card_key: profile?.card_key,
+        group_id: profile?.group_id,
+        status: profile?.status,
+        expires_at: profile?.expires_at,
+        query_count: profile?.query_count
+      } 
+    }, 'Login successful')
   } catch (error) {
     console.error('Login error:', error)
     return errorResponse('Internal server error', 500)
   }
 }
 
-async function handleVerify2FA(request) {
+async function handleRegister(request) {
   try {
-    const { tempToken, code } = await request.json()
+    const body = await request.json()
+    const { email, password, username } = body
 
-    if (!tempToken || !code) {
-      return errorResponse('Temporary token and 2FA code are required', 400)
+    if (!email || !password) {
+      return errorResponse('Email and password are required', 400)
     }
 
-    const admin2FASecret = globalThis.ADMIN_2FA_SECRET
-    if (!admin2FASecret) {
-      return errorResponse('2FA is not configured', 400)
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return errorResponse('Invalid email format', 400)
     }
 
-    const isValid = verifyTOTP(admin2FASecret, code)
-    if (!isValid) {
-      return errorResponse('Invalid 2FA code', 401)
+    if (password.length < 6) {
+      return errorResponse('Password must be at least 6 characters', 400)
     }
 
-    const username = globalThis.ADMIN_ACCOUNT
-    const token = await createToken({
-      username,
-      role: 'super_admin',
-      permissions: ['*'],
-      twoFactorVerified: true
+    // 使用 Supabase Auth 注册
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          username: username || email.split('@')[0]
+        }
+      }
     })
 
+    if (error) {
+      console.error('Supabase register error:', error.message)
+      return errorResponse(error.message || 'Registration failed', 400)
+    }
+
+    const user = data.user
+
+    // 记录注册日志
     await supabase.from('operation_logs').insert({
-      action: '2FA_VERIFIED',
-      details: { username, ip: request.headers.get('x-forwarded-for') },
+      action: 'USER_REGISTER',
+      user_id: user.id,
+      details: { email, ip: request.headers.get('x-forwarded-for') || 'unknown' },
       created_at: new Date().toISOString()
     })
 
-    return successResponse({ token, user: { username, role: 'super_admin' } }, '2FA verification successful')
+    return successResponse({ 
+      user: { 
+        id: user.id,
+        email: user.email,
+        username: username || email.split('@')[0]
+      },
+      needsConfirmation: !user.identities || user.identities.length === 0
+    }, 'Registration successful. Please check your email to confirm.')
   } catch (error) {
-    console.error('2FA verification error:', error)
+    console.error('Register error:', error)
     return errorResponse('Internal server error', 500)
   }
 }
 
 async function handleLogout(request) {
+  try {
+    const authHeader = request.headers.get('Authorization')
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.substring(7)
+      // 使 token 失效（可选，取决于具体需求）
+      // await supabase.auth.admin.signOut(token)
+      
+      // 记录登出日志
+      const { data: userData } = await supabase.auth.getUser(token)
+      if (userData?.user) {
+        await supabase.from('operation_logs').insert({
+          action: 'USER_LOGOUT',
+          user_id: userData.user.id,
+          details: { ip: request.headers.get('x-forwarded-for') || 'unknown' },
+          created_at: new Date().toISOString()
+        })
+      }
+    }
+  } catch (error) {
+    console.error('Logout error:', error)
+  }
+  
   return successResponse({}, 'Logout successful')
 }
 
 async function handleMe(request) {
   try {
-    const token = parseAuthHeader(request.headers.get('Authorization'))
-    if (!token) {
+    const authHeader = request.headers.get('Authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return errorResponse('Unauthorized', 401)
     }
 
-    const result = await verifyToken(token)
-    if (!result.valid) {
+    const token = authHeader.substring(7)
+    
+    // 使用 Supabase 验证 token 并获取用户信息
+    const { data: userData, error: userError } = await supabase.auth.getUser(token)
+
+    if (userError || !userData?.user) {
       return errorResponse('Invalid or expired token', 401)
     }
 
-    return successResponse({ user: result.payload })
+    const user = userData.user
+
+    // 从 profiles 表获取最新信息
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('id, username, email, role, card_key, group_id, status, expires_at, query_count, metadata')
+      .eq('id', user.id)
+      .single()
+
+    if (profileError) {
+      console.error('Get profile error:', profileError.message)
+    }
+
+    return successResponse({ 
+      user: {
+        id: user.id,
+        email: user.email,
+        username: profile?.username || user.email?.split('@')[0],
+        role: profile?.role || 'user',
+        card_key: profile?.card_key,
+        group_id: profile?.group_id,
+        status: profile?.status,
+        expires_at: profile?.expires_at,
+        query_count: profile?.query_count,
+        metadata: profile?.metadata
+      }
+    })
   } catch (error) {
     console.error('Get me error:', error)
+    return errorResponse('Internal server error', 500)
+  }
+}
+
+async function handleRefreshToken(request) {
+  try {
+    const { refresh_token } = await request.json()
+
+    if (!refresh_token) {
+      return errorResponse('Refresh token is required', 400)
+    }
+
+    // 使用 Supabase 刷新 token
+    const { data, error } = await supabase.auth.refreshSession({
+      refresh_token
+    })
+
+    if (error) {
+      return errorResponse(error.message || 'Failed to refresh token', 401)
+    }
+
+    return successResponse({
+      token: data.session.access_token,
+      refresh_token: data.session.refresh_token
+    }, 'Token refreshed successfully')
+  } catch (error) {
+    console.error('Refresh token error:', error)
+    return errorResponse('Internal server error', 500)
+  }
+}
+
+async function handleResetPassword(request) {
+  try {
+    const { email } = await request.json()
+
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return errorResponse('Valid email is required', 400)
+    }
+
+    // 使用 Supabase 发送重置密码邮件
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${globalThis.SITE_URL || ''}/reset-password`
+    })
+
+    if (error) {
+      console.error('Reset password error:', error.message)
+      return errorResponse(error.message || 'Failed to send reset email', 500)
+    }
+
+    return successResponse({}, 'Password reset email sent. Please check your inbox.')
+  } catch (error) {
+    console.error('Reset password error:', error)
     return errorResponse('Internal server error', 500)
   }
 }
@@ -399,27 +546,7 @@ async function handleUsersRegister(request) {
       return errorResponse('Password must be at least 6 characters', 400)
     }
 
-    const now = new Date().toISOString()
-    const { data: verifyData, error: verifyError } = await supabase
-      .from('verify_codes')
-      .select('id, email, code, expires_at, used')
-      .eq('email', email)
-      .eq('code', verify_code)
-      .eq('used', false)
-      .gt('expires_at', now)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single()
-
-    if (verifyError || !verifyData) {
-      return errorResponse('Invalid or expired verification code', 400)
-    }
-
-    await supabase
-      .from('verify_codes')
-      .update({ used: true })
-      .eq('id', verifyData.id)
-
+    // 检查用户名或邮箱是否已存在
     const { data: existingUser } = await supabase
       .from('users')
       .select('id')
@@ -429,6 +556,30 @@ async function handleUsersRegister(request) {
 
     if (existingUser) {
       return errorResponse('Username or email already exists', 409)
+    }
+
+    // 验证验证码（如果提供了）
+    if (verify_code) {
+      const now = new Date().toISOString()
+      const { data: verifyData, error: verifyError } = await supabase
+        .from('verify_codes')
+        .select('id, email, code, expires_at, used')
+        .eq('email', email)
+        .eq('code', verify_code)
+        .eq('used', false)
+        .gt('expires_at', now)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single()
+
+      if (verifyError || !verifyData) {
+        return errorResponse('Invalid or expired verification code', 400)
+      }
+
+      await supabase
+        .from('verify_codes')
+        .update({ used: true })
+        .eq('id', verifyData.id)
     }
 
     const cardKey = `ck_${nanoid(32)}`
@@ -503,6 +654,25 @@ async function handleUsersSendVerifyCode(request) {
       return errorResponse('Invalid email format', 400)
     }
     
+    // 检查该邮箱是否已注册
+    const { data: existingUser } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', email)
+      .single()
+    
+    if (existingUser) {
+      return errorResponse('Email already registered', 409)
+    }
+    
+    // 清理过期的验证码
+    const now = new Date().toISOString()
+    await supabase
+      .from('verify_codes')
+      .delete()
+      .eq('email', email)
+      .lt('expires_at', now)
+    
     const verifyCode = Math.floor(100000 + Math.random() * 900000).toString()
     
     const { error } = await supabase
@@ -520,9 +690,15 @@ async function handleUsersSendVerifyCode(request) {
       return errorResponse(`Failed to send code: ${error.message}`, 500)
     }
     
+    // 在实际生产中，这里应该调用邮件服务发送邮件
+    // 目前仅在控制台输出验证码用于测试
     console.log(`Verification code for ${email}: ${verifyCode}`)
     
-    return successResponse({ message: 'Verification code sent. Please check your email.' }, 'Code sent successfully')
+    return successResponse({ 
+      message: 'Verification code sent. Please check your email.',
+      // 开发模式下返回验证码（仅用于测试，生产环境应移除）
+      code: process.env.NODE_ENV === 'development' ? verifyCode : undefined
+    }, 'Code sent successfully')
   } catch (error) {
     console.error('Send verify code error:', error)
     return errorResponse('Internal server error', 500)
@@ -1342,8 +1518,10 @@ export async function POST(request) {
   
   // Auth routes
   if (module === 'auth') {
-    if (action === 'verify-2fa') return handleVerify2FA(request)
     if (action === 'logout') return handleLogout(request)
+    if (action === 'register') return handleRegister(request)
+    if (action === 'refresh') return handleRefreshToken(request)
+    if (action === 'reset-password') return handleResetPassword(request)
     return handleLogin(request)
   }
   
@@ -1565,15 +1743,9 @@ export async function OPTIONS(request) {
 const handler = {
   fetch: async (request, env, ctx) => {
     // Set environment variables from env object
-    globalThis.ADMIN_ACCOUNT = env.ADMIN_ACCOUNT
-    globalThis.ADMIN_PASSWORD = env.ADMIN_PASSWORD
-    globalThis.ADMIN_2FA_SECRET = env.ADMIN_2FA_SECRET
-    globalThis.JWT_SECRET = env.JWT_SECRET
-    globalThis.JWT_EXPIRES_IN = env.JWT_EXPIRES_IN
-    globalThis.ALLOWED_DOMAINS = env.ALLOWED_DOMAINS
-    globalThis.UNAUTHORIZED_REDIRECT_URL = env.UNAUTHORIZED_REDIRECT_URL
     globalThis.SUPABASE_URL = env.SUPABASE_URL
     globalThis.SUPABASE_ANON_KEY = env.SUPABASE_ANON_KEY
+    globalThis.SITE_URL = env.SITE_URL || ''
     
     const method = request.method.toUpperCase()
     

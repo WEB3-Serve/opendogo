@@ -1309,8 +1309,12 @@
 
     <script>
         // ========== Supabase 配置 ==========
-        const SUPABASE_URL = 'https://your-project.supabase.co';
-        const SUPABASE_KEY = 'your-anon-key';
+        // 这些值将由后端通过全局变量提供，无需在前端硬编码
+        const SUPABASE_URL = globalThis?.SUPABASE_URL || window?.SUPABASE_URL || '';
+        const SUPABASE_KEY = globalThis?.SUPABASE_KEY || window?.SUPABASE_KEY || '';
+        
+        // API 基础路径 - 所有请求都通过后端 API 路由
+        const API_BASE = '/api';
         
         // ========== 语言包 ==========
         const translations = {
@@ -2084,15 +2088,14 @@
             try {
                 setLoading(true);
                 
-                // 使用 Supabase Auth API 进行真实登录
-                const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+                // 使用自定义 API 进行登录（支持用户名或邮箱）
+                const response = await fetch(`${API_BASE}/auth/login`, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'apikey': SUPABASE_KEY
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        email: account.includes('@') ? account : `${account}@example.com`,
+                        username: account,
                         password: password
                     })
                 });
@@ -2103,16 +2106,23 @@
                     throw new Error(result.msg || translations[currentLang].loginFailed);
                 }
                 
+                // 检查是否需要 2FA
+                if (result.data?.requires2FA && result.data?.tempToken) {
+                    // 显示 2FA 输入框
+                    hideModal('loginModal');
+                    show2FAModal(result.data.tempToken);
+                    setLoading(false);
+                    return;
+                }
+                
                 // 登录成功，保存 token 和用户信息
                 isLoggedIn = true;
-                currentUser = {
-                    id: result.user?.id,
-                    email: result.user?.email,
-                    username: result.user?.user_metadata?.username || account
+                currentUser = result.data?.user || {
+                    username: account,
+                    role: 'user'
                 };
                 
-                localStorage.setItem('access_token', result.access_token);
-                localStorage.setItem('refresh_token', result.refresh_token);
+                localStorage.setItem('access_token', result.data?.token);
                 localStorage.setItem('current_user', JSON.stringify(currentUser));
                 
                 if (rememberMe) {
@@ -2129,6 +2139,73 @@
             } catch (error) {
                 console.error('Login error:', error);
                 showToast(error.message || translations[currentLang].loginFailed, 'error');
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        // 显示 2FA 模态框
+        function show2FAModal(tempToken) {
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.id = 'twoFactorModal';
+            modal.style.display = 'block';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 400px;">
+                    <h3 data-i18n="enter2FACode">输入 2FA 验证码</h3>
+                    <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
+                    <form onsubmit="handle2FAVerify(event, '${tempToken}')" class="auth-form">
+                        <div class="form-group">
+                            <label>验证码</label>
+                            <input type="text" id="twoFactorCode" placeholder="6 位数字" maxlength="6" pattern="[0-9]{6}" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">验证</button>
+                    </form>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        // 处理 2FA 验证
+        async function handle2FAVerify(event, tempToken) {
+            event.preventDefault();
+            const code = document.getElementById('twoFactorCode').value;
+            
+            try {
+                setLoading(true);
+                
+                const response = await fetch(`${API_BASE}/auth/verify-2fa`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        tempToken: tempToken,
+                        code: code
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(result.msg || '2FA verification failed');
+                }
+                
+                // 保存正式 token
+                isLoggedIn = true;
+                currentUser = result.data?.user || {};
+                localStorage.setItem('access_token', result.data?.token);
+                localStorage.setItem('current_user', JSON.stringify(currentUser));
+                
+                updateAuthUI();
+                showToast('2FA verified successfully', 'success');
+                
+                // 关闭模态框
+                document.getElementById('twoFactorModal')?.remove();
+                
+            } catch (error) {
+                console.error('2FA error:', error);
+                showToast(error.message || '2FA verification failed', 'error');
             } finally {
                 setLoading(false);
             }
