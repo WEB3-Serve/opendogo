@@ -1,5 +1,27 @@
-import { supabase } from '../../lib/supabase.js'
+import { getSupabase } from '../../lib/getSupabase().js'
 import { successResponse, errorResponse } from '../../lib/response.js'
+
+export async function handleCardManagerRequest(request, env) {
+  const url = new URL(request.url)
+  const pathParts = url.pathname.split('/')
+  const action = pathParts[pathParts.length - 1]
+
+  if (request.method === 'POST') {
+    if (action === 'generate') {
+      return await handleGenerateCard(request)
+    } else if (action === 'check') {
+      return await handleCheck(request)
+    }
+  } else if (request.method === 'GET') {
+    if (action === 'list') {
+      return await handleListCards(request)
+    }
+  } else if (request.method === 'OPTIONS') {
+    return handleOptions(request)
+  }
+
+  return errorResponse('Invalid action or method', 400)
+}
 
 // ==================== CARD MANAGERS API ====================
 // Card managers have limited permissions: only generate cards
@@ -14,7 +36,7 @@ async function handleCheck(request) {
     const token = authHeader.substring(7)
     
     // Get user from token
-    const { data: userData, error: userError } = await supabase.auth.getUser(token)
+    const { data: userData, error: userError } = await getSupabase().auth.getUser(token)
     
     if (userError || !userData?.user) {
       return errorResponse('Invalid or expired token', 401)
@@ -64,7 +86,7 @@ async function handleGenerate(request) {
     const token = authHeader.substring(7)
     
     // Get user from token
-    const { data: userData, error: userError } = await supabase.auth.getUser(token)
+    const { data: userData, error: userError } = await getSupabase().auth.getUser(token)
     
     if (userError || !userData?.user) {
       return errorResponse('Invalid or expired token', 401)
@@ -157,7 +179,7 @@ async function handleGenerate(request) {
     }))
 
     // Log the operation
-    await supabase.from('operation_logs').insert({
+    await getSupabase().from('operation_logs').insert({
       user_id: userId,
       action: 'CARD_GENERATE',
       resource: 'card_keys',
@@ -191,7 +213,7 @@ async function handleStats(request) {
     const token = authHeader.substring(7)
     
     // Get user from token
-    const { data: userData, error: userError } = await supabase.auth.getUser(token)
+    const { data: userData, error: userError } = await getSupabase().auth.getUser(token)
     
     if (userError || !userData?.user) {
       return errorResponse('Invalid or expired token', 401)
