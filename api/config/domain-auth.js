@@ -1,5 +1,5 @@
-import { supabase } from '../supabase.js'
-import { successResponse, errorResponse } from './response.js'
+import { supabase } from '../../lib/supabase.js'
+import { successResponse, errorResponse } from '../../lib/response.js'
 
 // 获取所有域名授权配置
 export async function GET() {
