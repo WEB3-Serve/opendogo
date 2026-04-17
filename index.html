@@ -1161,11 +1161,11 @@
             <form class="auth-form" id="modalLoginForm">
                 <div class="form-group">
                     <label data-i18n="account">账号/邮箱</label>
-                    <input type="text" id="modalLoginAccount" placeholder="请输入账号或邮箱">
+                    <input type="text" id="modalLoginAccount" placeholder="请输入账号或邮箱" data-i18n-placeholder="accountPlaceholder">
                 </div>
                 <div class="form-group">
                     <label data-i18n="password">密码</label>
-                    <input type="password" id="modalLoginPassword" placeholder="请输入密码">
+                    <input type="password" id="modalLoginPassword" placeholder="请输入密码" data-i18n-placeholder="passwordPlaceholder">
                 </div>
                 <div class="form-options">
                     <label class="form-check">
@@ -1196,16 +1196,16 @@
             <form class="auth-form" id="modalRegisterForm">
                 <div class="form-group">
                     <label data-i18n="username">账号</label>
-                    <input type="text" id="modalRegUsername" placeholder="4-20位字母数字组合" maxlength="20">
+                    <input type="text" id="modalRegUsername" placeholder="4-20 位字母数字组合" maxlength="20" data-i18n-placeholder="usernamePlaceholder">
                 </div>
                 <div class="form-group">
                     <label data-i18n="email">邮箱</label>
-                    <input type="email" id="modalRegEmail" placeholder="请输入邮箱">
+                    <input type="email" id="modalRegEmail" placeholder="请输入邮箱" data-i18n-placeholder="emailPlaceholder">
                 </div>
                 <div class="form-group">
                     <label data-i18n="verifyCode">验证码</label>
                     <div class="verify-code-row">
-                        <input type="text" id="modalRegVerifyCode" placeholder="6 位验证码" maxlength="6">
+                        <input type="text" id="modalRegVerifyCode" placeholder="6 位验证码" maxlength="6" data-i18n-placeholder="verifyCodePlaceholder">
                         <button type="button" class="btn btn-outline verify-btn" id="modalSendCodeBtn" onclick="sendVerifyCode()">
                             <span data-i18n="getCode">获取验证码</span>
                         </button>
@@ -1213,7 +1213,7 @@
                 </div>
                 <div class="form-group">
                     <label data-i18n="password">密码</label>
-                    <input type="password" id="modalRegPassword" placeholder="至少6位" maxlength="32">
+                    <input type="password" id="modalRegPassword" placeholder="至少 6 位" maxlength="32" data-i18n-placeholder="passwordPlaceholder">
                     <div class="password-strength" id="modalPasswordStrength">
                         <div class="strength-bar">
                             <div class="strength-fill" id="modalStrengthFill"></div>
@@ -1223,7 +1223,7 @@
                 </div>
                 <div class="form-group">
                     <label data-i18n="confirmPassword">确认密码</label>
-                    <input type="password" id="modalRegConfirmPassword" placeholder="再次输入密码" maxlength="32">
+                    <input type="password" id="modalRegConfirmPassword" placeholder="再次输入密码" maxlength="32" data-i18n-placeholder="confirmPasswordPlaceholder">
                 </div>
                 <div class="form-options">
                     <label class="form-check">
@@ -1253,7 +1253,7 @@
             <form class="auth-form" id="modalActivateForm">
                 <div class="form-group">
                     <label data-i18n="cardKey">卡密</label>
-                    <input type="text" id="modalActivateCardKey" placeholder="请输入卡密">
+                    <input type="text" id="modalActivateCardKey" placeholder="请输入卡密" data-i18n-placeholder="cardKeyPlaceholder">
                 </div>
                 <button type="submit" class="btn btn-primary">
                     <i class="fas fa-bolt"></i>
@@ -1277,12 +1277,12 @@
             <form class="auth-form" id="forgotPasswordForm">
                 <div class="form-group">
                     <label data-i18n="email">邮箱</label>
-                    <input type="email" id="forgotEmail" placeholder="请输入注册邮箱">
+                    <input type="email" id="forgotEmail" placeholder="请输入注册邮箱" data-i18n-placeholder="emailPlaceholder">
                 </div>
                 <div class="form-group">
                     <label data-i18n="verifyCode">验证码</label>
                     <div class="verify-code-row">
-                        <input type="text" id="forgotVerifyCode" placeholder="6位验证码" maxlength="6">
+                        <input type="text" id="forgotVerifyCode" placeholder="6 位验证码" maxlength="6" data-i18n-placeholder="verifyCodePlaceholder">
                         <button type="button" class="btn btn-outline verify-btn" id="forgotSendCodeBtn" onclick="sendForgotPasswordCode()">
                             <span data-i18n="getCode">获取验证码</span>
                         </button>
@@ -1290,11 +1290,11 @@
                 </div>
                 <div class="form-group">
                     <label data-i18n="newPassword">新密码</label>
-                    <input type="password" id="forgotNewPassword" placeholder="至少6位" maxlength="32">
+                    <input type="password" id="forgotNewPassword" placeholder="至少 6 位" maxlength="32" data-i18n-placeholder="passwordPlaceholder">
                 </div>
                 <div class="form-group">
                     <label data-i18n="confirmPassword">确认密码</label>
-                    <input type="password" id="forgotConfirmPassword" placeholder="请再次输入密码" maxlength="32">
+                    <input type="password" id="forgotConfirmPassword" placeholder="请再次输入密码" maxlength="32" data-i18n-placeholder="confirmPasswordPlaceholder">
                 </div>
                 <button type="submit" class="btn btn-primary">
                     <i class="fas fa-check"></i>
