@@ -1403,6 +1403,70 @@ export async function GET(request) {
   const url = new URL(request.url)
   const pathParts = url.pathname.split('/').filter(Boolean)
   const module = pathParts[pathParts.length - 2] || 'auth'
+  
+  // 静态文件处理 - 直接返回 HTML 文件内容
+  if (pathParts.length === 1 && (pathParts[0] === 'index.html' || pathParts[0] === 'ens.html')) {
+    const filePath = pathParts[0]
+    try {
+      const fileContent = await globalThis.__STATIC_CONTENT.get(filePath)
+      if (fileContent) {
+        return new Response(fileContent, {
+          headers: { 'Content-Type': 'text/html;charset=UTF-8' }
+        })
+      }
+    } catch (e) {
+      // __STATIC_CONTENT not available, try fallback
+    }
+    // Fallback: read from filesystem
+    try {
+      const fs = await import('node:fs/promises')
+      const pathModule = await import('node:path')
+      const __dirname = pathModule.dirname(new URL(import.meta.url).pathname)
+      const fullPath = pathModule.join(__dirname, '../../', filePath)
+      const fileContent = await fs.readFile(fullPath, 'utf-8')
+      return new Response(fileContent, {
+        headers: { 'Content-Type': 'text/html;charset=UTF-8' }
+      })
+    } catch (e) {
+      // Filesystem not available
+    }
+  }
+  
+  // 根路径返回 index.html
+  if (pathParts.length === 0) {
+    try {
+      const fileContent = await globalThis.__STATIC_CONTENT.get('index.html')
+      if (fileContent) {
+        return new Response(fileContent, {
+          headers: { 
+            'Content-Type': 'text/html;charset=UTF-8',
+            'Cache-Control': 'no-cache'
+          }
+        })
+      }
+    } catch (e) {
+      // __STATIC_CONTENT not available
+    }
+    // 如果无法获取静态文件，读取本地文件作为后备方案
+    try {
+      const fs = await import('node:fs/promises')
+      const pathModule = await import('node:path')
+      const __dirname = pathModule.dirname(new URL(import.meta.url).pathname)
+      const filePath = pathModule.join(__dirname, '../../', 'index.html')
+      const fileContent = await fs.readFile(filePath, 'utf-8')
+      return new Response(fileContent, {
+        headers: { 
+          'Content-Type': 'text/html;charset=UTF-8',
+          'Cache-Control': 'no-cache'
+        }
+      })
+    } catch (e) {
+      // 文件系统不可用，返回简单 HTML
+    }
+    return new Response('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>ENS Manager</title></head><body><h1>ENS Manager</h1><p>API Server Running</p></body></html>', {
+      headers: { 'Content-Type': 'text/html;charset=UTF-8' }
+    })
+  }
   const action = url.searchParams.get('action')
   
   // Auth routes
@@ -1501,11 +1565,15 @@ export async function OPTIONS(request) {
 const handler = {
   fetch: async (request, env, ctx) => {
     // Set environment variables from env object
-    Object.keys(env).forEach(key => {
-      if (!process.env[key]) {
-        process.env[key] = env[key]
-      }
-    })
+    globalThis.ADMIN_ACCOUNT = env.ADMIN_ACCOUNT
+    globalThis.ADMIN_PASSWORD = env.ADMIN_PASSWORD
+    globalThis.ADMIN_2FA_SECRET = env.ADMIN_2FA_SECRET
+    globalThis.JWT_SECRET = env.JWT_SECRET
+    globalThis.JWT_EXPIRES_IN = env.JWT_EXPIRES_IN
+    globalThis.ALLOWED_DOMAINS = env.ALLOWED_DOMAINS
+    globalThis.UNAUTHORIZED_REDIRECT_URL = env.UNAUTHORIZED_REDIRECT_URL
+    globalThis.SUPABASE_URL = env.SUPABASE_URL
+    globalThis.SUPABASE_ANON_KEY = env.SUPABASE_ANON_KEY
     
     const method = request.method.toUpperCase()
     
