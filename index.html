@@ -1800,14 +1800,20 @@
                 sendBtn.disabled = true;
                 sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>发送中...</span>';
                 
-                // 调用发送验证码 API
-                const response = await fetch('/api/users/send-verify-code', {
+                // 调用发送验证码 API - 暂时禁用，需要实现后端 API
+                showToast(currentLang === 'zh' ? '验证码功能暂未实现' : 'Verification code feature not yet implemented', 'warning');
+                sendBtn.disabled = false;
+                sendBtn.innerHTML = `<i class="fas fa-envelope"></i><span data-i18n="sendCode">${currentLang === 'zh' ? '获取验证码' : 'Send Code'}</span>`;
+                return;
+                /*
+                const response = await fetch(`${API_BASE}/auth/send-verify-code`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({ email })
                 });
+                */
                 
                 const result = await response.json();
                 
@@ -1888,8 +1894,8 @@
             try {
                 setLoading(true);
                 
-                // 调用自定义注册 API（包含验证码验证）
-                const response = await fetch('/api/users/register', {
+                // 调用注册 API - 使用正确的路径
+                const response = await fetch(`${API_BASE}/auth/register`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -1897,15 +1903,21 @@
                     body: JSON.stringify({
                         username: username,
                         email: email,
-                        password: password,
-                        verify_code: verifyCode
+                        password: password
+                        // 暂时移除 verify_code，因为后端还没有实现验证码验证
                     })
                 });
+                
+                // 检查响应是否为 HTML（错误页面）
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('text/html')) {
+                    throw new Error(currentLang === 'zh' ? '服务器返回了错误的响应格式' : 'Server returned incorrect response format');
+                }
                 
                 const result = await response.json();
                 
                 if (!response.ok) {
-                    throw new Error(result.msg || translations[currentLang].registerFailed);
+                    throw new Error(result.msg || result.message || translations[currentLang].registerFailed);
                 }
                 
                 showToast(translations[currentLang].registerSuccess + ' ' + (currentLang === 'zh' ? '请检查邮箱验证' : 'Please check your email'), 'success');
@@ -2100,10 +2112,16 @@
                     })
                 });
                 
+                // 检查响应是否为 HTML（错误页面）
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('text/html')) {
+                    throw new Error(currentLang === 'zh' ? '服务器返回了错误的响应格式' : 'Server returned incorrect response format');
+                }
+                
                 const result = await response.json();
                 
                 if (!response.ok) {
-                    throw new Error(result.msg || translations[currentLang].loginFailed);
+                    throw new Error(result.msg || result.message || translations[currentLang].loginFailed);
                 }
                 
                 // 检查是否需要 2FA
@@ -2185,10 +2203,16 @@
                     })
                 });
                 
+                // 检查响应是否为 HTML（错误页面）
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('text/html')) {
+                    throw new Error(currentLang === 'zh' ? '服务器返回了错误的响应格式' : 'Server returned incorrect response format');
+                }
+                
                 const result = await response.json();
                 
                 if (!response.ok) {
-                    throw new Error(result.msg || '2FA verification failed');
+                    throw new Error(result.msg || result.message || '2FA verification failed');
                 }
                 
                 // 保存正式 token
@@ -2358,6 +2382,34 @@
         window.logout = logout;
         window.sendForgotPasswordCode = sendForgotPasswordCode;
         window.showForgotPasswordModal = showForgotPasswordModal;
+
+        // ========== 辅助函数 ==========
+        function setLoading(loading) {
+            const buttons = document.querySelectorAll('.modal .btn-primary[type="submit"]');
+            buttons.forEach(btn => {
+                if (loading) {
+                    btn.disabled = true;
+                    const span = btn.querySelector('span');
+                    if (span) {
+                        span.textContent = currentLang === 'zh' ? '处理中...' : 'Processing...';
+                    }
+                } else {
+                    btn.disabled = false;
+                    // Restore original text based on button context
+                    const modal = btn.closest('.modal');
+                    if (modal) {
+                        const modalId = modal.id;
+                        if (modalId === 'loginModal') {
+                            if (span) span.textContent = translations[currentLang].login;
+                        } else if (modalId === 'registerModal') {
+                            if (span) span.textContent = translations[currentLang].register;
+                        } else if (modalId === 'activateModal') {
+                            if (span) span.textContent = translations[currentLang].activate;
+                        }
+                    }
+                }
+            });
+        }
     </script>
 </body>
 </html>

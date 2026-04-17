@@ -1,5 +1,5 @@
 name = "ens-manager"
-main = "api/auth/index.js"
+main = "index.js"
 compatibility_date = "2024-01-01"
 compatibility_flags = ["nodejs_compat"]
 
@@ -7,7 +7,7 @@ compatibility_flags = ["nodejs_compat"]
 [site]
 bucket = "."
 include = ["**/*.html"]
-exclude = ["node_modules/**", ".git/**", "*.md", "scripts/**", "lib/**", "middleware/**", "api/**", ".dev.vars", ".gitignore", "package*.json", "ARCHITECTURE.md", "README.md"]
+exclude = ["node_modules/**", ".git/**", "*.md", "scripts/**", "lib/**", "middleware/**", ".dev.vars", ".gitignore", "package*.json", "ARCHITECTURE.md", "README.md"]
 
 [[rules]]
 type = "Text"

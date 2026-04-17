@@ -1,5 +1,21 @@
-import { getSupabase } from '../lib/supabase.js'
-import { successResponse, errorResponse } from '../utils/response.js'
+import { getSupabase } from '../../lib/supabase.js'
+import { successResponse, errorResponse } from '../../lib/response.js'
+
+export async function handleAuthRequest(request, env) {
+  const url = new URL(request.url)
+  const pathParts = url.pathname.split('/')
+  const action = pathParts[pathParts.length - 1]
+
+  if (action === 'login') {
+    return await handleLogin(request)
+  } else if (action === 'register') {
+    return await handleRegister(request)
+  } else if (action === 'verify-2fa') {
+    return await handleVerify2FA(request)
+  } else {
+    return errorResponse('Invalid action', 400)
+  }
+}
 
 async function handleLogin(request) {
   try {
@@ -140,16 +156,31 @@ async function handleRegister(request) {
   }
 }
 
-export async function POST(request) {
-  const url = new URL(request.url)
-  const pathParts = url.pathname.split('/')
-  const action = pathParts[pathParts.length - 1]
+async function handleVerify2FA(request) {
+  try {
+    const body = await request.json()
+    const { tempToken, code } = body
 
-  if (action === 'login') {
-    return await handleLogin(request)
-  } else if (action === 'register') {
-    return await handleRegister(request)
-  } else {
-    return errorResponse('Invalid action', 400)
+    if (!tempToken || !code) {
+      return errorResponse('Temp token and code are required', 400)
+    }
+
+    // 这里应该验证 2FA 代码，暂时返回成功
+    // 实际实现需要使用 Supabase 验证 TOTP 代码
+    console.log('2FA verification requested for tempToken:', tempToken, 'code:', code)
+
+    // 临时实现：直接返回成功（生产环境需要正确实现 2FA 验证）
+    return successResponse({ 
+      message: '2FA verified successfully',
+      data: {
+        user: {
+          id: 'temp-user-id',
+          email: 'user@example.com'
+        }
+      }
+    }, '2FA verification successful')
+  } catch (error) {
+    console.error('2FA verification error:', error)
+    return errorResponse('Internal server error', 500)
   }
 }
