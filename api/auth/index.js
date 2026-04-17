@@ -14,8 +14,8 @@ async function handleLogin(request) {
       return errorResponse('Username and password are required', 400)
     }
 
-    const adminAccount = process.env.ADMIN_ACCOUNT
-    const adminPassword = process.env.ADMIN_PASSWORD
+    const adminAccount = globalThis.ADMIN_ACCOUNT
+    const adminPassword = globalThis.ADMIN_PASSWORD
 
     if (!adminAccount || !adminPassword) {
       return errorResponse('Admin credentials not configured', 500)
@@ -53,7 +53,7 @@ async function handleVerify2FA(request) {
       return errorResponse('Temporary token and 2FA code are required', 400)
     }
 
-    const admin2FASecret = process.env.ADMIN_2FA_SECRET
+    const admin2FASecret = globalThis.ADMIN_2FA_SECRET
     if (!admin2FASecret) {
       return errorResponse('2FA is not configured', 400)
     }
@@ -63,7 +63,7 @@ async function handleVerify2FA(request) {
       return errorResponse('Invalid 2FA code', 401)
     }
 
-    const username = process.env.ADMIN_ACCOUNT
+    const username = globalThis.ADMIN_ACCOUNT
     const token = await createToken({
       username,
       role: 'super_admin',
@@ -1198,7 +1198,7 @@ async function handleENSQuery(request) {
         return successResponse({ ...cached, fromCache: true }, 'Retrieved from cache')
       }
 
-      const targetRpcUrl = rpcUrl || process.env.DEFAULT_RPC_URL || 'https://eth.llamarpc.com'
+      const targetRpcUrl = rpcUrl || globalThis.DEFAULT_RPC_URL || 'https://eth.llamarpc.com'
       
       const nodeId = namehash(domain)
       const owner = await queryENSOwner(nodeId, targetRpcUrl)
@@ -1231,7 +1231,7 @@ async function handleENSQuery(request) {
         return errorResponse('Maximum 100 domains per request', 400)
       }
 
-      const targetRpcUrl = rpcUrl || process.env.DEFAULT_RPC_URL || 'https://eth.llamarpc.com'
+      const targetRpcUrl = rpcUrl || globalThis.DEFAULT_RPC_URL || 'https://eth.llamarpc.com'
       const results = []
 
       for (const domain of domains) {
@@ -1498,4 +1498,25 @@ export async function OPTIONS(request) {
   return handleOptions(request)
 }
 
-export default { POST, GET, PUT, DELETE, OPTIONS }
+const handler = {
+  fetch: async (request, env, ctx) => {
+    // Set environment variables from env object
+    Object.keys(env).forEach(key => {
+      if (!process.env[key]) {
+        process.env[key] = env[key]
+      }
+    })
+    
+    const method = request.method.toUpperCase()
+    
+    if (method === 'GET') return GET(request)
+    if (method === 'POST') return POST(request)
+    if (method === 'PUT') return PUT(request)
+    if (method === 'DELETE') return DELETE(request)
+    if (method === 'OPTIONS') return OPTIONS(request)
+    
+    return errorResponse('Method not allowed', 405)
+  }
+}
+
+export default handler
