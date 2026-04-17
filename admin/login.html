@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>管理后台登录 - ENS Manager</title>
+    <title>管理员登录 - ENS Manager</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         * {
@@ -168,31 +168,6 @@
             display: none;
         }
 
-        .step-indicator {
-            display: flex;
-            justify-content: center;
-            gap: 8px;
-            margin-bottom: 24px;
-        }
-
-        .step-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--border);
-            transition: all 0.3s;
-        }
-
-        .step-dot.active {
-            background: var(--primary);
-            width: 24px;
-            border-radius: 4px;
-        }
-
-        .step-dot.completed {
-            background: var(--success);
-        }
-
         .hidden {
             display: none;
         }
@@ -225,32 +200,45 @@
         .security-hint i {
             color: var(--success);
         }
+
+        .role-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: 8px;
+        }
+
+        .role-admin {
+            background: rgba(37, 99, 235, 0.1);
+            color: var(--primary);
+        }
+
+        .role-manager {
+            background: rgba(5, 150, 105, 0.1);
+            color: var(--success);
+        }
     </style>
 </head>
 <body>
     <div class="login-container">
         <div class="logo-section">
             <div class="logo-icon">
-                <i class="fas fa-shield-alt"></i>
+                <i class="fas fa-key"></i>
             </div>
-            <h1>管理后台</h1>
-            <p>ENS Manager Administration</p>
-        </div>
-
-        <div class="step-indicator">
-            <div class="step-dot active" id="step1"></div>
-            <div class="step-dot" id="step2"></div>
+            <h1>管理员登录</h1>
+            <p>卡密管理系统</p>
         </div>
 
         <div class="error-message" id="errorMessage"></div>
 
-        <!-- Step 1: Username & Password -->
         <form id="loginForm" class="fade-in">
             <div class="form-group">
-                <label for="username">账号</label>
+                <label for="email">邮箱</label>
                 <div class="input-wrapper">
-                    <i class="fas fa-user"></i>
-                    <input type="text" id="username" class="form-input" placeholder="请输入管理员账号" required autocomplete="username">
+                    <i class="fas fa-envelope"></i>
+                    <input type="email" id="email" class="form-input" placeholder="请输入管理员邮箱" required autocomplete="email">
                 </div>
             </div>
 
@@ -268,34 +256,10 @@
             </button>
         </form>
 
-        <!-- Step 2: 2FA Code -->
-        <form id="twoFaForm" class="hidden fade-in">
-            <div class="form-group">
-                <label for="twoFaCode">谷歌验证码</label>
-                <div class="input-wrapper">
-                    <i class="fas fa-shield-alt"></i>
-                    <input type="text" id="twoFaCode" class="form-input" placeholder="请输入 6 位验证码" maxlength="6" pattern="[0-9]*" inputmode="numeric" required>
-                </div>
-                <p style="font-size: 12px; color: var(--text-light); margin-top: 8px;">
-                    请打开您的 Google Authenticator 应用查看验证码
-                </p>
-            </div>
-
-            <button type="submit" class="btn" id="verifyBtn">
-                <span>验证并进入</span>
-                <i class="fas fa-check"></i>
-            </button>
-
-            <button type="button" class="btn" style="background: var(--bg); color: var(--text); margin-top: 12px;" onclick="backToStep1()">
-                <i class="fas fa-arrow-left"></i>
-                <span>返回上一步</span>
-            </button>
-        </form>
-
         <div class="security-hint">
             <p>
                 <i class="fas fa-lock"></i>
-                双重安全认证保护您的管理账户
+                仅限管理员和卡密管理员访问
             </p>
             <a href="/index.html" style="display: inline-block; margin-top: 12px; font-size: 13px; color: var(--primary); text-decoration: none;">
                 <i class="fas fa-home"></i>
@@ -306,13 +270,9 @@
 
     <script>
         const API_BASE = '/api'
-        let tempToken = null
 
         const loginForm = document.getElementById('loginForm')
-        const twoFaForm = document.getElementById('twoFaForm')
         const errorMessage = document.getElementById('errorMessage')
-        const step1 = document.getElementById('step1')
-        const step2 = document.getElementById('step2')
 
         function showError(message) {
             errorMessage.textContent = message
@@ -330,32 +290,14 @@
             } else {
                 btn.disabled = false
                 const icon = btn.querySelector('i')
-                icon.className = btn.id === 'submitBtn' ? 'fas fa-arrow-right' : 'fas fa-check'
+                icon.className = 'fas fa-arrow-right'
             }
         }
 
-        function goToStep2() {
-            loginForm.classList.add('hidden')
-            twoFaForm.classList.remove('hidden')
-            step1.classList.remove('active')
-            step1.classList.add('completed')
-            step2.classList.add('active')
-            document.getElementById('twoFaCode').focus()
-        }
-
-        function backToStep1() {
-            twoFaForm.classList.add('hidden')
-            loginForm.classList.remove('hidden')
-            step1.classList.add('active')
-            step1.classList.remove('completed')
-            step2.classList.remove('active')
-            tempToken = null
-        }
-
-        // Step 1: Login with username and password
+        // Login with email and password
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault()
-            const username = document.getElementById('username').value.trim()
+            const email = document.getElementById('email').value.trim()
             const password = document.getElementById('password').value
 
             const btn = document.getElementById('submitBtn')
@@ -365,7 +307,7 @@
                 const response = await fetch(`${API_BASE}/auth/login`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password })
+                    body: JSON.stringify({ email, password })
                 })
 
                 const data = await response.json()
@@ -374,11 +316,44 @@
                     throw new Error(data.message || '登录失败')
                 }
 
-                if (data.data && data.data.tempToken) {
-                    tempToken = data.data.tempToken
-                    goToStep2()
+                // Check if user has admin or card_manager role
+                const user = data.data.user
+                const isAdmin = user.role === 'admin' || user.role === 'super_admin'
+                
+                // Check if user is card manager
+                let isCardManager = false
+                if (!isAdmin) {
+                    try {
+                        const checkResponse = await fetch(`${API_BASE}/card-managers/check`, {
+                            headers: { 'Authorization': `Bearer ${data.data.token}` }
+                        })
+                        if (checkResponse.ok) {
+                            const checkData = await checkResponse.json()
+                            isCardManager = checkData.data?.isManager || false
+                        }
+                    } catch (err) {
+                        console.error('Check card manager error:', err)
+                    }
+                }
+
+                if (!isAdmin && !isCardManager) {
+                    throw new Error('您没有管理员权限，无法访问此系统')
+                }
+
+                // Store token and user info
+                localStorage.setItem('admin_token', data.data.token)
+                localStorage.setItem('admin_user', JSON.stringify({
+                    ...user,
+                    isCardManager
+                }))
+                
+                // Redirect based on role
+                if (isAdmin) {
+                    // Admin can access full dashboard (future feature)
+                    window.location.href = '/admin/dashboard.html'
                 } else {
-                    throw new Error('未收到临时令牌')
+                    // Card manager only has access to card generation
+                    window.location.href = '/admin/dashboard.html'
                 }
             } catch (error) {
                 console.error('Login error:', error)
@@ -387,51 +362,8 @@
             }
         })
 
-        // Step 2: Verify 2FA code
-        twoFaForm.addEventListener('submit', async (e) => {
-            e.preventDefault()
-            const code = document.getElementById('twoFaCode').value.trim()
-
-            if (!/^\d{6}$/.test(code)) {
-                showError('请输入 6 位数字验证码')
-                return
-            }
-
-            const btn = document.getElementById('verifyBtn')
-            setLoading(btn, true)
-
-            try {
-                const response = await fetch(`${API_BASE}/auth/verify-2fa`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ tempToken, code })
-                })
-
-                const data = await response.json()
-
-                if (!response.ok) {
-                    throw new Error(data.message || '验证失败')
-                }
-
-                // Store token
-                if (data.data && data.data.token) {
-                    localStorage.setItem('admin_token', data.data.token)
-                    localStorage.setItem('admin_user', JSON.stringify(data.data.user))
-                    
-                    // Redirect to admin dashboard
-                    window.location.href = '/admin/dashboard.html'
-                } else {
-                    throw new Error('未收到访问令牌')
-                }
-            } catch (error) {
-                console.error('2FA verification error:', error)
-                showError(error.message || '验证失败，请重试')
-                setLoading(btn, false)
-            }
-        })
-
-        // Auto-focus username field
-        document.getElementById('username').focus()
+        // Auto-focus email field
+        document.getElementById('email').focus()
     </script>
 </body>
 </html>
