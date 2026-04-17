@@ -204,6 +204,20 @@ CREATE TABLE IF NOT EXISTS announcements (
 );
 
 -- =====================================================
+-- 16. 验证码表 (verification_codes)
+-- =====================================================
+CREATE TABLE IF NOT EXISTS verification_codes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email VARCHAR(100) NOT NULL UNIQUE,
+  code VARCHAR(6) NOT NULL,
+  is_used BOOLEAN DEFAULT false,
+  expires_at TIMESTAMP NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_verification_codes_email ON verification_codes(email);
+CREATE INDEX IF NOT EXISTS idx_verification_codes_expires ON verification_codes(expires_at);
+
+-- =====================================================
 -- 创建索引 (优化查询性能)
 -- =====================================================
 CREATE INDEX IF NOT EXISTS idx_users_card_key ON users(card_key);
